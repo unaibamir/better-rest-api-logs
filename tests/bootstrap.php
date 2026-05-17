@@ -33,6 +33,11 @@ foreach ( $brl_argv as $brl_i => $brl_arg ) {
 	}
 }
 if ( 'unit' === $brl_suite ) {
+	// Plugin source files guard with `defined('ABSPATH') || exit;`. Unit tests do
+	// not boot WordPress, so define a sentinel ABSPATH here to satisfy the guard
+	// without pulling in WP. The value is unused — only the constant's existence
+	// matters. Integration suite (below) gets the real ABSPATH from wp-phpunit.
+	defined( 'ABSPATH' ) || define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 	return;
 }
 
