@@ -45,7 +45,7 @@ composer ci
 
 ## CI matrix
 
-Pull requests trigger a 16-cell PHPUnit test matrix PHP {7.4, 8.2, 8.3, 8.4} × WP {6.6, 6.7, 6.8, 6.9}, plus separate jobs for PHPCS lint, PHPStan, plugin-check (against the dist zip), and banlist — total ~20 jobs. All must pass.
+Pull requests trigger a 3-cell PHPUnit unit matrix PHP {7.4, 8.3, 8.4} (floor + WP-recommended + ceiling), plus separate jobs for PHPCS lint, PHPStan, banlist, dist zip build, and plugin-check against the dist zip. The plugin's **code-compatibility target** is broader (PHP 7.4 → 8.4 × WP 6.6 → 7.0) — verify locally via DDEV when you touch anything WP-version-sensitive: `ddev config --php-version=X.Y && ddev restart`. Integration tests run locally for now; CI re-expands the matrix at Phase 2+ when DB schema lands.
 
 ## Banlist
 

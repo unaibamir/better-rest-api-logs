@@ -4,7 +4,7 @@
 #
 # Produces release/better-rest-api-logs.zip suitable for plugin-check + (eventually) SVN deploy.
 # Invoked by:
-#   - Plan 06 CI `dist` job (which feeds the artifact into plugin-check)
+#   - CI `dist` job (which feeds the artifact into plugin-check)
 #   - Local developer smoke-tests
 #
 # The script restores dev-deps in the source tree after building, so the working
@@ -21,9 +21,9 @@ rm -rf build release
 mkdir -p "build/${SLUG}" release
 
 # Rsync everything that .distignore does NOT exclude — but force-include
-# composer.json + composer.lock temporarily so `composer install` can run in
-# the build dir. They are stripped after install completes, per STACK.md
-# "What NOT to Use" (composer.json must NOT ship in the WP.org zip).
+# composer.json + composer.lock so `composer install` can run in the build
+# dir, and so the shipped zip has a `composer.json` next to `vendor/`
+# (plugin-check requires it; the Yoast pattern).
 rsync -a \
     --include='/composer.json' \
     --include='/composer.lock' \
@@ -35,8 +35,17 @@ rsync -a \
 # Composer install without dev deps + classmap optimised.
 ( cd "build/${SLUG}" && composer install --no-dev --classmap-authoritative --no-interaction --no-progress --quiet )
 
-# Strip composer.json + composer.lock from the shipped zip per STACK.md "What NOT to Use".
-rm -f "build/${SLUG}/composer.json" "build/${SLUG}/composer.lock"
+# Strip composer.lock from the shipped zip (no value without composer.json's
+# dev section, and plugin-check doesn't need it). Keep composer.json so
+# plugin-check sees vendor/ has a manifest.
+rm -f "build/${SLUG}/composer.lock"
+
+# Strip ALL hidden files/directories from the build tree (plugin-check rejects
+# them: ".gitkeep", ".editorconfig" etc. "Hidden files are not permitted").
+# The .distignore catches most of these, but rsync can resurface them via
+# parent-dir traversal — sweep defensively.
+find "build/${SLUG}" -name '.*' -not -name '.' -not -name '..' -print0 \
+    | xargs -0 rm -rf 2>/dev/null || true
 
 ( cd build && zip -rq "../release/${SLUG}.zip" "${SLUG}" )
 

@@ -38,22 +38,30 @@ define( 'BRL_URL', plugin_dir_url( __FILE__ ) );
 define( 'BRL_BASENAME', plugin_basename( __FILE__ ) );
 
 // Composer classmap autoload — required for every class call site below.
-$brl_autoload = BRL_DIR . 'vendor/autoload.php';
-if ( ! is_readable( $brl_autoload ) ) {
-	add_action(
-		'admin_notices',
-		static function () {
-			echo '<div class="notice notice-error"><p>';
-			echo esc_html__(
-				'Better REST API Logs cannot start: the Composer autoloader is missing. If you installed from git, run `composer install`. If you installed from the WordPress.org zip, please report this as a bug.',
-				'better-rest-api-logs'
-			);
-			echo '</p></div>';
-		}
-	);
+// Wrapped in an IIFE so the autoloader path does not leak as a global.
+$brl_autoload_loaded = ( static function (): bool {
+	$autoload = BRL_DIR . 'vendor/autoload.php';
+	if ( ! is_readable( $autoload ) ) {
+		add_action(
+			'admin_notices',
+			static function () {
+				echo '<div class="notice notice-error"><p>';
+				echo esc_html__(
+					'Better REST API Logs cannot start: the Composer autoloader is missing. If you installed from git, run `composer install`. If you installed from the WordPress.org zip, please report this as a bug.',
+					'better-rest-api-logs'
+				);
+				echo '</p></div>';
+			}
+		);
+		return false;
+	}
+	require_once $autoload;
+	return true;
+} )();
+if ( ! $brl_autoload_loaded ) {
 	return;
 }
-require_once $brl_autoload;
+unset( $brl_autoload_loaded );
 
 // Lifecycle hooks must register BEFORE plugins_loaded fires for the activator/deactivator to bind.
 register_activation_hook( BRL_FILE, [ \BetterRestApiLogs\Activator::class, 'activate' ] );

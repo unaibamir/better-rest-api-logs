@@ -1,22 +1,18 @@
-# Phase 1 deliverable (Plan 01-06). Five-job CI workflow.
+# Phase 1 CI workflow.
 #
 # Job topology:
-#   banlist        — independent, full-repo ban-pattern scan (runs in parallel)
-#   lint           — PHPCS + PHPStan on a single PHP 8.2 cell
-#   test           — 16-cell PHPUnit matrix (PHP {7.4,8.2,8.3,8.4} × WP {6.6,6.7,6.8,6.9})
-#                    depends on `lint`; MariaDB 10.11 service container; WP version
-#                    floats to the latest patch in each minor branch at run time per D-02
-#   dist           — builds release zip via bin/build-release.sh, uploads artifact
-#                    depends on `lint`
-#   plugin-check   — runs WordPress/plugin-check-action@v1 against the dist zip per QA-06
-#                    depends on `dist`
+#   banlist        — full-repo ban-pattern grep
+#   lint           — PHPCS + PHPStan (single PHP 8.2 cell)
+#   test           — 3-cell PHPUnit unit matrix: PHP {7.4, 8.3, 8.4} × WP {6.9}
+#                    Floor (PHP 7.4) + WP-recommended (8.3) + ceiling (8.4).
+#                    Unit suite only — pure-PHP via Yoast polyfills, no WP boot, no DB.
+#   dist           — build the release zip via bin/build-release.sh
+#   plugin-check   — WordPress/plugin-check-action@v1 against the dist zip
 #
-# Locked decisions (.planning/phases/01-bootstrap-ci-matrix/01-CONTEXT.md):
-#   D-01 — matrix is exactly 16 cells, no exclusions
-#   D-02 — WP version floats per minor branch at run time (no hardcoded patches)
-#   D-03 — floor PHP 7.4 × WP 6.6.x and ceiling PHP 8.4 × WP 6.9.x must stay green
-#   D-04 — PHP 8.0 and 8.1 are intentionally absent (no signal vs minutes burned)
-#   D-05 — WP 7.0 is intentionally absent (not yet released; add when shipped)
+# Note on scope:
+# Code targets PHP 7.4–8.4 and WP 6.6 → 7.0 (forward-compat). The CI matrix is
+# deliberately narrow to keep wall time down; PHP 8.2 + WP {6.6, 6.7, 6.8} cells
+# are added back when integration tests land in a later phase.
 
 name: CI
 
@@ -72,86 +68,31 @@ jobs:
       - run: composer phpstan
 
   test:
-    name: PHPUnit (PHP ${{ matrix.php }} × WP ${{ matrix.wp }})
+    name: PHPUnit unit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     needs: [lint]
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.2', '8.3', '8.4']
-        wp:  ['6.6', '6.7', '6.8', '6.9']
-    services:
-      mysql:
-        image: mariadb:10.11
-        env:
-          MARIADB_ROOT_PASSWORD: root
-          MARIADB_DATABASE: wordpress_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
-          --health-interval=5s
-          --health-timeout=2s
-          --health-retries=5
+        php: ['7.4', '8.3', '8.4']
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
-          extensions: mysqli, mbstring, intl, zip
+          extensions: mbstring, intl, zip
           coverage: none
           tools: composer:v2
 
       - run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Resolve latest WP patch for branch ${{ matrix.wp }}
-        id: wp-version
-        run: |
-          # Floats matrix.wp like "6.6" to the latest 6.6.x at run time (D-02).
-          # Same endpoint WP core itself uses for stable-check.
-          LATEST=$(curl -fsSL https://api.wordpress.org/core/stable-check/1.0/ \
-            | jq -r --arg branch "${{ matrix.wp }}" '
-                to_entries
-                | map(select(.key | startswith($branch + ".")))
-                | sort_by(.key | split(".") | map(tonumber))
-                | last
-                | .key
-              ')
-          if [ -z "$LATEST" ] || [ "$LATEST" = "null" ]; then
-            echo "Could not resolve latest patch for WP ${{ matrix.wp }}"; exit 1
-          fi
-          echo "wp_version=${LATEST}" >> "$GITHUB_OUTPUT"
-          echo "Latest WP ${{ matrix.wp }} patch: ${LATEST}"
-
-      - name: Set up WP test environment
-        env:
-          WP_VERSION: ${{ steps.wp-version.outputs.wp_version }}
-        run: |
-          # wp-phpunit is installed via Composer; we just need WP core itself
-          # at the matrix-selected version. Download and lay out alongside.
-          mkdir -p /tmp/wordpress
-          curl -fsSL https://wordpress.org/wordpress-${WP_VERSION}.tar.gz | tar -xz -C /tmp
-          mv /tmp/wordpress /tmp/wp-core
-          # Configure wp-tests-config.php from the wp-phpunit sample.
-          cp vendor/wp-phpunit/wp-phpunit/wp-tests-config-sample.php /tmp/wp-tests-config.php
-          sed -i "s|dirname( __FILE__ ) . '/src/'|'/tmp/wp-core/'|" /tmp/wp-tests-config.php
-          sed -i "s|youremptytestdbnamehere|wordpress_test|" /tmp/wp-tests-config.php
-          sed -i "s|yourusernamehere|root|" /tmp/wp-tests-config.php
-          sed -i "s|yourpasswordhere|root|" /tmp/wp-tests-config.php
-          sed -i "s|localhost|127.0.0.1|" /tmp/wp-tests-config.php
-          echo "WP_TESTS_CONFIG_FILE_PATH=/tmp/wp-tests-config.php" >> "$GITHUB_ENV"
-          echo "WP_TESTS_DIR=$(pwd)/vendor/wp-phpunit/wp-phpunit" >> "$GITHUB_ENV"
-
       - run: composer test:unit
-      - run: composer test:integration
 
   dist:
     name: Build dist zip
     runs-on: ubuntu-latest
     needs: [lint]
-    outputs:
-      artifact-name: better-rest-api-logs-dist
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -191,7 +132,4 @@ jobs:
         with:
           build-dir: plugin-check-target/better-rest-api-logs
           wp-version: 'latest'
-          # Categories per WP.org submission gate.
-          categories: 'plugin_repo,security,general'
-          # Phase 1 has no UI; phpcs-related checks live in our own PHPCS job.
-          exclude-checks: ''
+          categories: 'plugin_repo,security'

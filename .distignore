@@ -1,5 +1,8 @@
 # .distignore — files NOT shipped to WP.org SVN.
 # Per CONTEXT.md BOOT-07 + CLAUDE.md §"Architecture".
+#
+# Note: composer.json IS shipped (so plugin-check sees vendor/ has a manifest).
+# composer.lock is NOT shipped (no value without dev section).
 
 # Dev tooling configs
 /.editorconfig
@@ -7,6 +10,8 @@
 /.gitattributes
 /.distignore
 /.dockerignore
+/.vscode/
+/.idea/
 /phpunit.xml.dist
 /phpunit.xml
 /phpcs.xml.dist
@@ -16,8 +21,7 @@
 /phpstan-baseline.neon
 /.phpcs-cache
 
-# Composer source (only vendor/ ships)
-/composer.json
+# Composer lock (composer.json itself ships — see bin/build-release.sh)
 /composer.lock
 
 # Repo-only directories
@@ -33,16 +37,21 @@
 /release/
 /stubs/
 /node_modules/
+/wp/
 
 # Markdown — only readme.txt ships; everything else stays in repo
 *.md
 !readme.txt
 
-# Editor / OS detritus
+# Hidden files — plugin-check rejects them in dist ("Hidden files are not permitted")
+# `find -name '.*'` in bin/build-release.sh sweeps the build tree, but listing
+# common ones here too for clarity / SVN-deploy actions that read .distignore.
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
+.gitkeep
+**/.gitkeep
 
 # Caches
 .phpunit.result.cache

@@ -33,7 +33,9 @@ final class Plugin {
 		}
 		$this->booted = true;
 
-		( new I18n() )->register();
+		// Translations: WP auto-loads them for plugins hosted on WordPress.org
+		// since WP 4.6, and the manual loader was discouraged in 6.7+. No call
+		// needed — the Text Domain header in better-rest-api-logs.php is enough.
 
 		// Phase 2+ will resolve and register Hooks via the container here.
 	}

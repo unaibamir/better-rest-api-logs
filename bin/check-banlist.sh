@@ -28,7 +28,8 @@ if [ "$MODE" = "staged" ]; then
         exit 0
     fi
 else
-    # Full-repo scan — exclude vendor, node_modules, build dirs, planning dirs.
+    # Full-repo scan — exclude vendor, node_modules, build dirs, planning dirs,
+    # and any local DDEV WordPress install at ./wp/ (host WP core, not plugin source).
     FILES=$(find . -type f -name '*.php' \
         -not -path './vendor/*' \
         -not -path './node_modules/*' \
@@ -38,6 +39,7 @@ else
         -not -path './.claude/*' \
         -not -path './.git/*' \
         -not -path './.ddev/*' \
+        -not -path './wp/*' \
         || true)
 fi
 
