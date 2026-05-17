@@ -29,9 +29,14 @@ fi
 # Run unit suite with coverage-text. Let it fail silently — we parse output either way.
 COVERAGE_OUTPUT=$(vendor/bin/phpunit --testsuite=unit --coverage-text 2>&1 || true)
 
-# Parse the first "Lines:  XX.XX%" line.
-LINE_PCT=$(echo "$COVERAGE_OUTPUT" \
-    | grep -E '^[[:space:]]*Lines:' \
+# PHPUnit emits ANSI colour codes in coverage-text output even when stdout is
+# not a TTY; strip them before grepping. Pattern matches CSI sequences like
+# `^[[1;37;40m` and `^[[0m`.
+COVERAGE_STRIPPED=$(echo "$COVERAGE_OUTPUT" | sed -E $'s/\033\\[[0-9;]*m//g')
+
+# Parse the first "Lines:  XX.XX%" summary line (skip per-class breakdown).
+LINE_PCT=$(echo "$COVERAGE_STRIPPED" \
+    | grep -E '^[[:space:]]*Lines:[[:space:]]+[0-9.]+%' \
     | head -n1 \
     | sed -E 's/.*Lines:[[:space:]]*([0-9.]+)%.*/\1/')
 
