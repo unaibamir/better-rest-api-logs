@@ -69,11 +69,21 @@ unset( $brl_autoload_loaded );
 register_activation_hook( BRL_FILE, [ \BetterRestApiLogs\Activator::class, 'activate' ] );
 register_deactivation_hook( BRL_FILE, [ \BetterRestApiLogs\Deactivator::class, 'deactivate' ] );
 
-// Boot.
+// Schema version-mismatch trigger — must run BEFORE Plugin::boot so tables exist
+// when Phase 3+ hooks resolve. Priority 0 keeps it ahead of every other plugins_loaded
+// listener including our own boot() at priority 10. Per CONTEXT D-12.
+add_action(
+	'plugins_loaded',
+	[ \BetterRestApiLogs\DB\Schema::class, 'maybe_install_or_upgrade' ],
+	0
+);
+
+// Boot — priority 10 (WP default) so Schema p0 finishes first. Phase 1 had this at
+// priority 0 which contradicted CONTEXT.md "Integration Points"; Plan 02-07 corrects it.
 add_action(
 	'plugins_loaded',
 	static function () {
 		\BetterRestApiLogs\Plugin::instance()->boot();
 	},
-	0
+	10
 );
