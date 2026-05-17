@@ -83,4 +83,23 @@
     <rule ref="WordPress.WP.GlobalVariablesOverride">
         <exclude-pattern>tests/*</exclude-pattern>
     </rule>
+    <!-- PHPUnit / Yoast polyfills convention is PascalCase filenames (ExampleTest.php,
+         ActivationTest.php). Kebab-case slug rule applies to plugin source, not tests. -->
+    <rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- Test classes are internal; no @since / public-API docblock burden. -->
+    <rule ref="Squiz.Commenting.ClassComment.Missing">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- Tests reference WP core constants (WP_UNINSTALL_PLUGIN, WP_TESTS_*); we're
+         the consumer, not the definer. The prefix sniff doesn't fit test bootstrap. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- Test bootstrap uses fwrite(STDERR) to surface missing wp-phpunit; WP_Filesystem
+         isn't booted yet at this point. -->
+    <rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
+        <exclude-pattern>tests/bootstrap.php</exclude-pattern>
+    </rule>
 </ruleset>
