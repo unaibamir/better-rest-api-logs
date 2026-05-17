@@ -83,6 +83,17 @@
     <rule ref="WordPress.WP.GlobalVariablesOverride">
         <exclude-pattern>tests/*</exclude-pattern>
     </rule>
+    <!-- Integration tests build identifiers from the Database accessor (whose only
+         job is to return `$wpdb->prefix . 'brl_*'`) and pass them straight to
+         $wpdb->query/get_var. That IS the STOR-04 contract — no user input ever
+         reaches these strings. The PreparedSQL sniff cannot tell the difference
+         between user input and a controlled literal composer; skip in tests. -->
+    <rule ref="WordPress.DB.PreparedSQL.NotPrepared">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.DB.PreparedSQL.InterpolatedNotPrepared">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
     <!-- PHPUnit / Yoast polyfills convention is PascalCase filenames (ExampleTest.php,
          ActivationTest.php). Kebab-case slug rule applies to plugin source, not tests. -->
     <rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
