@@ -19,17 +19,20 @@ defined( 'ABSPATH' ) || exit;
  *  - Three public instance methods, NOT static — Registry constructor-injects.
  *  - Byte-faithful: no transformation, no overlay, no defaults — Registry
  *    handles overlay; Repository just delegates.
- *  - Methods MUST NOT be `final` so the in-test InMemoryRepository can
- *    override them. The class itself is `final` — subclasses of a final
- *    class are forbidden, but extending it via subclassing IS allowed
- *    while the class is non-final. Tests subclass; production never does.
+ *  - Class is NOT `final` so the in-test InMemoryRepository can subclass
+ *    and override each method. The CLAUDE.md "final by default" convention
+ *    explicitly carves out classes whose extension is part of a documented
+ *    API — the test seam is that documented extension point. Production
+ *    code MUST NOT subclass; if a second concrete backend ever appears,
+ *    extract an interface at that point (per CLAUDE.md "no interfaces
+ *    until ≥2 concrete implementations").
  *
  * Note on autoload mutation: WP's `update_option` cannot change the autoload
  * column once set. If a future migration needs to flip an option from
  * autoload=yes to autoload=no it must `delete_option` then `add_option`
  * with the new flag. That dance lives in migration code, not here.
  */
-final class Repository {
+class Repository {
 
 	/**
 	 * @param  string $name     Option name.

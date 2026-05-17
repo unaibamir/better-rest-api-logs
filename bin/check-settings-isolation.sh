@@ -5,6 +5,9 @@
 #   - includes/settings/        (the Registry + Repository + Defaults + Internal)
 #   - includes/activator.php    (seeds defaults at activation; no Registry yet)
 #   - includes/deactivator.php  (clears scheduled hook; may touch brl_* options)
+#   - includes/db/schema.php    (Schema-broken latch writes brl_internal directly
+#                                — runs at plugins_loaded@0, before Registry
+#                                exists; STATE.md decision Plan 02-04)
 #   - uninstall.php             (cannot autoload Registry)
 #
 # Second invariant: at least 2 distinct `register_setting('brl_settings_*'...)`
@@ -58,6 +61,7 @@ RAW_HITS=$(echo "$FILES" \
     | grep -v '^\./includes/settings/' \
     | grep -v '^\./includes/activator\.php$' \
     | grep -v '^\./includes/deactivator\.php$' \
+    | grep -v '^\./includes/db/schema\.php$' \
     | grep -v '^\./uninstall\.php$' \
     | grep -v '^\./tests/' \
     | grep -v 'check-settings-isolation\.sh' \

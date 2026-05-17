@@ -104,6 +104,9 @@ final class Defaults {
 			\add_option( "brl_settings_{$tab}", self::for_tab( $tab ) );
 		}
 		// 4th-arg `false` = autoload=no on the brl_internal row (Pitfall 4).
+		// WP 6.6+ canonicalises bool false to the literal 'off' in the autoload
+		// column; pre-6.6 stored 'no'. Both mean "do not autoload". The test
+		// SettingsAutoloadTest accepts either marker.
 		\add_option( 'brl_internal', Internal::defaults(), '', false );
 	}
 }

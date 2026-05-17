@@ -45,31 +45,53 @@ final class SettingsAutoloadTest extends WP_UnitTestCase {
 		return null === $row ? null : (string) $row;
 	}
 
+	/**
+	 * WP 6.6+ widened the autoload column. Per wp_determine_option_autoload_value:
+	 *   - 'no' / 'off' / bool false  -> stored as 'off' (explicit no-autoload)
+	 *   - 'yes' / 'on' / bool true   -> stored as 'on'  (explicit autoload)
+	 *   - null / unrecognised        -> heuristic 'auto'|'auto-on'|'auto-off'
+	 * Pre-6.6 stored the literal 'no'/'yes' markers. Plugin's WP floor is 6.4
+	 * so tests must accept either generation's canonical "off" / "on" value.
+	 */
+	private const AUTOLOAD_OFF_VALUES = array( 'no', 'off' );
+	private const AUTOLOAD_ON_VALUES  = array( 'yes', 'on', 'auto-on', 'auto' );
+
 	public function test_brl_internal_is_not_autoloaded(): void {
 		Activator::activate();
 
-		$this->assertSame(
-			'no',
+		$this->assertContains(
 			$this->autoload_for( 'brl_internal' ),
-			'Pitfall 4: brl_internal must be autoload=no — migration state can grow large.'
+			self::AUTOLOAD_OFF_VALUES,
+			'Pitfall 4: brl_internal must be non-autoloaded — migration state can grow large.'
 		);
 	}
 
 	public function test_brl_db_version_is_autoloaded(): void {
 		Activator::activate();
 
-		$this->assertNotSame( 'no', $this->autoload_for( 'brl_db_version' ) );
+		$this->assertNotContains(
+			$this->autoload_for( 'brl_db_version' ),
+			self::AUTOLOAD_OFF_VALUES,
+			'brl_db_version must autoload — boot-critical option read on every page load.'
+		);
 	}
 
 	public function test_brl_settings_capture_is_autoloaded(): void {
 		Activator::activate();
 
-		$this->assertNotSame( 'no', $this->autoload_for( 'brl_settings_capture' ) );
+		$this->assertNotContains(
+			$this->autoload_for( 'brl_settings_capture' ),
+			self::AUTOLOAD_OFF_VALUES,
+			'Per-tab settings must autoload — Registry reads them on every admin page.'
+		);
 	}
 
 	public function test_brl_settings_privacy_is_autoloaded(): void {
 		Activator::activate();
 
-		$this->assertNotSame( 'no', $this->autoload_for( 'brl_settings_privacy' ) );
+		$this->assertNotContains(
+			$this->autoload_for( 'brl_settings_privacy' ),
+			self::AUTOLOAD_OFF_VALUES
+		);
 	}
 }
