@@ -1,0 +1,25 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 6
+    phpVersion: 70400
+    paths:
+        - better-rest-api-logs.php
+        - uninstall.php
+        - includes/
+    excludePaths:
+        analyse:
+            - vendor/
+            - tests/
+            - node_modules/
+            - build/
+            - release/
+            - .planning/
+            - .claude/
+    bootstrapFiles:
+        - stubs/wp-cli.stub.php
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    # Future: baseline file for legacy code paths.
+    # baseline: phpstan-baseline.neon

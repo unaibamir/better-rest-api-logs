@@ -1,0 +1,29 @@
+# Exclude dev files from `git archive` (a fallback for non-Composer builds).
+/.editorconfig    export-ignore
+/.gitignore       export-ignore
+/.gitattributes   export-ignore
+/.distignore      export-ignore
+/.github/         export-ignore
+/.githooks/       export-ignore
+/.ddev/           export-ignore
+/.planning/       export-ignore
+/.claude/         export-ignore
+/CLAUDE.md        export-ignore
+/composer.lock    export-ignore
+/composer.json    export-ignore
+/phpunit.xml.dist export-ignore
+/phpcs.xml.dist   export-ignore
+/phpstan.neon.dist export-ignore
+/phpstan-baseline.neon export-ignore
+/tests/           export-ignore
+/bin/             export-ignore
+/docs/            export-ignore
+/stubs/           export-ignore
+
+# Force LF on text files (cross-platform contributors).
+*.php   text eol=lf
+*.sh    text eol=lf
+*.yml   text eol=lf
+*.xml   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
