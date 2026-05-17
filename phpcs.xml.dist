@@ -102,4 +102,10 @@
     <rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
         <exclude-pattern>tests/bootstrap.php</exclude-pattern>
     </rule>
+    <!-- Test fixtures (in-memory Repository test doubles) mirror WP option-API
+         signatures including `$default` — the WPCS keyword warning is for new
+         production APIs, not for test doubles that must match an existing shape. -->
+    <rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
 </ruleset>
