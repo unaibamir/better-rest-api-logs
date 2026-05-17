@@ -1,0 +1,3 @@
+# Overlay: PHP 7.4. Activate with `ddev config --php-version=7.4 && ddev restart`,
+# or by copying this over .ddev/config.yaml.
+php_version: "7.4"

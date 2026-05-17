@@ -1,0 +1,16 @@
+name: better-rest-api-logs
+type: wordpress
+docroot: wp
+php_version: "8.2"
+webserver_type: nginx-fpm
+database:
+  type: mariadb
+  version: "10.11"
+xdebug_enabled: false
+composer_version: "2"
+nodejs_version: "20"
+disable_settings_management: false
+use_dns_when_possible: true
+web_environment:
+  - WP_DEBUG=true
+  - WP_DEBUG_LOG=true
