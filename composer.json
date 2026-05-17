@@ -60,11 +60,18 @@
         "test:coverage": "phpunit --coverage-html=build/coverage",
         "pot": "wp i18n make-pot . languages/better-rest-api-logs.pot --slug=better-rest-api-logs --domain=better-rest-api-logs --exclude=tests,bin,.ddev,.planning,.githooks,.wordpress-org,docs",
         "banlist": "bin/check-banlist.sh",
+        "check:table-naming": "bin/check-table-naming.sh",
+        "check:settings-isolation": "bin/check-settings-isolation.sh",
+        "test:unit:coverage-check": "bin/check-coverage.sh 80",
+        "coverage": "bin/check-coverage.sh 80",
         "ci": [
             "@phpcs",
             "@phpstan",
             "@banlist",
-            "@test"
+            "@check:table-naming",
+            "@check:settings-isolation",
+            "@test",
+            "@test:unit:coverage-check"
         ]
     },
     "minimum-stability": "stable",
