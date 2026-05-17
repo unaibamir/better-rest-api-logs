@@ -38,6 +38,31 @@ if ( 'unit' === $brl_suite ) {
 	// without pulling in WP. The value is unused — only the constant's existence
 	// matters. Integration suite (below) gets the real ABSPATH from wp-phpunit.
 	defined( 'ABSPATH' ) || define( 'ABSPATH', dirname( __DIR__ ) . '/' );
+
+	// Minimal WP-function shims for unit-tested source that calls a few
+	// boundary sanitizers (Settings\Registry's per-tab sanitize_* methods).
+	// The integration suite gets the real WP versions from wp-phpunit; these
+	// shims are only active when the unit suite runs without a WP boot.
+	// PHPCS suppressions are scoped: these MUST be the WP function names
+	// (we're duck-typing core), and strip_tags is fine here because
+	// wp_strip_all_tags isn't loaded in the unit suite either.
+	// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	// phpcs:disable WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
+	if ( ! function_exists( 'absint' ) ) {
+		function absint( $maybeint ): int {
+			return abs( (int) $maybeint );
+		}
+	}
+	if ( ! function_exists( 'sanitize_text_field' ) ) {
+		function sanitize_text_field( $str ): string {
+			$str = (string) $str;
+			$str = strip_tags( $str );
+			$str = preg_replace( '/[\r\n\t ]+/', ' ', $str );
+			return trim( (string) $str );
+		}
+	}
+	// phpcs:enable WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
+	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	return;
 }
 
