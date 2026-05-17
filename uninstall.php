@@ -42,8 +42,14 @@ if ( ! get_option( 'brl_settings_delete_on_uninstall' ) ) {
 	// Delete all brl_* options.
 	$option_keys = [
 		'brl_db_version',
-		'brl_settings',
+		'brl_settings',          // Phase 1 legacy — one-cycle safety net; no-op if absent.
 		'brl_internal',
+		// Phase 2 per-tab options.
+		'brl_settings_capture',
+		'brl_settings_privacy',
+		'brl_settings_retention',
+		'brl_settings_network',
+		'brl_settings_advanced',
 	];
 	foreach ( $option_keys as $key ) {
 		delete_option( $key );
