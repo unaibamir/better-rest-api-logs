@@ -26,7 +26,7 @@ final class Container {
 			return $this->shared[ $id ];
 		}
 		if ( ! isset( $this->factories[ $id ] ) ) {
-			throw new \RuntimeException( esc_html( "No factory registered for {$id}" ) );
+			throw new \RuntimeException( \esc_html( "No factory registered for {$id}" ) );
 		}
 		$instance            = ( $this->factories[ $id ] )( $this );
 		$this->shared[ $id ] = $instance;

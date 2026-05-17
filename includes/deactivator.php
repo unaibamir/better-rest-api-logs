@@ -15,6 +15,6 @@ final class Deactivator {
 	public static function deactivate(): void {
 		// Clear all scheduled events we may have registered. Safe to call even if
 		// no event is currently scheduled.
-		wp_clear_scheduled_hook( 'brl_purge_tick' );
+		\wp_clear_scheduled_hook( 'brl_purge_tick' );
 	}
 }
