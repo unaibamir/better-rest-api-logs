@@ -86,7 +86,7 @@ final class Entry {
 	/**
 	 * Serialise to an associative array keyed by `brl_logs` column name.
 	 *
-	 * Booleans are cast to 1/0 so callers can hand the array straight to `$wpdb`.
+	 * Booleans are cast to 1/0 so callers can hand the array straight to the DB layer.
 	 * `id` is intentionally omitted — INSERT assigns it; UPDATE callers add their
 	 * own where clause.
 	 *
