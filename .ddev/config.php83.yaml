@@ -1,3 +1,0 @@
-# Overlay: PHP 8.3. Activate with `ddev config --php-version=8.3 && ddev restart`,
-# or by copying this over .ddev/config.yaml.
-php_version: "8.3"

@@ -4,7 +4,7 @@
 
 1. Clone the repo: `git clone https://github.com/unaibamir/better-rest-api-logs.git`
 2. `composer install` (installs dev dependencies and generates the classmap autoloader).
-3. `ddev start && ddev wp core install --url='https://better-rest-api-logs.ddev.site' --title='Dev' --admin_user=admin --admin_password=admin --admin_email=admin@example.test`
+3. `ddev start && ddev wp core install --url='https://better-rest-api-logs-gsd.ddev.site' --title='Dev' --admin_user=admin --admin_password=admin --admin_email=admin@example.test`
 4. Symlink the plugin into the DDEV WordPress install. Phase 1 ships the bare DDEV config; a future phase may add a `post-start` hook to automate the symlink.
 
 ## Pre-commit hooks (optional but recommended)

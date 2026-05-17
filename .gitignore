@@ -41,3 +41,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# DDEV WordPress install (./wp/ is the docroot — host WP core downloaded by
+# `ddev wp core download`; never tracked, not plugin source)
+/wp/
