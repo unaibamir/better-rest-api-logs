@@ -1,6 +1,3 @@
-includes:
-    - vendor/szepeviktor/phpstan-wordpress/extension.neon
-
 parameters:
     level: 6
     phpVersion: 70400
@@ -11,14 +8,15 @@ parameters:
     excludePaths:
         analyse:
             - vendor/
-            - tests/
-            - node_modules/
-            - build/
-            - release/
-            - .planning/
-            - .claude/
+            - tests/ (?)
+            - node_modules/ (?)
+            - build/ (?)
+            - release/ (?)
+            - .planning/ (?)
+            - .claude/ (?)
     bootstrapFiles:
         - stubs/wp-cli.stub.php
+        - stubs/brl-constants.stub.php
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
     # Future: baseline file for legacy code paths.
