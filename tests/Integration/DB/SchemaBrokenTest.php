@@ -21,11 +21,20 @@ final class SchemaBrokenTest extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		\remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
+		\remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 		global $wpdb;
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
 		\delete_option( 'brl_db_version' );
 		\delete_option( 'brl_internal' );
+	}
+
+	public function tear_down(): void {
+		global $wpdb;
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
+		parent::tear_down();
 	}
 
 	public function test_smoke_check_failure_sets_schema_broken_flag(): void {

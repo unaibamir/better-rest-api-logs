@@ -8,6 +8,9 @@ namespace {
 	if ( ! defined( 'BRL_VERSION' ) ) {
 		define( 'BRL_VERSION', '1.0.0' );
 	}
+	if ( ! defined( 'BRL_DB_VERSION' ) ) {
+		define( 'BRL_DB_VERSION', '2.0' );
+	}
 	if ( ! defined( 'BRL_FILE' ) ) {
 		define( 'BRL_FILE', '' );
 	}

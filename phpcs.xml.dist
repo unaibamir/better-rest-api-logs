@@ -17,6 +17,12 @@
     <exclude-pattern>.ddev/*</exclude-pattern>
     <exclude-pattern>build/*</exclude-pattern>
     <exclude-pattern>release/*</exclude-pattern>
+    <!-- wp-tests-config.php is a wp-phpunit handshake file (NOT shipped); defining
+         WP core constants like ABSPATH/DB_NAME is its entire purpose. -->
+    <exclude-pattern>wp-tests-config.php</exclude-pattern>
+    <!-- stubs/ holds PHPStan-only constant declarations for the global namespace;
+         file naming + curly-brace namespace are part of the stub format. -->
+    <exclude-pattern>stubs/*</exclude-pattern>
 
     <arg name="extensions" value="php"/>
     <arg name="colors"/>

@@ -32,6 +32,8 @@ defined( 'ABSPATH' ) || exit;
 
 // Constants — single place where filesystem identity is decided.
 define( 'BRL_VERSION', '1.0.0' );
+// Schema version — bumped on schema-changing phases per CONTEXT D-14.
+define( 'BRL_DB_VERSION', '2.0' );
 define( 'BRL_FILE', __FILE__ );
 define( 'BRL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BRL_URL', plugin_dir_url( __FILE__ ) );

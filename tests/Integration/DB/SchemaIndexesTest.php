@@ -20,10 +20,22 @@ final class SchemaIndexesTest extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		// Opt out of WP_UnitTestCase TEMPORARY TABLE rewriting so SHOW INDEX
+		// (which still works on temp tables) and SHOW TABLES LIKE (which doesn't)
+		// both see our schema.
+		\remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
+		\remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 		global $wpdb;
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
 		\delete_option( 'brl_db_version' );
+	}
+
+	public function tear_down(): void {
+		global $wpdb;
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
+		parent::tear_down();
 	}
 
 	/**

@@ -20,6 +20,7 @@
 /phpstan.neon
 /phpstan-baseline.neon
 /.phpcs-cache
+/wp-tests-config.php
 
 # Composer lock (composer.json itself ships — see bin/build-release.sh)
 /composer.lock

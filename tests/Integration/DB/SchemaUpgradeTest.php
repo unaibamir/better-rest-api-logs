@@ -21,6 +21,8 @@ final class SchemaUpgradeTest extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		\remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
+		\remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 		global $wpdb;
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
@@ -30,6 +32,9 @@ final class SchemaUpgradeTest extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
+		global $wpdb;
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
 		$this->reset_schema_static_cache();
 		parent::tear_down();
 	}

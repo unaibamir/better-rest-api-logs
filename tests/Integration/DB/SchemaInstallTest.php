@@ -21,10 +21,23 @@ final class SchemaInstallTest extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		// WP_UnitTestCase wraps every CREATE TABLE in a `query` filter that
+		// rewrites it to `CREATE TEMPORARY TABLE`. Temporary tables are invisible
+		// to `SHOW TABLES LIKE` (the existence probe we assert against), so our
+		// custom-table install must opt out for the duration of these tests.
+		\remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
+		\remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 		global $wpdb;
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
 		\delete_option( 'brl_db_version' );
+	}
+
+	public function tear_down(): void {
+		global $wpdb;
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
+		parent::tear_down();
 	}
 
 	public function test_install_creates_both_tables(): void {
