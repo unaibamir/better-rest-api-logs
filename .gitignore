@@ -1,0 +1,37 @@
+# OS
+.DS_Store
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Composer
+/vendor/
+/composer.phar
+
+# Node
+/node_modules/
+/npm-debug.log
+
+# WordPress (DDEV-managed)
+/wp/
+/.ddev/.ddev-docker-compose*
+
+# Test caches
+/.phpunit.cache/
+/.phpunit.result.cache
+
+# AI / Planning artifacts (kept private — not shipped to git or WP.org)
+/.planning/
+/.claude/
+/CLAUDE.md
+/AGENTS.md
+/.cursorrules
+
+# Generated test scaffolds
+/tests/tmp/
+
+# Plugin Check output
+/.plugin-check/
