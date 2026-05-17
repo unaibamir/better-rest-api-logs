@@ -20,8 +20,13 @@ SLUG="better-rest-api-logs"
 rm -rf build release
 mkdir -p "build/${SLUG}" release
 
-# Rsync everything that .distignore does NOT exclude.
+# Rsync everything that .distignore does NOT exclude — but force-include
+# composer.json + composer.lock temporarily so `composer install` can run in
+# the build dir. They are stripped after install completes, per STACK.md
+# "What NOT to Use" (composer.json must NOT ship in the WP.org zip).
 rsync -a \
+    --include='/composer.json' \
+    --include='/composer.lock' \
     --exclude-from='.distignore' \
     --exclude='.distignore' \
     --exclude='.git/' \
