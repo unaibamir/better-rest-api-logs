@@ -103,6 +103,7 @@ final class Defaults {
 		foreach ( [ 'capture', 'privacy', 'retention', 'network', 'advanced' ] as $tab ) {
 			\add_option( "brl_settings_{$tab}", self::for_tab( $tab ) );
 		}
-		\add_option( 'brl_internal', Internal::defaults(), '', 'no' );
+		// 4th-arg `false` = autoload=no on the brl_internal row (Pitfall 4).
+		\add_option( 'brl_internal', Internal::defaults(), '', false );
 	}
 }

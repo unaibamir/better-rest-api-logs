@@ -45,22 +45,42 @@ final class Repository {
 	 * @param  mixed  $value    Value to persist.
 	 * @param  string $autoload Empty string = use WP's two-arg form (preserves
 	 *                          the existing autoload column); otherwise pass
-	 *                          'yes' / 'no' through to WP's three-arg form.
+	 *                          'yes' / 'no'. Mapped to bool when forwarded
+	 *                          to WP — modern stubs declare the param bool|null.
 	 */
 	public function update_option( string $name, $value, string $autoload = '' ): bool {
-		return '' === $autoload
-			? \update_option( $name, $value )
-			: \update_option( $name, $value, $autoload );
+		if ( '' === $autoload ) {
+			return \update_option( $name, $value );
+		}
+		return \update_option( $name, $value, self::autoload_to_bool( $autoload ) );
 	}
 
 	/**
 	 * @param  string $name     Option name.
 	 * @param  mixed  $value    Initial value.
-	 * @param  string $autoload 'yes' (default) or 'no'. Maps to WP's 4th arg;
-	 *                          the 3rd arg is the deprecated $deprecated param
-	 *                          which MUST be the empty string per WP docs.
+	 * @param  string $autoload 'yes' (default) or 'no'. Mapped to bool when
+	 *                          forwarded to WP. The 3rd positional arg of
+	 *                          add_option is the deprecated $deprecated
+	 *                          param — passed as '' per WP docs.
 	 */
 	public function add_option( string $name, $value, string $autoload = 'yes' ): bool {
-		return \add_option( $name, $value, '', $autoload );
+		return \add_option( $name, $value, '', self::autoload_to_bool( $autoload ) );
+	}
+
+	/**
+	 * Convert the public-API string autoload flag to the bool|null that
+	 * modern WP option-API signatures require.
+	 *
+	 * @param string $autoload One of 'yes', 'no', or '' (no preference).
+	 */
+	private static function autoload_to_bool( string $autoload ): ?bool {
+		switch ( $autoload ) {
+			case 'yes':
+				return true;
+			case 'no':
+				return false;
+			default:
+				return null;
+		}
 	}
 }
