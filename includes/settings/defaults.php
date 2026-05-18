@@ -105,7 +105,14 @@ final class Defaults {
 	 */
 	public static function seed_all_tabs(): void {
 		foreach ( [ 'capture', 'privacy', 'retention', 'network', 'advanced' ] as $tab ) {
-			\add_option( "brl_settings_{$tab}", self::for_tab( $tab ) );
+			// 4th-arg `true` = autoload=yes. Per-tab settings are read on
+			// every REST request that passes through capture; autoload spares
+			// us the per-request options-table SELECT for misses on the
+			// alloptions cache. Explicit declaration of intent — symmetric
+			// with `brl_internal` passing `false` below. The 3rd positional
+			// arg `''` is the deprecated $deprecated parameter (must remain
+			// empty per WP 2.3+).
+			\add_option( "brl_settings_{$tab}", self::for_tab( $tab ), '', true );
 		}
 		// 4th-arg `false` = autoload=no on the brl_internal row (Pitfall 4).
 		// WP 6.6+ canonicalises bool false to the literal 'off' in the autoload
