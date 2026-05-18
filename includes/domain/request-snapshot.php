@@ -30,6 +30,22 @@ final class RequestSnapshot {
 	public int $started_at_micros   = 0;
 
 	/**
+	 * 16-byte packed IP resolved by IpResolver at pre-dispatch.
+	 * Null when REMOTE_ADDR was absent or invalid. Flusher::build_entry
+	 * reads this for anonymization and storage (PRIV-05 / D-16).
+	 *
+	 * @var string|null
+	 */
+	public ?string $ip_resolved = null;
+
+	/**
+	 * Raw REMOTE_ADDR as a 16-byte packed IP — never anonymized (D-16).
+	 *
+	 * @var string|null
+	 */
+	public ?string $ip_raw_remote = null;
+
+	/**
 	 * Serialise to an associative array keyed by snapshot field name.
 	 *
 	 * @return array<string,mixed>
@@ -45,6 +61,8 @@ final class RequestSnapshot {
 			'body'                => $this->body,
 			'body_bytes_original' => $this->body_bytes_original,
 			'started_at_micros'   => $this->started_at_micros,
+			'ip_resolved'         => $this->ip_resolved,
+			'ip_raw_remote'       => $this->ip_raw_remote,
 		];
 	}
 
@@ -65,6 +83,8 @@ final class RequestSnapshot {
 		$s->body                = isset( $row['body'] ) ? (string) $row['body'] : null;
 		$s->body_bytes_original = (int) ( $row['body_bytes_original'] ?? 0 );
 		$s->started_at_micros   = (int) ( $row['started_at_micros'] ?? 0 );
+		$s->ip_resolved         = isset( $row['ip_resolved'] ) ? (string) $row['ip_resolved'] : null;
+		$s->ip_raw_remote       = isset( $row['ip_raw_remote'] ) ? (string) $row['ip_raw_remote'] : null;
 		return $s;
 	}
 }
