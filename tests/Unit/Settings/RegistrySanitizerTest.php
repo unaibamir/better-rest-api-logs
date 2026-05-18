@@ -120,4 +120,30 @@ final class RegistrySanitizerTest extends TestCase {
 			'Pitfall 2: sanitizer must return array even on garbage input — never null.'
 		);
 	}
+
+	public function test_clean_int_list_rejects_floats_scientific_and_whitespace(): void {
+		$registry = $this->make_registry();
+		$result   = $this->invoke_sanitizer(
+			$registry,
+			'sanitize_capture',
+			array(
+				'status_class_filter' => array(
+					'42',    // keep — pure digits.
+					42,      // keep — real int.
+					'3.14',  // drop — float.
+					'1e2',   // drop — scientific notation (intval would coerce to 1).
+					' 3 ',   // drop — whitespace-padded.
+					'',      // drop — empty string.
+					'abc',   // drop — non-numeric.
+					null,    // drop — non-string, non-int.
+				),
+			)
+		);
+
+		$this->assertSame(
+			array( 42, 42 ),
+			array_values( $result['status_class_filter'] ),
+			'clean_int_list must drop floats, scientific notation, and whitespace-padded strings.'
+		);
+	}
 }

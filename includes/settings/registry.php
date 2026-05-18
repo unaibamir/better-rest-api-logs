@@ -339,7 +339,10 @@ final class Registry {
 	/**
 	 * Reduce an arbitrary value to a re-indexed list of integers.
 	 *
-	 * Accepts numeric strings and integer values; drops everything else.
+	 * Accepts integers and digit-only strings (optionally leading `-`); drops
+	 * floats, scientific notation, and whitespace-padded values that
+	 * `is_numeric()` would accept. `intval('3.14')` is 3 and `intval('1e2')`
+	 * is 1 — both bug-shaped coercions that the looser predicate let through.
 	 *
 	 * @param  mixed $value Raw input.
 	 * @return array<int,int>
@@ -348,7 +351,18 @@ final class Registry {
 		if ( ! \is_array( $value ) ) {
 			return [];
 		}
-		$numeric = \array_filter( $value, 'is_numeric' );
-		return \array_values( \array_map( 'intval', $numeric ) );
+		$ints = \array_filter(
+			$value,
+			static function ( $v ): bool {
+				if ( \is_int( $v ) ) {
+					return true;
+				}
+				if ( ! \is_string( $v ) ) {
+					return false;
+				}
+				return 1 === \preg_match( '/^-?\d+$/', $v );
+			}
+		);
+		return \array_values( \array_map( 'intval', $ints ) );
 	}
 }
