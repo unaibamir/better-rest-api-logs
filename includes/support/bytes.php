@@ -89,14 +89,24 @@ final class Bytes {
 	}
 
 	/**
-	 * Decompress a gzip payload. Returns the input unchanged when the payload
-	 * is not gzipped — the `@` silences the inevitable warning on non-gzip input.
+	 * Decompress a gzip payload. Non-gzip input is detected by the leading
+	 * gzip magic bytes (0x1f 0x8b) and passed through unchanged — no `@`
+	 * suppression, so genuine decode failure on a gzip-marked-but-corrupt
+	 * payload still surfaces as a PHP warning instead of being silently
+	 * masked. The "return input on failure" semantics are preserved for
+	 * back-compat with callers that expect a string round-trip.
 	 *
 	 * @param string $s Gzip-compressed payload (or arbitrary string).
 	 */
 	public static function gunzip( string $s ): string {
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Non-gzip input is a documented passthrough path; the warning would be noise.
-		$out = @\gzdecode( $s );
+		// Passthrough when the leading two bytes are not the gzip magic.
+		// Avoids feeding non-gzip input to gzdecode (which would warn) and
+		// keeps the "arbitrary string round-trip" contract intact.
+		if ( \strlen( $s ) < 2 || "\x1f\x8b" !== \substr( $s, 0, 2 ) ) {
+			return $s;
+		}
+
+		$out = \gzdecode( $s );
 		return false === $out ? $s : $out;
 	}
 }
