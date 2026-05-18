@@ -79,9 +79,13 @@ final class Defaults {
 					'cidr_denylist'       => [],
 				];
 			case 'advanced':
+				// NOTE: the uninstall opt-in lives in the flat `brl_settings_delete_on_uninstall`
+				// option (Phase 1 D-11..D-15). That flat option is the SOLE source of truth —
+				// uninstall.php reads it directly without autoloading plugin classes (it can't).
+				// Phase 4's Advanced UI binds that flat option via its own register_setting()
+				// call; there is no mirror inside `brl_settings_advanced` to keep in sync.
 				return [
-					'delete_on_uninstall_mirror' => false,
-					'truncate_confirm_copy'      => '',
+					'truncate_confirm_copy' => '',
 				];
 			default:
 				return [];

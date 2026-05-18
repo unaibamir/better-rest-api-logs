@@ -74,8 +74,12 @@ final class DefaultsTest extends TestCase {
 		$advanced = Defaults::for_tab( 'advanced' );
 
 		$this->assertIsArray( $advanced );
-		$this->assertArrayHasKey( 'delete_on_uninstall_mirror', $advanced );
 		$this->assertArrayHasKey( 'truncate_confirm_copy', $advanced );
+
+		// No mirror inside the advanced tab — the uninstall opt-in is the FLAT
+		// `brl_settings_delete_on_uninstall` option (Phase 1 D-11..D-15), bound
+		// directly by Phase 4's Advanced UI.
+		$this->assertArrayNotHasKey( 'delete_on_uninstall_mirror', $advanced );
 	}
 
 	public function test_for_tab_unknown_returns_empty_array(): void {

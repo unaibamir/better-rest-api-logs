@@ -312,11 +312,11 @@ final class Registry {
 		if ( ! \is_array( $input ) ) {
 			return $defaults;
 		}
+		// The uninstall opt-in is the flat `brl_settings_delete_on_uninstall` option
+		// (Phase 1 D-11..D-15); it is NOT mirrored here. Phase 4's Advanced UI binds
+		// the flat option directly via its own register_setting().
 		return [
-			'delete_on_uninstall_mirror' => (bool) (
-				$input['delete_on_uninstall_mirror'] ?? $defaults['delete_on_uninstall_mirror']
-			),
-			'truncate_confirm_copy'      => \sanitize_text_field(
+			'truncate_confirm_copy' => \sanitize_text_field(
 				(string) ( $input['truncate_confirm_copy'] ?? $defaults['truncate_confirm_copy'] )
 			),
 		];

@@ -20,6 +20,11 @@ declare(strict_types=1);
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 // Opt-in check — default OFF. User must have toggled Settings → Advanced.
+// `brl_settings_delete_on_uninstall` is a FLAT scalar option and the sole
+// source of truth for this opt-in. Phase 4's Advanced UI will bind it
+// directly via its own register_setting() call — there is no mirror inside
+// `brl_settings_advanced`. This is the only key uninstall.php reads before
+// destroying data; keep it boot-critical (no plugin autoload required).
 if ( ! get_option( 'brl_settings_delete_on_uninstall' ) ) {
 	return;
 }
