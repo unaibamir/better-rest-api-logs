@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<ruleset name="better-rest-api-logs">
+    <description>WPCS 3.3 for Better REST API Logs (PHP 7.4 floor, WP 6.6 floor).</description>
+
+    <!-- What to scan -->
+    <file>better-rest-api-logs.php</file>
+    <file>uninstall.php</file>
+    <file>includes</file>
+    <file>tests</file>
+
+    <!-- What not to scan -->
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+    <exclude-pattern>tests/_data/*</exclude-pattern>
+    <exclude-pattern>.planning/*</exclude-pattern>
+    <exclude-pattern>.claude/*</exclude-pattern>
+    <exclude-pattern>.ddev/*</exclude-pattern>
+    <exclude-pattern>build/*</exclude-pattern>
+    <exclude-pattern>release/*</exclude-pattern>
+    <!-- wp-tests-config.php is a wp-phpunit handshake file (NOT shipped); defining
+         WP core constants like ABSPATH/DB_NAME is its entire purpose. -->
+    <exclude-pattern>wp-tests-config.php</exclude-pattern>
+    <!-- stubs/ holds PHPStan-only constant declarations for the global namespace;
+         file naming + curly-brace namespace are part of the stub format. -->
+    <exclude-pattern>stubs/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <arg name="cache" value=".phpcs-cache"/>
+
+    <!-- PHP and WP version ranges -->
+    <config name="testVersion" value="7.4-"/>
+    <config name="minimum_wp_version" value="6.6"/>
+
+    <!-- Main WPCS standard -->
+    <rule ref="WordPress">
+        <!-- Yoda conditions are not enforced — modern style preferred -->
+        <exclude name="WordPress.PHP.YodaConditions.NotYoda"/>
+        <!-- We use Composer autoloading, not manual require chains -->
+        <exclude name="WordPress.WP.AlternativeFunctions.file_system_read_file_get_contents"/>
+        <!-- Modern array syntax is required (CLAUDE.md + ARCHITECTURE.md) -->
+        <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <!-- CLAUDE.md: class docblock = one sentence; method docblocks only on public API
+             or non-obvious behavior; skip @since on internal classes. Reject the WPCS
+             "every function/file/var needs a docblock" sniffs that contradict that. -->
+        <exclude name="Squiz.Commenting.FileComment.Missing"/>
+        <exclude name="Squiz.Commenting.FunctionComment.Missing"/>
+        <exclude name="Squiz.Commenting.VariableComment.Missing"/>
+        <exclude name="Generic.Commenting.DocComment.MissingShort"/>
+    </rule>
+
+    <!-- Kebab-case slug filenames + PascalCase class names: WPCS-sanctioned opt-out.
+         See ARCHITECTURE.md §"PHPCS adjustment" + CLAUDE.md §"PHPCS". -->
+    <rule ref="WordPress.Files.FileName">
+        <properties>
+            <property name="strict_class_file_names" value="false"/>
+        </properties>
+    </rule>
+
+    <!-- PHP compatibility for our range -->
+    <rule ref="PHPCompatibilityWP"/>
+
+    <!-- Text-domain enforcement -->
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="better-rest-api-logs"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Prefix enforcement: hook brl_*, constant BRL_*, namespace BetterRestApiLogs -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="brl_"/>
+                <element value="BRL_"/>
+                <element value="BetterRestApiLogs"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Test files: relax some rules that don't apply (e.g., direct DB access in fixtures) -->
+    <rule ref="WordPress.DB.DirectDatabaseQuery">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.WP.GlobalVariablesOverride">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- Integration tests build identifiers from the Database accessor (whose only
+         job is to return `$wpdb->prefix . 'brl_*'`) and pass them straight to
+         $wpdb->query/get_var. That IS the STOR-04 contract — no user input ever
+         reaches these strings. The PreparedSQL sniff cannot tell the difference
+         between user input and a controlled literal composer; skip in tests. -->
+    <rule ref="WordPress.DB.PreparedSQL.NotPrepared">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.DB.PreparedSQL.InterpolatedNotPrepared">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- PHPUnit / Yoast polyfills convention is PascalCase filenames (ExampleTest.php,
+         ActivationTest.php). Kebab-case slug rule applies to plugin source, not tests. -->
+    <rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- Test classes are internal; no @since / public-API docblock burden. -->
+    <rule ref="Squiz.Commenting.ClassComment.Missing">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- Tests reference WP core constants (WP_UNINSTALL_PLUGIN, WP_TESTS_*); we're
+         the consumer, not the definer. The prefix sniff doesn't fit test bootstrap. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <!-- Test bootstrap uses fwrite(STDERR) to surface missing wp-phpunit; WP_Filesystem
+         isn't booted yet at this point. -->
+    <rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
+        <exclude-pattern>tests/bootstrap.php</exclude-pattern>
+    </rule>
+    <!-- Test fixtures (in-memory Repository test doubles) mirror WP option-API
+         signatures including `$default` — the WPCS keyword warning is for new
+         production APIs, not for test doubles that must match an existing shape. -->
+    <rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+</ruleset>

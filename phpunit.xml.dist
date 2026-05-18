@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    failOnRisky="true"
+    failOnWarning="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+    convertErrorsToExceptions="true"
+    convertDeprecationsToExceptions="false"
+    cacheResult="true"
+>
+    <testsuites>
+        <testsuite name="unit">
+            <directory suffix="Test.php">tests/Unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory suffix="Test.php">tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <coverage>
+        <!--
+            Phase 2 coverage scope (CONTEXT D-30): the unit-test gate targets
+            the pure-PHP layers — Domain DTOs, Support utilities, Settings
+            registry/defaults/internal, and the Database accessor (whose only
+            $wpdb touch is a property read). WP-coupled orchestrators that
+            require a real database (Schema, Settings\Repository) are excluded
+            from the unit coverage gate because they are exercised exclusively
+            by the integration suite; including them would dilute a metric
+            that is supposed to gate pure-PHP test quality. Phase 3+ stubs
+            (repositories, query helpers) carry no executable lines today and
+            are excluded for the same reason.
+        -->
+        <include>
+            <directory suffix=".php">includes/domain</directory>
+            <directory suffix=".php">includes/support</directory>
+            <directory suffix=".php">includes/settings</directory>
+            <file>includes/db/database.php</file>
+        </include>
+        <exclude>
+            <file>includes/db/log-repository.php</file>
+            <file>includes/db/body-repository.php</file>
+            <file>includes/db/purge-repository.php</file>
+            <file>includes/db/schema.php</file>
+            <file>includes/settings/repository.php</file>
+            <directory>includes/db/query</directory>
+        </exclude>
+    </coverage>
+
+    <php>
+        <const name="BRL_TESTING" value="true"/>
+    </php>
+</phpunit>

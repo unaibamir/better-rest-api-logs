@@ -1,0 +1,39 @@
+# Phase 7 deliverable — STUB.
+#
+# This workflow is intentionally non-functional in Phase 1. It exists so the
+# .github/workflows/ directory layout is locked from day one and so no
+# contributor accidentally creates a deploy.yml with the wrong shape.
+#
+# Phase 7 will replace the `placeholder` job below with a real SVN deploy
+# step. The planned shape (see STACK.md "Distribution" table for the exact
+# action reference, pinned to its stable tag):
+#
+#   - uses: <wp-plugin-deploy-action-pinned-to-stable-per-STACK.md>
+#     env:
+#       SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+#       SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+#       SLUG: better-rest-api-logs
+#       BUILD_DIR: build/better-rest-api-logs
+#
+# Until Phase 7 wires it up, this workflow only runs on manual dispatch and
+# does nothing destructive. The `SVN_USERNAME` and `SVN_PASSWORD` secrets are
+# not yet provisioned in the repo (see CONTRIBUTING.md Phase 7 checklist).
+
+name: Deploy (Phase 7)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  placeholder:
+    name: Phase 7 placeholder (no-op)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Announce stub
+        run: |
+          echo "Phase 7 implements WP.org SVN deploy. This stub exists so the"
+          echo "directory structure is stable and so deploy.yml is never"
+          echo "accidentally created by a contributor with the wrong shape."

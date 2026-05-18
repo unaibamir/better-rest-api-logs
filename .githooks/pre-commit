@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Pre-commit hook — PHPCS on staged PHP + ban-list scan on staged set.
+#
+# Per CONTEXT.md D-06..D-10:
+#   D-06: hand-rolled shell script (no captainhook/Husky/Composer plugin)
+#   D-07: this file + bin/check-banlist.sh + CONTRIBUTING.md activation line
+#   D-08: PHPCS runs on the STAGED snapshot via git stash --keep-index
+#   D-09: ban-list patterns live in bin/check-banlist.sh (single source of truth)
+#   D-10: OPT-IN — contributor must run `git config core.hooksPath .githooks`
+#
+# Activation (one-time, per clone):
+#   git config core.hooksPath .githooks
+#
+# The EXIT trap restores the stash on BOTH success AND PHPCS failure paths,
+# so the working tree is never left in a stashed state (Pitfall 9 fix).
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Restore stash on any exit path (including PHPCS failure) — never leave the dev hanging.
+STASHED=0
+restore_stash() {
+    if [ "$STASHED" -eq 1 ]; then
+        git stash pop -q || true
+    fi
+}
+trap restore_stash EXIT
+
+# Collect staged PHP files. ACM = Added, Copied, Modified.
+STAGED_PHP=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.php$' || true)
+
+if [ -z "$STAGED_PHP" ]; then
+    echo "pre-commit: no staged PHP files — skipping PHPCS."
+else
+    # Snapshot the staged state by stashing everything not staged.
+    # --keep-index keeps the staged copy in the working tree for the lint.
+    # --include-untracked keeps PHPCS from linting random drafts (Pitfall 9).
+    if git stash -q --keep-index --include-untracked; then
+        STASHED=1
+    fi
+
+    echo "pre-commit: running PHPCS on $(echo "$STAGED_PHP" | wc -l | tr -d ' ') staged PHP file(s)…"
+    # Pass the file list explicitly so PHPCS only lints staged.
+    echo "$STAGED_PHP" | xargs -r vendor/bin/phpcs --report=full
+fi
+
+# Run ban-list on staged set (faster than full repo for the hook path).
+SCAN_MODE=staged bash bin/check-banlist.sh
+
+echo "pre-commit: OK"
