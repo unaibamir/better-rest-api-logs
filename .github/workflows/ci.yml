@@ -154,6 +154,16 @@ jobs:
 
       - run: composer test
 
+      - name: Run perf microbench (PHP 8.3 only)
+        if: matrix.php-version == '8.3'
+        run: vendor/bin/phpunit --group perf --testsuite=integration
+        continue-on-error: false
+
+      - name: Run e2e latency probe (informational, PHP 8.3 only)
+        if: matrix.php-version == '8.3'
+        run: vendor/bin/phpunit --group perf --filter E2eLatencyTest --testsuite=integration || true
+        continue-on-error: true
+
       - name: Enforce unit coverage gate
         run: composer test:unit:coverage-check
 
