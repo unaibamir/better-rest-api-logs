@@ -44,6 +44,15 @@ final class Registry {
 	/** @var array<string,mixed> */
 	private array $cache_internal = [];
 
+	/**
+	 * True once `brl_internal` has been read into `$cache_internal`. Tracked
+	 * separately from the cache array's keyspace so the cache stays a clean
+	 * map of reserved keys (no sentinel pollution).
+	 *
+	 * @var bool
+	 */
+	private bool $internal_loaded = false;
+
 	private Repository $repository;
 
 	public function __construct( Repository $repository ) {
@@ -93,14 +102,14 @@ final class Registry {
 			return (bool) $this->repository->get_option( 'brl_settings_delete_on_uninstall', '' );
 		}
 
-		if ( ! \array_key_exists( '__loaded', $this->cache_internal ) ) {
+		if ( ! $this->internal_loaded ) {
 			$stored = $this->repository->get_option( 'brl_internal', [] );
 			if ( ! \is_array( $stored ) ) {
 				$stored = [];
 			}
 			// Stored values WIN over Internal defaults for keys present in both.
-			$this->cache_internal             = $stored + Internal::defaults();
-			$this->cache_internal['__loaded'] = true;
+			$this->cache_internal  = $stored + Internal::defaults();
+			$this->internal_loaded = true;
 		}
 
 		return $this->cache_internal[ $key ] ?? null;
@@ -154,7 +163,8 @@ final class Registry {
 			return;
 		}
 		if ( \in_array( $option_name, [ 'brl_internal', 'brl_db_version', 'brl_settings_delete_on_uninstall' ], true ) ) {
-			$this->cache_internal = [];
+			$this->cache_internal  = [];
+			$this->internal_loaded = false;
 		}
 	}
 

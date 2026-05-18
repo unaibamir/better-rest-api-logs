@@ -27,9 +27,9 @@ final class Schema {
 	private const SITE_HEALTH_TEST_ID = 'brl_schema';
 
 	/**
-	 * Per-request short-circuit for maybe_install_or_upgrade(). A class
-	 * static (not a function-local static) so SchemaUpgradeTest can reset
-	 * it between cases via Reflection.
+	 * Per-request short-circuit for maybe_install_or_upgrade(). Class static
+	 * (resettable via Reflection in tests; intentional — see
+	 * SchemaUpgradeTest::reset_schema_static_cache()).
 	 *
 	 * @var bool
 	 */
