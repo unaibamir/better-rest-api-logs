@@ -5,13 +5,128 @@ namespace BetterRestApiLogs\DB;
 
 defined( 'ABSPATH' ) || exit;
 
+use BetterRestApiLogs\Domain\Entry;
+
 /**
- * Repository for reading from / writing to {$wpdb->prefix}brl_logs.
+ * Writes batches of captured REST log entries to {$wpdb->prefix}brl_logs.
  *
- * Phase 3 implements insert(Entry); Phase 4 implements find(int)/find_many(QueryArgs).
- * Phase 2 ships the skeleton + namespace + classmap entry only.
+ * D-07: A single multi-row INSERT keeps the flush path synchronous at shutdown
+ * without hitting the DB once per entry. D-08: body-spill rows land in the
+ * secondary table after this call returns the assigned IDs, so the parent row
+ * always exists before its child. D-27: the return shape is an ordered array
+ * of inserted IDs matching the input index — Flusher uses position [i] to link
+ * the i-th entry's spill row.
+ *
+ * Sole call site for {@see Database::logs_table()} outside the Schema; the
+ * table-naming CI gate verifies this. Insert path is O(rows-in-batch) —
+ * no SELECT COUNT(*), no full-table scan — sizes correctly for REL-03
+ * admin-list scalability.
+ *
+ * @package BetterRestApiLogs\DB
  */
 final class LogRepository {
-	// Phase 3 lands insert(Entry $entry): int.
-	// Phase 4 lands find(int $id): ?Entry and find_many(QueryArgs $args): array.
+
+	/**
+	 * Column names in the exact order they appear in the DDL and in Entry::to_array().
+	 * The sequence is the single source of truth for both the column list and the
+	 * per-row placeholder string — changing one without the other would silently
+	 * misalign values.
+	 *
+	 * @var string[]
+	 */
+	private const COLUMNS = [
+		'created_at',
+		'created_at_micros',
+		'method',
+		'route',
+		'route_prefix',
+		'query_string',
+		'status',
+		'status_class',
+		'duration_ms',
+		'user_id',
+		'ip_resolved',
+		'ip_raw_remote',
+		'request_content_type',
+		'request_headers',
+		'request_body',
+		'request_body_bytes',
+		'request_body_truncated',
+		'response_content_type',
+		'response_headers',
+		'response_body',
+		'response_body_bytes',
+		'response_body_truncated',
+		'bodies_spilled',
+		'migration_source_id',
+	];
+
+	/**
+	 * Per-row wpdb placeholder string — each token maps 1:1 to the column at the
+	 * same position in COLUMNS. %s passes bytes through prepare() unchanged
+	 * (CAP-06); %d enforces integer coercion.
+	 *
+	 * Created_at=%s, created_at_micros=%d,
+	 * method=%s, route=%s, route_prefix=%s, query_string=%s,
+	 * status=%d, status_class=%d, duration_ms=%d, user_id=%d,
+	 * ip_resolved=%s (VARBINARY — 16 packed bytes), ip_raw_remote=%s,
+	 * request_content_type=%s, request_headers=%s, request_body=%s,
+	 * request_body_bytes=%d, request_body_truncated=%d,
+	 * response_content_type=%s, response_headers=%s, response_body=%s,
+	 * response_body_bytes=%d, response_body_truncated=%d,
+	 * bodies_spilled=%d, migration_source_id=%s.
+	 */
+	private const FORMAT_PER_ROW = '%s,%d,%s,%s,%s,%s,%d,%d,%d,%d,%s,%s,%s,%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s';
+
+	/**
+	 * Insert a batch of entries in a single multi-row prepared INSERT.
+	 *
+	 * Returns the auto-increment IDs in input order. On InnoDB with the default
+	 * autoinc-lock-mode=1, a multi-row INSERT hands out contiguous IDs — the
+	 * first is $wpdb->insert_id; the rest are first+1, first+2, … (Pitfall 3).
+	 * An empty input or a DB error both return [].
+	 *
+	 * @param  array<int, Entry> $entries Entries to persist.
+	 * @return array<int, int>   Inserted IDs in input order; empty on failure.
+	 */
+	public function insert_batch( array $entries ): array {
+		if ( [] === $entries ) {
+			return [];
+		}
+
+		global $wpdb;
+
+		$row_block    = '(' . self::FORMAT_PER_ROW . ')';
+		$placeholders = \implode( ',', \array_fill( 0, \count( $entries ), $row_block ) );
+
+		$args = [];
+		foreach ( $entries as $entry ) {
+			$row = $entry->to_array();
+			foreach ( self::COLUMNS as $col ) {
+				$args[] = $row[ $col ] ?? null;
+			}
+		}
+
+		$logs_table = Database::logs_table();
+		$col_list   = \implode( ',', self::COLUMNS );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $placeholders is composed from a static format-string template; only %s/%d literals — no user input. User values flow through $wpdb->prepare() below via $args.
+		$sql = "INSERT INTO {$logs_table} ({$col_list}) VALUES {$placeholders}";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $prepared is wpdb::prepare output; canonical multi-row prepared INSERT pattern (WPCS-sanctioned).
+		$prepared = $wpdb->prepare( $sql, $args );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is wpdb::prepare output; canonical multi-row batch INSERT, no caching applicable for write path.
+		$result = $wpdb->query( $prepared );
+
+		if ( false === $result || '' !== $wpdb->last_error ) {
+			return [];
+		}
+
+		$first_id = (int) $wpdb->insert_id;
+		$ids      = [];
+		for ( $i = 0, $n = \count( $entries ); $i < $n; $i++ ) {
+			$ids[] = $first_id + $i;
+		}
+
+		return $ids;
+	}
 }
