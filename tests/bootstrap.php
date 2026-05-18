@@ -43,6 +43,11 @@ if ( 'unit' === $brl_suite ) {
 	// boundary sanitizers (Settings\Registry's per-tab sanitize_* methods).
 	// The integration suite gets the real WP versions from wp-phpunit; these
 	// shims are only active when the unit suite runs without a WP boot.
+	// Best-effort approximation: sufficient for Phase 2 inputs (normal form
+	// values), but does NOT mirror every pass WP core's sanitize_text_field
+	// performs — notably it does not strip null bytes or URL-encoded octets
+	// like '%00'. Tests that depend on those edge cases MUST live in the
+	// integration suite where the real WP function is loaded.
 	// PHPCS suppressions are scoped: these MUST be the WP function names
 	// (we're duck-typing core), and strip_tags is fine here because
 	// wp_strip_all_tags isn't loaded in the unit suite either.
