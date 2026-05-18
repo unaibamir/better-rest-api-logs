@@ -62,6 +62,7 @@
         "banlist": "bin/check-banlist.sh",
         "check:table-naming": "bin/check-table-naming.sh",
         "check:settings-isolation": "bin/check-settings-isolation.sh",
+        "check:no-external-calls": "bin/check-no-external-calls.sh",
         "test:unit:coverage-check": "bin/check-coverage.sh 80",
         "coverage": "bin/check-coverage.sh 80",
         "ci": [
@@ -70,6 +71,7 @@
             "@banlist",
             "@check:table-naming",
             "@check:settings-isolation",
+            "@check:no-external-calls",
             "@test",
             "@test:unit:coverage-check"
         ]

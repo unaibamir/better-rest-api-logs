@@ -50,6 +50,18 @@
         </exclude>
     </coverage>
 
+    <!--
+        Perf tests (@group perf) are excluded from the default test run.
+        They require a real database and are expensive — run on the PHP 8.3
+        CI cell only via: vendor/bin/phpunit --group perf
+        Default composer test / test:unit / test:integration skips them.
+    -->
+    <groups>
+        <exclude>
+            <group>perf</group>
+        </exclude>
+    </groups>
+
     <php>
         <const name="BRL_TESTING" value="true"/>
     </php>
