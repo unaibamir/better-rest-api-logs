@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace BetterRestApiLogs\Tests\Integration\Logger;
 
 use BetterRestApiLogs\DB\Database;
+use BetterRestApiLogs\DB\Schema;
 use BetterRestApiLogs\Logger\Flusher;
 use BetterRestApiLogs\Logger\Queue;
 use BetterRestApiLogs\Plugin;
@@ -25,8 +26,11 @@ final class FlusherTest extends WP_UnitTestCase {
 		parent::set_up();
 		Queue::reset();
 		// Remove the WP_UnitTestCase temporary-table rewrite for our custom tables.
+		// Other test classes (SchemaInstallTest) drop the real tables in their tear_down;
+		// ensure they exist before every Flusher test runs.
 		\remove_filter( 'query', [ $this, '_create_temporary_tables' ] );
 		\remove_filter( 'query', [ $this, '_drop_temporary_tables' ] );
+		Schema::install();
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 	}

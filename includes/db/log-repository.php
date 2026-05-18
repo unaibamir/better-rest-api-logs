@@ -62,21 +62,39 @@ final class LogRepository {
 	];
 
 	/**
-	 * Per-row wpdb placeholder string — each token maps 1:1 to the column at the
-	 * same position in COLUMNS. %s passes bytes through prepare() unchanged
-	 * (CAP-06); %d enforces integer coercion.
+	 * WPDb format token per column — %s for string/binary/nullable, %d for integers.
+	 * Null-safe values are handled in build_row_sql, which substitutes the SQL NULL
+	 * literal and skips the binding rather than letting wpdb::prepare convert null
+	 * to an empty string (which violates UNIQUE KEY constraints on nullable columns).
 	 *
-	 * Created_at=%s, created_at_micros=%d,
-	 * method=%s, route=%s, route_prefix=%s, query_string=%s,
-	 * status=%d, status_class=%d, duration_ms=%d, user_id=%d,
-	 * ip_resolved=%s (VARBINARY — 16 packed bytes), ip_raw_remote=%s,
-	 * request_content_type=%s, request_headers=%s, request_body=%s,
-	 * request_body_bytes=%d, request_body_truncated=%d,
-	 * response_content_type=%s, response_headers=%s, response_body=%s,
-	 * response_body_bytes=%d, response_body_truncated=%d,
-	 * bodies_spilled=%d, migration_source_id=%s.
+	 * @var array<string,string>
 	 */
-	private const FORMAT_PER_ROW = '%s,%d,%s,%s,%s,%s,%d,%d,%d,%d,%s,%s,%s,%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s';
+	private const FORMAT = [
+		'created_at'              => '%s',
+		'created_at_micros'       => '%d',
+		'method'                  => '%s',
+		'route'                   => '%s',
+		'route_prefix'            => '%s',
+		'query_string'            => '%s',
+		'status'                  => '%d',
+		'status_class'            => '%d',
+		'duration_ms'             => '%d',
+		'user_id'                 => '%d',
+		'ip_resolved'             => '%s',
+		'ip_raw_remote'           => '%s',
+		'request_content_type'    => '%s',
+		'request_headers'         => '%s',
+		'request_body'            => '%s',
+		'request_body_bytes'      => '%d',
+		'request_body_truncated'  => '%d',
+		'response_content_type'   => '%s',
+		'response_headers'        => '%s',
+		'response_body'           => '%s',
+		'response_body_bytes'     => '%d',
+		'response_body_truncated' => '%d',
+		'bodies_spilled'          => '%d',
+		'migration_source_id'     => '%s',
+	];
 
 	/**
 	 * Insert a batch of entries in a single multi-row prepared INSERT.
@@ -85,6 +103,11 @@ final class LogRepository {
 	 * autoinc-lock-mode=1, a multi-row INSERT hands out contiguous IDs — the
 	 * first is $wpdb->insert_id; the rest are first+1, first+2, … (Pitfall 3).
 	 * An empty input or a DB error both return [].
+	 *
+	 * Null handling: $wpdb->prepare converts null %s args to '' (empty string),
+	 * which breaks UNIQUE KEY constraints on nullable columns. We substitute the
+	 * SQL NULL literal for null values and skip their binding entirely so the
+	 * actual NULL reaches the storage engine.
 	 *
 	 * @param  array<int, Entry> $entries Entries to persist.
 	 * @return array<int, int>   Inserted IDs in input order; empty on failure.
@@ -96,26 +119,30 @@ final class LogRepository {
 
 		global $wpdb;
 
-		$row_block    = '(' . self::FORMAT_PER_ROW . ')';
-		$placeholders = \implode( ',', \array_fill( 0, \count( $entries ), $row_block ) );
+		$row_sqls = [];
+		$args     = [];
 
-		$args = [];
 		foreach ( $entries as $entry ) {
-			$row = $entry->to_array();
-			foreach ( self::COLUMNS as $col ) {
-				$args[] = $row[ $col ] ?? null;
-			}
+			$row        = $entry->to_array();
+			$row_sqls[] = $this->build_row_sql( $row, $args );
 		}
 
 		$logs_table = Database::logs_table();
 		$col_list   = \implode( ',', self::COLUMNS );
+		$values_sql = \implode( ',', $row_sqls );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $placeholders is composed from a static format-string template; only %s/%d literals — no user input. User values flow through $wpdb->prepare() below via $args.
-		$sql = "INSERT INTO {$logs_table} ({$col_list}) VALUES {$placeholders}";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $prepared is wpdb::prepare output; canonical multi-row prepared INSERT pattern (WPCS-sanctioned).
-		$prepared = $wpdb->prepare( $sql, $args );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is wpdb::prepare output; canonical multi-row batch INSERT, no caching applicable for write path.
-		$result = $wpdb->query( $prepared );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- column list and NULL literals come from our static constants; only non-null user values flow through $wpdb->prepare via $args.
+		$sql = "INSERT INTO {$logs_table} ({$col_list}) VALUES {$values_sql}";
+
+		if ( [] === $args ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- all values are NULL literals, no user data in $sql.
+			$result = $wpdb->query( $sql );
+		} else {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contains only NULL literals + prepare placeholders; no user input in the non-placeholder portions.
+			$prepared = $wpdb->prepare( $sql, $args );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is wpdb::prepare output; canonical multi-row batch INSERT.
+			$result = $wpdb->query( $prepared );
+		}
 
 		if ( false === $result || '' !== $wpdb->last_error ) {
 			return [];
@@ -128,5 +155,30 @@ final class LogRepository {
 		}
 
 		return $ids;
+	}
+
+	/**
+	 * Build the SQL fragment for a single row, appending non-null bindings to $args.
+	 *
+	 * Each column either contributes a wpdb placeholder (non-null) or the SQL NULL
+	 * literal (null). This lets wpdb::prepare handle escaping only for actual values
+	 * while true SQL NULL lands in the query for null fields.
+	 *
+	 * @param  array<string,mixed> $row  Column values from Entry::to_array().
+	 * @param  array<mixed>        $args Accumulated prepare() arguments (passed by reference).
+	 * @return string SQL fragment like "(%s,%d,NULL,%s,…)".
+	 */
+	private function build_row_sql( array $row, array &$args ): string {
+		$tokens = [];
+		foreach ( self::COLUMNS as $col ) {
+			$value = $row[ $col ] ?? null;
+			if ( null === $value ) {
+				$tokens[] = 'NULL';
+			} else {
+				$tokens[] = self::FORMAT[ $col ];
+				$args[]   = $value;
+			}
+		}
+		return '(' . \implode( ',', $tokens ) . ')';
 	}
 }

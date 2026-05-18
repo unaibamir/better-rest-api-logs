@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace BetterRestApiLogs\Tests\Integration\Logger;
 
 use BetterRestApiLogs\DB\Database;
+use BetterRestApiLogs\DB\Schema;
 use BetterRestApiLogs\Domain\RequestSnapshot;
 use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Logger\Queue;
@@ -114,6 +115,12 @@ final class QueueTest extends WP_UnitTestCase {
 	public function test_nested_rest_do_request_dedupes_at_capture_layer(): void {
 		global $wpdb;
 
+		// Ensure real tables exist — SchemaInstallTest drops them in its own tear_down.
+		\remove_filter( 'query', [ $this, '_create_temporary_tables' ] );
+		\remove_filter( 'query', [ $this, '_drop_temporary_tables' ] );
+		Schema::install();
+		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
+
 		// Boot the plugin so capture hooks are wired.
 		Plugin::instance()->boot();
 
@@ -150,6 +157,14 @@ final class QueueTest extends WP_UnitTestCase {
 				);
 			}
 		);
+
+		// Reset the REST server so rest_api_init re-fires and registers our test
+		// routes. Without this, a prior REST dispatch (e.g. BreakerTest) can leave
+		// the server initialised, causing subsequent add_action('rest_api_init') calls
+		// to be silently ignored and our routes to produce 404s.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- test helper resetting WP core global.
+		$GLOBALS['wp_rest_server'] = null;
+		\rest_get_server();
 
 		// Dispatch the outer request.
 		$request = new \WP_REST_Request( 'GET', '/brl-test/v1/outer' );

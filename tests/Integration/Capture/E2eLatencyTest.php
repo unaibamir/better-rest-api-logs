@@ -30,6 +30,9 @@ use BetterRestApiLogs\Plugin;
 use BetterRestApiLogs\Settings\Registry;
 use WP_UnitTestCase;
 
+/**
+ * @group perf
+ */
 final class E2eLatencyTest extends WP_UnitTestCase {
 
 	private const ITERATIONS = 1000;

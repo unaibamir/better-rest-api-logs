@@ -78,12 +78,17 @@ final class Breaker {
 
 		global $wpdb;
 
+		// Snapshot last_error before the callable so stale errors from unrelated
+		// queries (e.g. a prior test renames wp_options) don't falsely signal failure.
+		$error_before = (string) $wpdb->last_error;
+
 		$result = $insert();
 
-		// D-19: failure = callable returned [] OR $wpdb->last_error is non-empty.
-		// We read last_error directly from $wpdb (not a pre-cleared snapshot) so the
-		// check reflects whatever the callable left behind.
-		$failed = ( [] === $result ) || ( '' !== (string) $wpdb->last_error );
+		// D-19: failure = callable returned [] OR a new $wpdb->last_error appeared.
+		// Compare before/after so a stale error from an unrelated query doesn't
+		// miscount as our insert failing.
+		$error_after = (string) $wpdb->last_error;
+		$failed      = ( [] === $result ) || ( $error_before !== $error_after && '' !== $error_after );
 
 		if ( $failed ) {
 			$this->on_failure();
@@ -226,7 +231,12 @@ final class Breaker {
 
 	/**
 	 * Record a success: reset the failure counter and fire `brl_circuit_resumed`
-	 * when recovering from an open state (D-21).
+	 * when recovering from any failure state (D-21).
+	 *
+	 * `brl_circuit_resumed` fires when either the persistent open window was set
+	 * (the breaker was fully armed) OR in-memory failure counters were non-zero
+	 * (auto-expired open state, or partial failure window). Both cases represent
+	 * a return to clean operation after observed failures.
 	 */
 	private function on_success(): void {
 		// Fast path when nothing needs resetting.
@@ -237,7 +247,10 @@ final class Breaker {
 			}
 		}
 
-		$was_open = ( (int) SettingsRegistry::get_internal( 'circuit_open_until' ) ) > 0;
+		// Fire brl_circuit_resumed when recovering from any failure state — either
+		// a fully armed open breaker or a partial failure window that never tripped.
+		$was_in_failure_state = self::$consecutive_failures > 0
+			|| ( (int) SettingsRegistry::get_internal( 'circuit_open_until' ) ) > 0;
 
 		self::$consecutive_failures = 0;
 		self::$window_started_at    = null;
@@ -252,7 +265,7 @@ final class Breaker {
 			unset( $e );
 		}
 
-		if ( $was_open ) {
+		if ( $was_in_failure_state ) {
 			\do_action( 'brl_circuit_resumed', \time() );
 		}
 	}
