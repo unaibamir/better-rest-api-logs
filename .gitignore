@@ -1,0 +1,47 @@
+# Composer
+/vendor/
+
+# Local build output
+/build/
+/release/
+/dist/
+
+# DDEV runtime (config files stay; .ddev/.gitignore-managed runtime out)
+/.ddev/.global_commands/
+/.ddev/db_snapshots/
+/.ddev/.homeadditions/
+/.ddev/import-db/
+/.ddev/import.yaml
+/.ddev/db-router/
+/.ddev/providers/
+
+# Caches
+.phpcs-cache
+.phpunit.result.cache
+/build/coverage/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Local planning notes — never push
+/.planning/
+/.claude/
+/CLAUDE.md
+/AGENTS.md
+/.cursorrules
+
+# Local env
+.env
+.env.local
+
+# Logs
+*.log
+
+# DDEV WordPress install (./wp/ is the docroot — host WP core downloaded by
+# `ddev wp core download`; never tracked, not plugin source)
+/wp/
