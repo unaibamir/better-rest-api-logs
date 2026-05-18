@@ -5,7 +5,9 @@ namespace BetterRestApiLogs;
 
 defined( 'ABSPATH' ) || exit;
 
+use BetterRestApiLogs\Capture;
 use BetterRestApiLogs\DB\Schema;
+use BetterRestApiLogs\Logger\Flusher;
 use BetterRestApiLogs\Settings\Registry as SettingsRegistry;
 use BetterRestApiLogs\Settings\Repository as SettingsRepository;
 
@@ -62,6 +64,18 @@ final class Plugin {
 		// Schema diagnostics — admin notice (D-23) and Site Health (D-22).
 		\add_action( 'admin_notices', [ Schema::class, 'maybe_render_broken_notice' ] );
 		\add_filter( 'site_status_tests', [ Schema::class, 'register_site_health_tests' ] );
+
+		// Capture + flush pipeline (Plan 03-08).
+		$capture = new Capture( null, $registry );
+		\add_filter( 'rest_pre_dispatch', [ $capture, 'on_pre_dispatch' ], 9999, 3 );
+		\add_filter( 'rest_post_dispatch', [ $capture, 'on_post_dispatch' ], 9999, 3 );
+		// rest_request_after_callbacks fires on ALL dispatch paths including rest_do_request().
+		// rest_post_dispatch only fires on full HTTP requests (serve_request) + embed/batch.
+		// Both hooks call Queue::backfill — idempotent, so double-fire on HTTP path is harmless.
+		\add_filter( 'rest_request_after_callbacks', [ $capture, 'on_after_callbacks' ], 9999, 3 );
+
+		$flusher = new Flusher( null, null, null, null, null, null, null, $registry );
+		\add_action( 'shutdown', [ $flusher, 'on_shutdown' ], 1 );
 	}
 
 	public function container(): Container {

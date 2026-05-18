@@ -87,6 +87,11 @@ final class Capture {
 	/**
 	 * REST post-dispatch callback (priority 9999) — PASSTHROUGH (D-02).
 	 *
+	 * Fires from serve_request() (full HTTP path), embed context, and batch
+	 * requests. Does NOT fire when rest_do_request() is called directly, which
+	 * only invokes dispatch() → respond_to_request(). For that path, backfill
+	 * happens via on_after_callbacks() below.
+	 *
 	 * @param mixed $result  The response object after dispatch.
 	 * @param mixed $server  REST server instance.
 	 * @param mixed $request The REST request.
@@ -100,6 +105,29 @@ final class Capture {
 			unset( $e );
 		}
 		return $result; // PASSTHROUGH (D-02).
+	}
+
+	/**
+	 * REST after-callbacks hook (priority 9999) — PASSTHROUGH (D-02).
+	 *
+	 * Fires from respond_to_request() on ALL dispatch paths — including the
+	 * rest_do_request() → dispatch() route that does NOT fire rest_post_dispatch.
+	 * Signature differs: ($response, $handler, $request) vs ($result, $server, $request).
+	 * Queue::backfill is idempotent so double-fire on the full HTTP path is safe.
+	 *
+	 * @param mixed $response Response value before rest_ensure_response wrapping.
+	 * @param mixed $handler  Route handler array.
+	 * @param mixed $request  The REST request.
+	 * @return mixed $response, always unchanged.
+	 */
+	public function on_after_callbacks( $response, $handler, $request ) {
+		try {
+			$this->observe_post( $response, $request );
+		} catch ( \Throwable $e ) {
+			// Logging must never raise. Swallow everything; client is unaffected.
+			unset( $e );
+		}
+		return $response; // PASSTHROUGH (D-02).
 	}
 
 	/**
