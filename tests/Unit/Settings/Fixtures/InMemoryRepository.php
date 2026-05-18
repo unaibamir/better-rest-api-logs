@@ -21,12 +21,14 @@ final class InMemoryRepository extends Repository {
 	private $store = array();
 
 	/**
-	 * @param string $name    Option name.
-	 * @param mixed  $default Default to return if the option is absent.
+	 * @param string $name     Option name.
+	 * @param mixed  $fallback Returned when the option does not exist.
+	 *                         Named to match the production Repository parent so
+	 *                         PHP 8+ named-argument callers see no LSP-ish drift.
 	 * @return mixed
 	 */
-	public function get_option( string $name, $default = false ) {
-		return array_key_exists( $name, $this->store ) ? $this->store[ $name ] : $default;
+	public function get_option( string $name, $fallback = false ) {
+		return array_key_exists( $name, $this->store ) ? $this->store[ $name ] : $fallback;
 	}
 
 	/**
