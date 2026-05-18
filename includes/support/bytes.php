@@ -10,7 +10,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * Truncate_utf8() caps by bytes (not chars) without splitting a UTF-8
  * codepoint. human_readable() formats sizes for the admin UI. gzip/gunzip
- * round-trip payloads through PHP's zlib filter at the default level.
+ * round-trip payloads through PHP's zlib filter at the default level
+ * (`gzencode()` with no level argument; currently maps to 6 in zlib).
  *
  * Locked contract per CONTEXT.md D-29:
  *  - truncate_utf8 walks back to the last whole UTF-8 sequence boundary.
@@ -75,13 +76,15 @@ final class Bytes {
 	}
 
 	/**
-	 * Gzip-compress `$s`. Returns the input unchanged on encoder failure —
-	 * Phase 3's insert path must never block on compression.
+	 * Gzip-compress `$s` at PHP's default compression level (omitting the
+	 * level argument selects zlib's internal default — currently 6).
+	 * Returns the input unchanged on encoder failure — Phase 3's insert
+	 * path must never block on compression.
 	 *
 	 * @param string $s Raw payload.
 	 */
 	public static function gzip( string $s ): string {
-		$out = \gzencode( $s, 6 );
+		$out = \gzencode( $s );
 		return false === $out ? $s : $out;
 	}
 
