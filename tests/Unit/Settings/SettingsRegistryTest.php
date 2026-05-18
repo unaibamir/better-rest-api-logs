@@ -115,55 +115,78 @@ final class SettingsRegistryTest extends TestCase {
 		$repo = new InMemoryRepository();
 		$repo->update_option( 'brl_db_version', '2.0' );
 		$registry = new Registry( $repo );
+		Registry::set_global_instance( $registry );
 
-		$this->assertSame(
-			'2.0',
-			$registry->get_internal( 'db_version' ),
-			'D-03: brl_db_version is a flat scalar option, hidden behind get_internal().'
-		);
+		try {
+			$this->assertSame(
+				'2.0',
+				Registry::get_internal( 'db_version' ),
+				'D-03: brl_db_version is a flat scalar option, hidden behind get_internal().'
+			);
+		} finally {
+			Registry::set_global_instance( null );
+		}
 	}
 
 	public function test_get_internal_circuit_open_until_reads_from_brl_internal_array(): void {
 		$repo = new InMemoryRepository();
 		$repo->update_option( 'brl_internal', array( 'circuit_open_until' => 1234567 ) );
 		$registry = new Registry( $repo );
+		Registry::set_global_instance( $registry );
 
-		$this->assertSame( 1234567, $registry->get_internal( 'circuit_open_until' ) );
+		try {
+			$this->assertSame( 1234567, Registry::get_internal( 'circuit_open_until' ) );
+		} finally {
+			Registry::set_global_instance( null );
+		}
 	}
 
 	public function test_set_internal_writes_to_brl_internal_array(): void {
 		$repo     = new InMemoryRepository();
 		$registry = new Registry( $repo );
+		Registry::set_global_instance( $registry );
 
-		$registry->set_internal( 'schema_broken', true );
+		try {
+			Registry::set_internal( 'schema_broken', true );
 
-		$stored = $repo->get_option( 'brl_internal' );
-		$this->assertIsArray( $stored );
-		$this->assertArrayHasKey( 'schema_broken', $stored );
-		$this->assertTrue( $stored['schema_broken'] );
+			$stored = $repo->get_option( 'brl_internal' );
+			$this->assertIsArray( $stored );
+			$this->assertArrayHasKey( 'schema_broken', $stored );
+			$this->assertTrue( $stored['schema_broken'] );
+		} finally {
+			Registry::set_global_instance( null );
+		}
 	}
 
 	public function test_set_internal_rejects_unknown_key(): void {
 		$repo     = new InMemoryRepository();
 		$registry = new Registry( $repo );
+		Registry::set_global_instance( $registry );
 
-		$this->expectException( \InvalidArgumentException::class );
+		try {
+			$this->expectException( \InvalidArgumentException::class );
 
-		// Typo guard: 'cirtcuit_open_until' (transposed letters) must be rejected.
-		$registry->set_internal( 'cirtcuit_open_until', 1 );
+			// Typo guard: 'cirtcuit_open_until' (transposed letters) must be rejected.
+			Registry::set_internal( 'cirtcuit_open_until', 1 );
+		} finally {
+			Registry::set_global_instance( null );
+		}
 	}
 
 	public function test_set_internal_unknown_key_does_not_persist(): void {
 		$repo     = new InMemoryRepository();
 		$registry = new Registry( $repo );
+		Registry::set_global_instance( $registry );
 
 		try {
-			$registry->set_internal( 'totally_made_up', 'value' );
+			Registry::set_internal( 'totally_made_up', 'value' );
 			$this->fail( 'Expected InvalidArgumentException was not thrown.' );
 		} catch ( \InvalidArgumentException $e ) {
 			// Expected — assert the bad key never landed in the stored array.
 			$stored = $repo->get_option( 'brl_internal', null );
 			$this->assertNull( $stored, 'brl_internal must not be written when the key is invalid.' );
+		} finally {
+			Registry::set_global_instance( null );
 		}
 	}
 }

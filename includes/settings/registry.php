@@ -32,9 +32,18 @@ use BetterRestApiLogs\Support\Arr;
  *  - Pitfall 2: per-tab sanitizers always return an array, never null; unknown
  *    keys are silently dropped.
  *
+ * `get_internal` and `set_internal` are declared static so integration-test
+ * helpers and Phase 3 Logger classes can call them as `Registry::get_internal($k)`
+ * without needing a container-managed instance. They delegate through
+ * `self::global()` which returns the canonical instance (set via
+ * `set_global_instance` in Plugin::boot) or builds a default one lazily.
+ *
  * Repository is constructor-injected (D-30 test seam): unit tests substitute
  * an in-memory subclass — `tests/Unit/Settings/Fixtures/InMemoryRepository.php`
  * — so the dot-path + cache logic is exercised without a WordPress bootstrap.
+ * Unit tests that cover get_internal / set_internal call `set_global_instance`
+ * with a Registry backed by the InMemoryRepository, then reset to null in
+ * tearDown.
  */
 final class Registry {
 
@@ -53,10 +62,39 @@ final class Registry {
 	 */
 	private bool $internal_loaded = false;
 
+	/**
+	 * Global singleton used by the static get_internal / set_internal facades.
+	 *
+	 * Set via set_global_instance() in Plugin::boot so that static callers share
+	 * the same in-memory cache as the container-managed instance. Falls back to a
+	 * lazily-built Repository-backed instance in integration tests and CLI
+	 * contexts where Plugin::boot has not run.
+	 *
+	 * @var self|null
+	 */
+	private static ?self $global_instance = null;
+
 	private Repository $repository;
 
 	public function __construct( Repository $repository ) {
 		$this->repository = $repository;
+	}
+
+	/**
+	 * Register the canonical instance for static method calls.
+	 *
+	 * Plugin::boot() calls this after constructing the container-managed
+	 * Registry so that Registry::get_internal() / Registry::set_internal()
+	 * share the same in-memory cache as the injected instance.
+	 *
+	 * Unit tests that need to inject an InMemoryRepository into the static
+	 * path call this in setUp() and pass null in tearDown() to restore the
+	 * default.
+	 *
+	 * @param self|null $instance The container-managed instance, or null to reset.
+	 */
+	public static function set_global_instance( ?self $instance ): void {
+		self::$global_instance = $instance;
 	}
 
 	/**
@@ -91,28 +129,17 @@ final class Registry {
 	 *                             unioned with `Internal::defaults()` so reserved
 	 *                             keys never surface as `null` on a fresh install.
 	 *
+	 * Declared static so integration-test helpers and Phase 3 Logger classes can
+	 * call it as Registry::get_internal($k) without a container-managed instance.
+	 * Delegates through self::global() — see class docblock for the singleton
+	 * lifecycle. Static methods can also be called on an instance reference
+	 * ($registry->get_internal($k)) without error in PHP 8.
+	 *
 	 * @param  string $key Internal-marker key.
 	 * @return mixed
 	 */
-	public function get_internal( string $key ) {
-		if ( 'db_version' === $key ) {
-			return $this->repository->get_option( 'brl_db_version', '0' );
-		}
-		if ( 'delete_on_uninstall' === $key ) {
-			return (bool) $this->repository->get_option( 'brl_settings_delete_on_uninstall', '' );
-		}
-
-		if ( ! $this->internal_loaded ) {
-			$stored = $this->repository->get_option( 'brl_internal', [] );
-			if ( ! \is_array( $stored ) ) {
-				$stored = [];
-			}
-			// Stored values WIN over Internal defaults for keys present in both.
-			$this->cache_internal  = $stored + Internal::defaults();
-			$this->internal_loaded = true;
-		}
-
-		return $this->cache_internal[ $key ] ?? null;
+	public static function get_internal( string $key ) {
+		return self::global_instance()->read_internal( $key );
 	}
 
 	/**
@@ -124,27 +151,18 @@ final class Registry {
 	 * SET-01 contract — every write goes through this method, every write
 	 * passes the reserved-key check.
 	 *
-	 * Cache invalidation happens via the `updated_option` hook → the
-	 * `invalidate_cache_on_option_change` callback below. Plan 02-07 wires the
-	 * hook in Plugin::boot.
+	 * Declared static for the same reason as get_internal. Delegates through
+	 * self::global_instance() so the in-memory cache stays coherent.
+	 *
+	 * Cache invalidation happens via the `updated_option` hook →
+	 * `invalidate_cache_on_option_change` below. Plan 02-07 wires the hook.
 	 *
 	 * @param  string $key   One of the reserved keys declared in `Internal::defaults()`.
 	 * @param  mixed  $value New value.
 	 * @throws \InvalidArgumentException When `$key` is not a reserved `brl_internal` key.
 	 */
-	public function set_internal( string $key, $value ): void {
-		if ( ! Internal::is_known_key( $key ) ) {
-			throw new \InvalidArgumentException(
-				\esc_html( \sprintf( 'Unknown brl_internal key: %s', $key ) )
-			);
-		}
-
-		$current = $this->repository->get_option( 'brl_internal', [] );
-		if ( ! \is_array( $current ) ) {
-			$current = [];
-		}
-		$current[ $key ] = $value;
-		$this->repository->update_option( 'brl_internal', $current );
+	public static function set_internal( string $key, $value ): void {
+		self::global_instance()->write_internal( $key, $value );
 	}
 
 	/**
@@ -195,6 +213,73 @@ final class Registry {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Return the global instance, creating a default one lazily if not yet set.
+	 *
+	 * The lazy default is Repository-backed (real WP options API), which is
+	 * correct in integration tests and CLI contexts. Production code reaches
+	 * here only before Plugin::boot has run — rare but handled.
+	 */
+	private static function global_instance(): self {
+		if ( null === self::$global_instance ) {
+			self::$global_instance = new self( new Repository() );
+		}
+		return self::$global_instance;
+	}
+
+	/**
+	 * Instance-level get_internal implementation. Called by the static facade.
+	 *
+	 * @param  string $key Internal-marker key.
+	 * @return mixed
+	 */
+	private function read_internal( string $key ) {
+		if ( 'db_version' === $key ) {
+			return $this->repository->get_option( 'brl_db_version', '0' );
+		}
+		if ( 'delete_on_uninstall' === $key ) {
+			return (bool) $this->repository->get_option( 'brl_settings_delete_on_uninstall', '' );
+		}
+
+		if ( ! $this->internal_loaded ) {
+			$stored = $this->repository->get_option( 'brl_internal', [] );
+			if ( ! \is_array( $stored ) ) {
+				$stored = [];
+			}
+			// Stored values WIN over Internal defaults for keys present in both.
+			$this->cache_internal  = $stored + Internal::defaults();
+			$this->internal_loaded = true;
+		}
+
+		return $this->cache_internal[ $key ] ?? null;
+	}
+
+	/**
+	 * Instance-level set_internal implementation. Called by the static facade.
+	 *
+	 * @param  string $key   One of the reserved keys declared in `Internal::defaults()`.
+	 * @param  mixed  $value New value.
+	 * @throws \InvalidArgumentException When `$key` is not a reserved key.
+	 */
+	private function write_internal( string $key, $value ): void {
+		if ( ! Internal::is_known_key( $key ) ) {
+			throw new \InvalidArgumentException(
+				\esc_html( \sprintf( 'Unknown brl_internal key: %s', $key ) )
+			);
+		}
+
+		$current = $this->repository->get_option( 'brl_internal', [] );
+		if ( ! \is_array( $current ) ) {
+			$current = [];
+		}
+		$current[ $key ] = $value;
+		$this->repository->update_option( 'brl_internal', $current );
+
+		// Bust the instance cache so subsequent reads see the new value.
+		$this->cache_internal  = [];
+		$this->internal_loaded = false;
 	}
 
 	/**
