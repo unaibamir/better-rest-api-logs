@@ -40,10 +40,10 @@ define( 'BRL_URL', plugin_dir_url( __FILE__ ) );
 define( 'BRL_BASENAME', plugin_basename( __FILE__ ) );
 
 // Composer classmap autoload — required for every class call site below.
-// Wrapped in an IIFE so the autoloader path does not leak as a global.
-$brl_autoload_loaded = ( static function (): bool {
-	$autoload = BRL_DIR . 'vendor/autoload.php';
-	if ( ! is_readable( $autoload ) ) {
+// Wrapped in an IIFE so neither the autoloader path nor the load result
+// leak as globals (plugin-check flags any `$brl_*` global as a prefix violation).
+if ( ! ( static function (): bool {
+	if ( ! is_readable( BRL_DIR . 'vendor/autoload.php' ) ) {
 		add_action(
 			'admin_notices',
 			static function () {
@@ -57,13 +57,11 @@ $brl_autoload_loaded = ( static function (): bool {
 		);
 		return false;
 	}
-	require_once $autoload;
+	require_once BRL_DIR . 'vendor/autoload.php';
 	return true;
-} )();
-if ( ! $brl_autoload_loaded ) {
+} )() ) {
 	return;
 }
-unset( $brl_autoload_loaded );
 
 // Lifecycle hooks must register BEFORE plugins_loaded fires for the activator/deactivator to bind.
 register_activation_hook( BRL_FILE, [ \BetterRestApiLogs\Activator::class, 'activate' ] );
