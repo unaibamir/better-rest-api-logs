@@ -61,6 +61,11 @@ if ( 'unit' === $brl_suite ) {
 			return trim( (string) $str );
 		}
 	}
+	if ( ! function_exists( 'esc_html' ) ) {
+		function esc_html( $text ): string {
+			return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+		}
+	}
 	// phpcs:enable WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
 	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	return;

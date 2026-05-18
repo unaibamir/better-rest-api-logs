@@ -109,14 +109,27 @@ final class Registry {
 	/**
 	 * Write a single internal-marker key into the `brl_internal` array.
 	 *
+	 * Rejects unreserved keys via `Internal::is_known_key()` so typos cannot
+	 * silently corrupt the shared `brl_internal` namespace. The guard is the
+	 * whole reason `Internal::is_known_key()` exists; calling it here is the
+	 * SET-01 contract — every write goes through this method, every write
+	 * passes the reserved-key check.
+	 *
 	 * Cache invalidation happens via the `updated_option` hook → the
 	 * `invalidate_cache_on_option_change` callback below. Plan 02-07 wires the
 	 * hook in Plugin::boot.
 	 *
-	 * @param string $key   One of the reserved keys declared in `Internal::defaults()`.
-	 * @param mixed  $value New value.
+	 * @param  string $key   One of the reserved keys declared in `Internal::defaults()`.
+	 * @param  mixed  $value New value.
+	 * @throws \InvalidArgumentException When `$key` is not a reserved `brl_internal` key.
 	 */
 	public function set_internal( string $key, $value ): void {
+		if ( ! Internal::is_known_key( $key ) ) {
+			throw new \InvalidArgumentException(
+				\esc_html( \sprintf( 'Unknown brl_internal key: %s', $key ) )
+			);
+		}
+
 		$current = $this->repository->get_option( 'brl_internal', [] );
 		if ( ! \is_array( $current ) ) {
 			$current = [];

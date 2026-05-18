@@ -142,4 +142,28 @@ final class SettingsRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'schema_broken', $stored );
 		$this->assertTrue( $stored['schema_broken'] );
 	}
+
+	public function test_set_internal_rejects_unknown_key(): void {
+		$repo     = new InMemoryRepository();
+		$registry = new Registry( $repo );
+
+		$this->expectException( \InvalidArgumentException::class );
+
+		// Typo guard: 'cirtcuit_open_until' (transposed letters) must be rejected.
+		$registry->set_internal( 'cirtcuit_open_until', 1 );
+	}
+
+	public function test_set_internal_unknown_key_does_not_persist(): void {
+		$repo     = new InMemoryRepository();
+		$registry = new Registry( $repo );
+
+		try {
+			$registry->set_internal( 'totally_made_up', 'value' );
+			$this->fail( 'Expected InvalidArgumentException was not thrown.' );
+		} catch ( \InvalidArgumentException $e ) {
+			// Expected — assert the bad key never landed in the stored array.
+			$stored = $repo->get_option( 'brl_internal', null );
+			$this->assertNull( $stored, 'brl_internal must not be written when the key is invalid.' );
+		}
+	}
 }
