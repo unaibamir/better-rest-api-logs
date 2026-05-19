@@ -169,4 +169,47 @@ final class FiltersView {
 		}
 		return \gmdate( 'Y-m-d', (int) ( (int) $micros_str / 1_000_000 ) );
 	}
+
+	/**
+	 * Translate Y-m-d `date_from` / `date_to` form values into microsecond bounds
+	 * for `QueryArgs::from_array()`.
+	 *
+	 * The filter form posts `date_from` and `date_to` as `<input type="date">`
+	 * (Y-m-d) values, but QueryArgs only understands `date_from_micros` /
+	 * `date_to_micros`. Without this translation the dates render but never
+	 * narrow the query. Bounds are interpreted in the site's WordPress timezone
+	 * (`wp_timezone()`) so an editor in UTC+5 picking "Jan 1" sees rows from
+	 * their Jan 1 midnight, not the server's UTC Jan 1 midnight.
+	 *
+	 * `date_from` becomes the start-of-day (00:00:00.000000) in micros.
+	 * `date_to` becomes inclusive end-of-day (23:59:59.999999) in micros.
+	 * Malformed values are silently dropped — a typo in the URL never poisons
+	 * the query, the row just goes unfiltered.
+	 *
+	 * @param  array<string,mixed> $input Sanitised input array (typically from $_GET).
+	 * @return array<string,mixed>        Same array with date_from/date_to replaced by date_from_micros/date_to_micros.
+	 */
+	public static function normalize_date_inputs( array $input ): array {
+		$tz = \function_exists( 'wp_timezone' ) ? \wp_timezone() : new \DateTimeZone( 'UTC' );
+
+		if ( isset( $input['date_from'] ) && \is_string( $input['date_from'] ) && '' !== $input['date_from'] ) {
+			$start = \DateTimeImmutable::createFromFormat( '!Y-m-d', $input['date_from'], $tz );
+			if ( false !== $start ) {
+				$input['date_from_micros'] = (string) ( $start->getTimestamp() * 1_000_000 );
+			}
+		}
+		unset( $input['date_from'] );
+
+		if ( isset( $input['date_to'] ) && \is_string( $input['date_to'] ) && '' !== $input['date_to'] ) {
+			$end = \DateTimeImmutable::createFromFormat( '!Y-m-d', $input['date_to'], $tz );
+			if ( false !== $end ) {
+				// Inclusive end of day — last microsecond.
+				$end_of_day              = $end->setTime( 23, 59, 59, 999_999 );
+				$input['date_to_micros'] = (string) ( $end_of_day->getTimestamp() * 1_000_000 + 999_999 );
+			}
+		}
+		unset( $input['date_to'] );
+
+		return $input;
+	}
 }

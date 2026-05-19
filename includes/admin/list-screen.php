@@ -87,14 +87,13 @@ final class ListScreen {
 		// not wp_die; the table just shows unfiltered results.
 		try {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter form; no state-changing action.
-			$args = QueryArgs::from_array(
-				\array_map(
-					static function ( $v ) {
-						return \is_array( $v ) ? $v : \sanitize_text_field( \wp_unslash( (string) $v ) );
-					},
-					$_GET // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-				)
+			$sanitised = \array_map(
+				static function ( $v ) {
+					return \is_array( $v ) ? $v : \sanitize_text_field( \wp_unslash( (string) $v ) );
+				},
+				$_GET // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			);
+			$args      = QueryArgs::from_array( FiltersView::normalize_date_inputs( $sanitised ) );
 		} catch ( \InvalidArgumentException $e ) {
 			$args = new QueryArgs();
 		}
