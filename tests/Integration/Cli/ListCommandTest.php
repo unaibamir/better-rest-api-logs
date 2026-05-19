@@ -116,6 +116,54 @@ final class ListCommandTest extends WP_UnitTestCase {
 		$this->assertCount( 15, $decoded, '--limit=15 must return exactly 15 entries.' );
 	}
 
+	/**
+	 * Run the list command and expect WP_CLI::error() to throw with a message
+	 * that contains "limit" — proving the integer-only validation rejected the
+	 * input rather than silently coercing via (int) cast.
+	 *
+	 * @param string $bad_limit Raw limit value to feed to the command.
+	 */
+	private function assert_limit_rejected( string $bad_limit ): void {
+		$command = new ListCommand();
+
+		$threw   = false;
+		$message = '';
+		try {
+			$command->run(
+				[],
+				[
+					'format' => 'json',
+					'limit'  => $bad_limit,
+				]
+			);
+		} catch ( \Throwable $e ) {
+			$threw   = true;
+			$message = $e->getMessage();
+		}
+
+		$this->assertTrue( $threw, "--limit={$bad_limit} must be rejected, not silently coerced." );
+		$this->assertStringContainsString(
+			'limit',
+			\strtolower( $message ),
+			"Error for --limit={$bad_limit} must mention the offending parameter."
+		);
+	}
+
+	public function test_list_command_rejects_non_integer_limit(): void {
+		$this->insert_entries( 3 );
+		$this->assert_limit_rejected( 'abc' );
+	}
+
+	public function test_list_command_rejects_decimal_limit(): void {
+		$this->insert_entries( 3 );
+		$this->assert_limit_rejected( '3.14' );
+	}
+
+	public function test_list_command_rejects_scientific_notation_limit(): void {
+		$this->insert_entries( 3 );
+		$this->assert_limit_rejected( '1e2' );
+	}
+
 	public function test_list_command_items_have_expected_fields(): void {
 		$this->insert_entries( 1 );
 
