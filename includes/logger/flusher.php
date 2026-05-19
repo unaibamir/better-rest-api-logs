@@ -152,6 +152,13 @@ final class Flusher {
 			return;
 		}
 
+		// Honour the schema-broken latch (D-13). Once the tables are known to be
+		// missing or out of sync we stop attempting inserts so $wpdb does not
+		// spam debug.log with "table doesn't exist" on every captured request.
+		if ( true === SettingsRegistry::get_internal( 'schema_broken' ) ) {
+			return;
+		}
+
 		// Step 4: build Entry DTOs for each complete queue item.
 		$assembled = [];
 		foreach ( $entries as $pair ) {
@@ -181,12 +188,32 @@ final class Flusher {
 			return;
 		}
 
-		// Step 5: insert through the circuit breaker.
+		// Step 5: insert through the circuit breaker. Suppress $wpdb error
+		// printing for the duration of the insert — the response has already
+		// gone to the browser, and the failure modes that print here (missing
+		// tables, connection drops) are observed through the breaker and the
+		// schema-broken latch below rather than the WP debug log.
+		global $wpdb;
+		$prev_suppress = $wpdb->suppress_errors( true );
+
 		$log_ids = $this->breaker->guard(
 			function () use ( $assembled ): array {
 				return $this->log_repo->insert_batch( $assembled );
 			}
 		);
+
+		// Self-heal: if the insert failed because our tables are missing, latch
+		// schema_broken so subsequent requests skip the insert path entirely.
+		// Schema::install() can clear the latch once the tables come back.
+		$last_error = (string) $wpdb->last_error;
+		if ( [] === $log_ids
+			&& '' !== $last_error
+			&& false !== \stripos( $last_error, "doesn't exist" )
+		) {
+			SettingsRegistry::set_internal( 'schema_broken', true );
+		}
+
+		$wpdb->suppress_errors( $prev_suppress );
 
 		if ( [] === $log_ids ) {
 			return;
