@@ -273,6 +273,31 @@ defined( 'ABSPATH' ) || exit;
  *   );
  *
  * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Filter: brl_use_fastcgi_finish_request
+ *
+ * Controls whether the shutdown flusher calls fastcgi_finish_request() to close
+ * the response before draining the queue. The default is true unless Query
+ * Monitor is loaded (class QM or constant QM_DISABLED is present), in which
+ * case the plugin auto-disables it so QM's shutdown-time HTML injection still
+ * reaches the browser. Return false to keep the connection open for any other
+ * debug or profiling tool that writes during shutdown.
+ *
+ * @since 1.0.1
+ *
+ * @param bool $use Whether to call fastcgi_finish_request(). True by default,
+ *                  flipped to false automatically when QM is loaded.
+ *
+ * @example
+ *   // Keep the response open when New Relic's RUM injector is running.
+ *   add_filter(
+ *       'brl_use_fastcgi_finish_request',
+ *       static function ( $use ) {
+ *           return $use && ! function_exists( 'newrelic_get_browser_timing_header' );
+ *       }
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
  */
 final class Hooks {
 	// Phase 6 implements register()/document() methods + docs/HOOKS.md generation.

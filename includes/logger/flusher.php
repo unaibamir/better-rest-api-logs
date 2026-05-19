@@ -116,7 +116,25 @@ final class Flusher {
 	 */
 	private function run_pipeline(): void {
 		// Step 1: early flush so the browser receives the response immediately.
-		if ( \function_exists( 'fastcgi_finish_request' ) ) {
+		// Debug tools like Query Monitor inject panel HTML during shutdown and
+		// need the connection open until their own handler runs — closing the
+		// FastCGI response at priority 1 cuts them off mid-write. Auto-detect QM
+		// and let any other tool opt out through the `brl_use_fastcgi_finish_request`
+		// filter (default true; passed false from our QM-detection callback).
+		$use_fcgi_finish = true;
+		if ( \class_exists( 'QM' ) || \defined( 'QM_DISABLED' ) ) {
+			$use_fcgi_finish = false;
+		}
+		/**
+		 * Skip the early FastCGI flush when a debug tool needs the response open
+		 * past our shutdown handler. Return false to keep the connection open;
+		 * the rest of the pipeline still runs after PHP's standard shutdown chain.
+		 *
+		 * @param bool $use_fcgi_finish Whether to call fastcgi_finish_request().
+		 */
+		$use_fcgi_finish = (bool) \apply_filters( 'brl_use_fastcgi_finish_request', $use_fcgi_finish );
+
+		if ( $use_fcgi_finish && \function_exists( 'fastcgi_finish_request' ) ) {
 			\fastcgi_finish_request();
 		}
 		// Ignore TCP disconnect — we need to finish the write regardless.
