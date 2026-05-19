@@ -22,8 +22,20 @@ use WP_UnitTestCase;
 
 final class FlusherTest extends WP_UnitTestCase {
 
+	/**
+	 * Output-buffer depth at the start of the test. do_action('shutdown') runs
+	 * wp_ob_end_flush_all which closes every active ob_* buffer — including the
+	 * one PHPUnit opens around each test — and PHPUnit marks the test as risky
+	 * when the depth at tearDown does not match. Snapshot here, restore in
+	 * tear_down so we don't double-close PHPUnit's frame.
+	 *
+	 * @var int
+	 */
+	private int $ob_level_before = 0;
+
 	public function set_up(): void {
 		parent::set_up();
+		$this->ob_level_before = \ob_get_level();
 		Queue::reset();
 		// Remove the WP_UnitTestCase temporary-table rewrite for our custom tables.
 		// Other test classes (SchemaInstallTest) drop the real tables in their tear_down;
@@ -39,6 +51,12 @@ final class FlusherTest extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		Queue::reset();
+		while ( \ob_get_level() > $this->ob_level_before ) {
+			\ob_end_clean();
+		}
+		while ( \ob_get_level() < $this->ob_level_before ) {
+			\ob_start();
+		}
 		parent::tear_down();
 	}
 
