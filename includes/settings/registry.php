@@ -98,6 +98,20 @@ final class Registry {
 	}
 
 	/**
+	 * Retrieve the canonical instance (same object that Plugin::boot() registered).
+	 *
+	 * Returns the lazily-built fallback when Plugin::boot() has not run yet,
+	 * mirroring the self::global() behaviour used by the static get/set_internal
+	 * facades. Tests that need to call instance methods on the global Registry
+	 * (e.g. clearing the stats_snapshot between test cases) use this.
+	 *
+	 * @return self
+	 */
+	public static function get_global_instance(): self {
+		return self::global_instance();
+	}
+
+	/**
 	 * Read a user-facing setting via dot-path. First segment is the tab; the
 	 * rest resolves as a nested key inside that tab's stored array overlaid
 	 * onto `Defaults::for_tab( $tab )`.
