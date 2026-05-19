@@ -434,15 +434,32 @@ final class Registry {
 	/**
 	 * Reduce an arbitrary value to a re-indexed list of sanitized strings.
 	 *
-	 * @param  mixed $value Raw input — expected array, defensive against scalars.
+	 * The admin Settings UI renders array-valued settings as a single textarea,
+	 * so options.php posts a newline-separated string for keys like
+	 * `route_allowlist`. Accept that string form here and split on line breaks
+	 * so the form path and the programmatic-array path land at the same shape.
+	 * Empty lines are dropped after trimming.
+	 *
+	 * @param  mixed $value Raw input — array, newline-delimited string, or other scalar.
 	 * @return array<int,string>
 	 */
 	private static function clean_string_list( $value ): array {
+		if ( \is_string( $value ) ) {
+			$lines = \preg_split( '/\r\n|\r|\n/', $value );
+			$value = false === $lines ? [] : $lines;
+		}
 		if ( ! \is_array( $value ) ) {
 			return [];
 		}
 		$strings = \array_filter( $value, '\is_string' );
-		return \array_values( \array_map( '\sanitize_text_field', $strings ) );
+		$cleaned = \array_map( '\sanitize_text_field', $strings );
+		$cleaned = \array_filter(
+			$cleaned,
+			static function ( string $s ): bool {
+				return '' !== $s;
+			}
+		);
+		return \array_values( $cleaned );
 	}
 
 	/**
