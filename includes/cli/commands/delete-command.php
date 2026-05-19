@@ -42,10 +42,12 @@ final class DeleteCommand extends \WP_CLI_Command {
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
 		// Defense-in-depth capability check (CLI-03 / T-04-46).
-		// `brl_admin_required_capability` lets operators harden to a custom cap.
+		// `brl_admin_required_capability` lets operators harden to a custom cap;
+		// the denial message therefore quotes the filtered cap rather than
+		// hard-coding manage_options.
 		$required_cap = (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'cli' );
 		if ( ! \current_user_can( $required_cap ) ) {
-			\WP_CLI::error( 'Insufficient capabilities (manage_options required).' );
+			\WP_CLI::error( \sprintf( 'Insufficient capabilities (%s required).', $required_cap ) );
 		}
 
 		if ( ! isset( $args[0] ) ) {
