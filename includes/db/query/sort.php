@@ -18,8 +18,10 @@ final class Sort {
 	/**
 	 * Validates and normalises a sort column + direction pair.
 	 *
-	 * Direction is normalised to upper-case after trimming whitespace; column
-	 * comparison is case-sensitive (schema columns are lowercase).
+	 * Both inputs are trimmed of leading/trailing whitespace. Direction is then
+	 * upper-cased; column comparison stays case-sensitive after the trim because
+	 * the Phase 2 schema uses lowercase column names only — accepting
+	 * 'CREATED_AT' would silently mask a caller bug.
 	 *
 	 * @param string $column Sort column name.
 	 * @param string $dir    Sort direction ('ASC' or 'DESC', case-insensitive).
@@ -27,9 +29,10 @@ final class Sort {
 	 * @throws \InvalidArgumentException When column or direction is not whitelisted.
 	 */
 	public static function validate( string $column, string $dir ): array {
-		$dir_normalised = \strtoupper( \trim( $dir ) );
+		$column_normalised = \trim( $column );
+		$dir_normalised    = \strtoupper( \trim( $dir ) );
 
-		if ( ! \in_array( $column, self::ALLOWED_COLUMNS, true ) ) {
+		if ( ! \in_array( $column_normalised, self::ALLOWED_COLUMNS, true ) ) {
 			throw new \InvalidArgumentException( 'Unknown sort column.' );
 		}
 		if ( ! \in_array( $dir_normalised, self::ALLOWED_DIRS, true ) ) {
@@ -37,7 +40,7 @@ final class Sort {
 		}
 
 		return [
-			'column' => $column,
+			'column' => $column_normalised,
 			'dir'    => $dir_normalised,
 		];
 	}
