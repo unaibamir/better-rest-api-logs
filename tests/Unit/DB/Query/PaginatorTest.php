@@ -18,8 +18,9 @@ namespace BetterRestApiLogs\Tests\Unit\DB\Query;
 use BetterRestApiLogs\DB\Query\Paginator;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
-// EXPECTED FAILURE: Wave 1 (Plan 04-02) — Paginator class does not exist yet.
-
+/**
+ * Covers the Paginator cursor token round-trip and decode-error paths.
+ */
 final class PaginatorTest extends TestCase {
 
 	public function test_encode_decode_round_trips(): void {
@@ -36,7 +37,7 @@ final class PaginatorTest extends TestCase {
 	public function test_encoded_token_contains_only_url_safe_characters(): void {
 		$token = Paginator::encode( 1716109800000000, 12345 );
 
-		// base64url alphabet: A-Z a-z 0-9 _ -  (no +, /, or =)
+		// base64url alphabet: A-Z a-z 0-9 _ - (no +, /, or =).
 		$this->assertMatchesRegularExpression(
 			'/^[A-Za-z0-9_-]+$/',
 			$token,
@@ -68,6 +69,7 @@ final class PaginatorTest extends TestCase {
 
 	public function test_valid_base64url_with_wrong_json_structure_throws(): void {
 		// Valid base64url but the decoded JSON has no 'c'/'i' keys.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- test fixture encodes a deliberately malformed cursor payload to exercise the decoder's structural-validation branch.
 		$bad_token = rtrim( strtr( base64_encode( '{"x":1,"y":2}' ), '+/', '-_' ), '=' );
 
 		$this->expectException( \InvalidArgumentException::class );

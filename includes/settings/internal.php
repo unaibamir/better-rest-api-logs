@@ -43,7 +43,7 @@ final class Internal {
 			'schema_broken'                => false,
 			// Cached aggregate counts written by the stats endpoint (StatsController).
 			// Shape: array{computed_at:int, by_status_class:array, by_method:array,
-			// oldest:string, newest:string, table_size_bytes:int}
+			// oldest:string, newest:string, table_size_bytes:int}.
 			'stats_snapshot'               => [],
 			'purge_state'                  => [],
 			'migration'                    => [],

@@ -24,8 +24,9 @@ use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-07) — DetailScreen class does not exist yet.
-
+/**
+ * Covers the admin detail screen rendering and missing-id handling.
+ */
 final class DetailScreenTest extends WP_UnitTestCase {
 
 	/** @var int */

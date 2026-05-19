@@ -7,11 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 use BetterRestApiLogs\Admin\Assets;
 use BetterRestApiLogs\Admin\DetailScreen;
-use BetterRestApiLogs\Admin\FiltersView;
 use BetterRestApiLogs\Admin\ListScreen;
-use BetterRestApiLogs\Admin\ListTable;
-use BetterRestApiLogs\Admin\Notices;
-use BetterRestApiLogs\DB\LogRepository;
 
 /**
  * Admin boot-entry façade — registers the Tools and Settings menu items and
@@ -49,6 +45,7 @@ final class Admin {
 	 * @param DetailScreen $detail Detail page render callback.
 	 * @param Assets       $assets Conditional asset enqueuer.
 	 */
+	// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.listFound -- the parameter names the ListScreen collaborator and pairs with $detail; renaming would obscure the role.
 	public function __construct( ListScreen $list, DetailScreen $detail, Assets $assets ) {
 		$this->list   = $list;
 		$this->detail = $detail;

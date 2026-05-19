@@ -19,8 +19,9 @@ use BetterRestApiLogs\DB\Schema;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-09) — StatusCommand class does not exist yet.
-
+/**
+ * Covers the wp better-logs status command capability check and output.
+ */
 final class StatusCommandTest extends WP_UnitTestCase {
 
 	/** @var int */

@@ -23,7 +23,7 @@ final class SingleController {
 	}
 
 	/**
-	 * @param  \WP_REST_Request $request
+	 * @param  \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function handle_read( \WP_REST_Request $request ) {
@@ -35,6 +35,7 @@ final class SingleController {
 				'brl_log_not_found',
 				// Generic copy — do not echo the offending input back (T-04-24).
 				\sprintf(
+					/* translators: %d: log entry id. */
 					\esc_html__( 'Log entry %d does not exist.', 'better-rest-api-logs' ),
 					$id
 				),
@@ -51,7 +52,7 @@ final class SingleController {
 	}
 
 	/**
-	 * @param  \WP_REST_Request $request
+	 * @param  \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function handle_delete( \WP_REST_Request $request ) {
@@ -62,6 +63,7 @@ final class SingleController {
 			return new \WP_Error(
 				'brl_log_not_found',
 				\sprintf(
+					/* translators: %d: log entry id. */
 					\esc_html__( 'Log entry %d does not exist.', 'better-rest-api-logs' ),
 					$id
 				),

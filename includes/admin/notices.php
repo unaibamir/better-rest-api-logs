@@ -33,6 +33,7 @@ final class Notices {
 				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
 				\esc_html(
 					\sprintf(
+						/* translators: %d: number of deleted log entries. */
 						\_n( 'Deleted %d log entry.', 'Deleted %d log entries.', $deleted, 'better-rest-api-logs' ),
 						$deleted
 					)

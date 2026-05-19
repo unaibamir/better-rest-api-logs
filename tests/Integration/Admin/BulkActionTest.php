@@ -25,8 +25,9 @@ use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-07) — BulkActionHandler class does not exist yet.
-
+/**
+ * Covers the admin bulk-delete handler nonce, cap check, and outcome routing.
+ */
 final class BulkActionTest extends WP_UnitTestCase {
 
 	/** @var int */

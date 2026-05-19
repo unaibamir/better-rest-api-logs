@@ -83,6 +83,7 @@ final class LogRepositorySearchPerfTest extends WP_UnitTestCase {
 		$p95 = $samples[ (int) ( 0.95 * count( $samples ) ) ];
 
 		// Report p95 in output for observability even on pass.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- writing a one-line perf metric to STDERR for visibility in CI output; WP_Filesystem is irrelevant for diagnostic stderr.
 		fwrite( STDERR, sprintf( "\nLogRepositorySearchPerfTest: p95=%.2fms (budget=%dms, rows=%d)\n", $p95, self::P95_BUDGET_MS, self::SEED_ROWS ) );
 
 		$this->assertLessThan(

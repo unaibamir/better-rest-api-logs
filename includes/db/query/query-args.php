@@ -25,19 +25,96 @@ final class QueryArgs {
 	private const LIMIT_DEFAULT          = 20;
 	private const LIMIT_MAX              = 200;
 
-	public ?string $method        = null;   // 'GET'|'POST'|...
-	public ?int $status           = null;   // 100-599
-	public ?string $status_class  = null;   // '1xx'|'2xx'|'3xx'|'4xx'|'5xx'
-	public ?string $route_prefix  = null;   // exact prefix match, e.g. '/wp/v2/'
-	public ?int $user_id          = null;
-	public ?string $ip            = null;   // IPv4/IPv6 literal — packed via inet_pton before binding
+	/**
+	 * HTTP method whitelist value.
+	 *
+	 * @var string|null One of GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD; null when no filter.
+	 */
+	public ?string $method = null;
+
+	/**
+	 * Exact HTTP status code filter.
+	 *
+	 * @var int|null  HTTP status 100..599; null when no filter.
+	 */
+	public ?int $status = null;
+
+	/**
+	 * Status class bucket filter.
+	 *
+	 * @var string|null One of '1xx'..'5xx'; null when no filter.
+	 */
+	public ?string $status_class = null;
+
+	/**
+	 * Route prefix to match.
+	 *
+	 * @var string|null Exact route prefix to filter on (e.g. '/wp/v2/'); null when no filter.
+	 */
+	public ?string $route_prefix = null;
+
+	/**
+	 * Acting user id filter.
+	 *
+	 * @var int|null Filter by acting user id; null when no filter.
+	 */
+	public ?int $user_id = null;
+
+	/**
+	 * Remote IP literal filter.
+	 *
+	 * @var string|null IPv4/IPv6 literal — packed via inet_pton before binding; null when no filter.
+	 */
+	public ?string $ip = null;
+
+	/**
+	 * Lower bound on created_at_micros.
+	 *
+	 * @var int|null Lower bound on created_at_micros; null when no lower bound.
+	 */
 	public ?int $date_from_micros = null;
-	public ?int $date_to_micros   = null;
-	public ?string $free_text     = null;   // matched against route column
-	public ?string $cursor        = null;   // base64url Paginator token
-	public int $limit             = self::LIMIT_DEFAULT;   // capped server-side at 200
-	public string $order_by       = 'created_at';          // 'created_at'|'duration_ms'
-	public string $order_dir      = 'DESC';                // 'ASC'|'DESC'
+
+	/**
+	 * Upper bound on created_at_micros.
+	 *
+	 * @var int|null Upper bound on created_at_micros; null when no upper bound.
+	 */
+	public ?int $date_to_micros = null;
+
+	/**
+	 * Substring search applied to the route column.
+	 *
+	 * @var string|null Substring filter against the route column; null when no search.
+	 */
+	public ?string $free_text = null;
+
+	/**
+	 * Cursor token from a previous page.
+	 *
+	 * @var string|null Base64url Paginator token; null on the first page.
+	 */
+	public ?string $cursor = null;
+
+	/**
+	 * Page size — server-capped.
+	 *
+	 * @var int Page size capped server-side at LIMIT_MAX.
+	 */
+	public int $limit = self::LIMIT_DEFAULT;
+
+	/**
+	 * Sort column.
+	 *
+	 * @var string Sort column — 'created_at' or 'duration_ms'.
+	 */
+	public string $order_by = 'created_at';
+
+	/**
+	 * Sort direction.
+	 *
+	 * @var string Sort direction — 'ASC' or 'DESC'.
+	 */
+	public string $order_dir = 'DESC';
 
 	/**
 	 * Build a QueryArgs from a raw associative array (URL args, REST params, CLI assoc_args).
@@ -182,7 +259,7 @@ final class QueryArgs {
 	/**
 	 * Trim and return a string, or null if empty.
 	 *
-	 * @param  mixed $value
+	 * @param  mixed $value Raw value to trim and reduce to null when empty.
 	 * @return string|null
 	 */
 	private static function sanitise_string( $value ): ?string {

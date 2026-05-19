@@ -150,7 +150,8 @@ final class DetailScreen {
 		$headers_json = $is_request
 			? (string) ( $entry->request_headers ?? '{}' )
 			: (string) ( $entry->response_headers ?? '{}' );
-		$headers      = (array) ( \json_decode( $headers_json, true ) ?: [] );
+		$decoded      = \json_decode( $headers_json, true );
+		$headers      = \is_array( $decoded ) ? $decoded : [];
 
 		\printf( '<h3>%s</h3>', \esc_html__( 'Headers', 'better-rest-api-logs' ) );
 		echo '<table class="brl-headers-table widefat striped"><tbody>';

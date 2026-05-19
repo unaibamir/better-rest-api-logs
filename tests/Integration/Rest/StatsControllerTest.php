@@ -24,8 +24,9 @@ use BetterRestApiLogs\Plugin;
 use BetterRestApiLogs\Settings\Registry;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-06) — StatsController class does not exist yet.
-
+/**
+ * Covers the REST stats controller snapshot reuse and freshness window.
+ */
 final class StatsControllerTest extends WP_UnitTestCase {
 
 	/** @var int */
@@ -48,6 +49,7 @@ final class StatsControllerTest extends WP_UnitTestCase {
 		\wp_set_current_user( $this->admin_id );
 
 		Plugin::instance()->boot();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- test fixture simulates WP firing core 'rest_api_init' hook to register routes under test.
 		\do_action( 'rest_api_init' );
 
 		// Clear any cached snapshot from a previous test.

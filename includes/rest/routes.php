@@ -24,6 +24,7 @@ final class Routes {
 	private SingleController $single;
 	private StatsController $stats;
 
+	// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.listFound -- the parameter names the ListController collaborator; renaming would obscure the role.
 	public function __construct( ListController $list, SingleController $single, StatsController $stats ) {
 		$this->list   = $list;
 		$this->single = $single;
@@ -83,6 +84,7 @@ final class Routes {
 	 * required capability without touching plugin code.
 	 */
 	private static function admin_only(): callable {
+		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- WP REST API contract requires the closure to accept the request, even when the cap check ignores it.
 		return static function ( \WP_REST_Request $request ): bool {
 			return \current_user_can(
 				\apply_filters( 'brl_admin_required_capability', 'manage_options', 'rest' )
@@ -93,8 +95,8 @@ final class Routes {
 	/**
 	 * Shared validate_callback for the {id} route parameter.
 	 *
-	 * preg_match ensures only positive integers pass — no scientific notation,
-	 * no floats, no negative values. The (int) cast is a sanity belt.
+	 * A preg_match check ensures only positive integers pass — no scientific
+	 * notation, no floats, no negative values. The (int) cast is a sanity belt.
 	 *
 	 * @return array<string,array<string,mixed>>
 	 */
@@ -111,12 +113,12 @@ final class Routes {
 	/**
 	 * Declared args for the GET /logs route.
 	 *
-	 * sanitize_callback strips HTML/control chars at the WP REST boundary before
-	 * the values reach QueryArgs::from_array(), which applies its own per-field
-	 * validation. Double-sanitisation is the WP REST API idiom.
+	 * The sanitize_callback strips HTML/control chars at the WP REST boundary
+	 * before the values reach QueryArgs::from_array(), which applies its own
+	 * per-field validation. Double-sanitisation is the WP REST API idiom.
 	 *
-	 * per_page maps to limit for WP REST API convention compatibility; callers
-	 * may pass either — QueryArgs::from_array() reads the `limit` key.
+	 * The per_page key maps to limit for WP REST API convention compatibility;
+	 * callers may pass either — QueryArgs::from_array() reads the `limit` key.
 	 *
 	 * @return array<string,array<string,mixed>>
 	 */

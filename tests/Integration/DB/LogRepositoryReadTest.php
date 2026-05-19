@@ -85,7 +85,7 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$res->content_type = 'application/json';
 
 		$entry                    = Entry::from_snapshots( $req, $res, [] );
-		$entry->created_at_micros = $micros ?: (int) ( microtime( true ) * 1_000_000 );
+		$entry->created_at_micros = $micros > 0 ? $micros : (int) ( microtime( true ) * 1_000_000 );
 		$entry->bodies_spilled    = $spilled;
 		$packed                   = \inet_pton( '::ffff:127.0.0.1' );
 		$entry->ip_raw_remote     = false !== $packed ? $packed : null;
@@ -93,10 +93,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		return $entry;
 	}
 
-	// -------------------------------------------------------------------------
-	// find()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Returns an Entry from find() for an existing primary key.
+	 */
 	public function test_find_returns_entry_for_existing_id(): void {
 		$entry = $this->make_entry();
 		$ids   = $this->repo->insert_batch( [ $entry ] );
@@ -125,10 +124,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertSame( '{"res":"data"}', $found->response_body );
 	}
 
-	// -------------------------------------------------------------------------
-	// search()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Returns an empty result set from search() against an empty table.
+	 */
 	public function test_search_returns_empty_on_empty_table(): void {
 		$result = $this->repo->search( new QueryArgs() );
 		$this->assertSame( [], $result['rows'] );
@@ -144,7 +142,7 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 
 		$result = $this->repo->search( new QueryArgs() );
 		$this->assertCount( 2, $result['rows'] );
-		// Newest first (DESC)
+		// Newest first (DESC).
 		$this->assertGreaterThan( $result['rows'][1]->created_at_micros, $result['rows'][0]->created_at_micros );
 	}
 
@@ -293,10 +291,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertGreaterThan( $page1_last->created_at_micros, $page2['rows'][0]->created_at_micros );
 	}
 
-	// -------------------------------------------------------------------------
-	// count_by_status_class()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Returns all five status buckets from count_by_status_class().
+	 */
 	public function test_count_by_status_class_returns_all_five_keys(): void {
 		$result = $this->repo->count_by_status_class();
 		$this->assertArrayHasKey( '1xx', $result );
@@ -324,10 +321,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertSame( 0, $result['3xx'] );
 	}
 
-	// -------------------------------------------------------------------------
-	// count_by_method()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Returns only the methods present in the table from count_by_method().
+	 */
 	public function test_count_by_method_returns_present_methods_only(): void {
 		$now = (int) ( microtime( true ) * 1_000_000 );
 		$this->repo->insert_batch(
@@ -349,10 +345,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertSame( [], $result );
 	}
 
-	// -------------------------------------------------------------------------
-	// oldest_newest()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Returns nulls from oldest_newest() on an empty table.
+	 */
 	public function test_oldest_newest_returns_null_on_empty_table(): void {
 		$result = $this->repo->oldest_newest();
 		$this->assertNull( $result['oldest'] );
@@ -379,10 +374,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertLessThan( $result['newest'], $result['oldest'] );
 	}
 
-	// -------------------------------------------------------------------------
-	// delete()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Removes the row via delete() and returns true.
+	 */
 	public function test_delete_removes_row_and_returns_true(): void {
 		global $wpdb;
 		$entry = $this->make_entry();
@@ -416,10 +410,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertSame( 0, $body_count, 'D-22: cascade delete must remove the bodies row.' );
 	}
 
-	// -------------------------------------------------------------------------
-	// delete_many()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Removes the rows via delete_many() and returns the affected count.
+	 */
 	public function test_delete_many_removes_rows_and_returns_count(): void {
 		global $wpdb;
 		$now = (int) ( microtime( true ) * 1_000_000 );
@@ -466,10 +459,9 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertSame( 0, $body_count, 'D-22: bulk cascade delete must remove all bodies rows.' );
 	}
 
-	// -------------------------------------------------------------------------
-	// BodyRepository::find_by_log_id()
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Returns null from BodyRepository::find_by_log_id() for a missing id.
+	 */
 	public function test_find_by_log_id_returns_null_for_missing(): void {
 		$result = $this->body_repo->find_by_log_id( 99999 );
 		$this->assertNull( $result );

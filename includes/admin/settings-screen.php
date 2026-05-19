@@ -256,7 +256,7 @@ final class SettingsScreen {
 				}
 				break;
 
-			default: // string
+			default: // String.
 				\printf(
 					'<input type="text" name="%s" value="%s" class="regular-text" />',
 					\esc_attr( $name ),

@@ -26,9 +26,6 @@ final class ListTable extends \WP_List_Table {
 	/** @var LogRepository */
 	private $repo;
 
-	/** @var FiltersView */
-	private $filters_view;
-
 	/** @var string|null Base64url cursor token for the next page, if any. */
 	private $next_cursor = null;
 
@@ -49,10 +46,9 @@ final class ListTable extends \WP_List_Table {
 	];
 
 	/**
-	 * @param LogRepository $repo         Data access layer.
-	 * @param FiltersView   $filters_view Filter bar emitter.
+	 * @param LogRepository $repo Data access layer.
 	 */
-	public function __construct( LogRepository $repo, FiltersView $filters_view ) {
+	public function __construct( LogRepository $repo ) {
 		parent::__construct(
 			[
 				'singular' => 'log',
@@ -60,8 +56,7 @@ final class ListTable extends \WP_List_Table {
 				'ajax'     => false,
 			]
 		);
-		$this->repo         = $repo;
-		$this->filters_view = $filters_view;
+		$this->repo = $repo;
 	}
 
 	/**
@@ -118,7 +113,7 @@ final class ListTable extends \WP_List_Table {
 	public function prepare_items(): void {
 		try {
 			$args = QueryArgs::from_array( $this->collect_input() );
-		} catch ( \InvalidArgumentException $e ) {
+		} catch ( \InvalidArgumentException $_unused ) {
 			$args = new QueryArgs();
 		}
 
@@ -131,9 +126,9 @@ final class ListTable extends \WP_List_Table {
 
 		$this->_column_headers = [
 			$this->get_columns(),
-			[],                          // hidden columns
+			[],                          // Hidden columns.
 			$this->get_sortable_columns(),
-			'timestamp',                 // primary column
+			'timestamp',                 // Primary column.
 		];
 	}
 
@@ -250,6 +245,7 @@ final class ListTable extends \WP_List_Table {
 	 * @param  string $class '1xx'..'5xx' — derived from DB column.
 	 * @return string
 	 */
+	// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.classFound -- the parameter mirrors the DB column name (`status_class`); renaming would drift the schema vocabulary.
 	private function render_status_pill( int $code, string $class ): string {
 		$glyph = self::$glyphs[ $class ] ?? "\u{2022}";
 
@@ -343,7 +339,7 @@ final class ListTable extends \WP_List_Table {
 	/**
 	 * Sanitise $_GET values at the filter-form boundary.
 	 *
-	 * wp_unslash before sanitize_text_field per wordpress-safety.md rules.
+	 * Calls wp_unslash before sanitize_text_field per wordpress-safety.md rules.
 	 * Read-only narrowing form — no state-changing action.
 	 *
 	 * @return array<string,mixed>

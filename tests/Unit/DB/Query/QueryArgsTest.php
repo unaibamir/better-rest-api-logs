@@ -21,8 +21,9 @@ namespace BetterRestApiLogs\Tests\Unit\DB\Query;
 use BetterRestApiLogs\DB\Query\QueryArgs;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
-// EXPECTED FAILURE: Wave 1 (Plan 04-04) — QueryArgs class does not exist yet.
-
+/**
+ * Covers QueryArgs construction, defaults, and validation paths.
+ */
 final class QueryArgsTest extends TestCase {
 
 	public function test_from_array_empty_input_returns_defaults(): void {

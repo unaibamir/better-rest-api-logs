@@ -18,8 +18,9 @@ use BetterRestApiLogs\Admin\SettingsScreen;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-08) — SettingsScreen class does not exist yet.
-
+/**
+ * Covers the admin settings screen tabs, persistence, and capability gate.
+ */
 final class SettingsScreenTest extends WP_UnitTestCase {
 
 	/** @var int */

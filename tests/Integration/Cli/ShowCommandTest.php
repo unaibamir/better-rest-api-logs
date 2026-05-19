@@ -23,8 +23,9 @@ use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-09) — ShowCommand class does not exist yet.
-
+/**
+ * Covers the wp better-logs show command output and missing-id error path.
+ */
 final class ShowCommandTest extends WP_UnitTestCase {
 
 	/** @var int */

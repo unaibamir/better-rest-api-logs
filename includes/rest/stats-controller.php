@@ -38,7 +38,7 @@ final class StatsController {
 	}
 
 	/**
-	 * @param  \WP_REST_Request $request
+	 * @param  \WP_REST_Request $request Incoming REST request.
 	 * @return \WP_REST_Response
 	 */
 	public function handle( \WP_REST_Request $request ): \WP_REST_Response {

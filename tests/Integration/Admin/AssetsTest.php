@@ -18,8 +18,9 @@ use BetterRestApiLogs\Admin\Assets;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-07) — Assets class does not exist yet.
-
+/**
+ * Covers the conditional asset enqueuer scoped to the three admin screens.
+ */
 final class AssetsTest extends WP_UnitTestCase {
 
 	/** @var int */
@@ -48,6 +49,7 @@ final class AssetsTest extends WP_UnitTestCase {
 	 */
 	private function assert_no_brl_handles_on_screen( string $screen_id ): void {
 		$screen = \set_current_screen( $screen_id );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- test fixture simulates WP firing core 'current_screen' hook to exercise the admin assets enqueue path.
 		\do_action( 'current_screen', $screen );
 
 		global $wp_scripts, $wp_styles;
@@ -91,6 +93,7 @@ final class AssetsTest extends WP_UnitTestCase {
 
 	public function test_brl_admin_list_handle_registered_on_plugin_list_screen(): void {
 		$screen = \set_current_screen( 'tools_page_better-rest-api-logs' );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- test fixture simulates WP firing core 'current_screen' hook to exercise the admin assets enqueue path.
 		\do_action( 'current_screen', $screen );
 
 		global $wp_scripts;

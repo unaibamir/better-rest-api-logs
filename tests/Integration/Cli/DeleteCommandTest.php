@@ -25,8 +25,9 @@ use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-09) — DeleteCommand class does not exist yet.
-
+/**
+ * Covers the wp better-logs delete command confirm flag and cascade behaviour.
+ */
 final class DeleteCommandTest extends WP_UnitTestCase {
 
 	/** @var int */

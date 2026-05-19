@@ -18,8 +18,9 @@ namespace BetterRestApiLogs\Tests\Integration\Rest;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-06) — REST routes class does not exist yet.
-
+/**
+ * Covers the REST route registration for the better-rest-api-logs namespace.
+ */
 final class RoutesTest extends WP_UnitTestCase {
 
 	/** @var int */
@@ -30,6 +31,7 @@ final class RoutesTest extends WP_UnitTestCase {
 		$this->ob_level_before = \ob_get_level();
 		Plugin::instance()->boot();
 		// Force route registration.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- test fixture simulates WP firing core 'rest_api_init' hook to register routes under test.
 		\do_action( 'rest_api_init' );
 		\rest_get_server();
 	}
@@ -85,6 +87,7 @@ final class RoutesTest extends WP_UnitTestCase {
 				$this->assertFalse(
 					$result,
 					"permission_callback for route '{$route}' must return false for anonymous user. " .
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- formatting the unexpected truthy return into a PHPUnit failure message for diagnostic clarity.
 					'Returned: ' . var_export( $result, true )
 				);
 			}
