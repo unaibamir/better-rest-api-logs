@@ -16,6 +16,9 @@ namespace BetterRestApiLogs\Tests\Integration\Admin;
 
 use BetterRestApiLogs\Admin\SettingsScreen;
 use BetterRestApiLogs\Plugin;
+use BetterRestApiLogs\Settings\Registry as SettingsRegistry;
+use BetterRestApiLogs\Settings\Repository as SettingsRepository;
+use ReflectionMethod;
 use WP_UnitTestCase;
 
 /**
@@ -94,5 +97,32 @@ final class SettingsScreenTest extends WP_UnitTestCase {
 
 		// Each tab must render a <form action="options.php"> so saves are isolated.
 		$this->assertStringContainsString( 'action="options.php"', $html );
+	}
+
+	/**
+	 * The form posts the textarea-backed allowlist as a single string of newline
+	 * separated lines; the sanitizer must parse that into the array shape the
+	 * option stores, not silently wipe the list.
+	 */
+	public function test_textarea_string_for_array_setting_is_parsed_into_lines(): void {
+		// The Settings API submits the textarea-backed allowlist as a single
+		// newline-separated string. The per-tab sanitizer must split that into
+		// a list of trimmed lines — anything else silently wipes user input.
+		$registry = new SettingsRegistry( new SettingsRepository() );
+
+		// Sanitizers are private to enforce the SET-01 single-entry contract;
+		// reflect to invoke from the test scope without weakening visibility.
+		$reflector = new \ReflectionMethod( SettingsRegistry::class, 'sanitize_capture' );
+		$reflector->setAccessible( true );
+
+		$result = $reflector->invoke( $registry, [ 'route_allowlist' => "/wc/v3/orders\n/wc/v3/products\n" ] );
+
+		$this->assertIsArray( $result );
+		$this->assertArrayHasKey( 'route_allowlist', $result );
+		$this->assertSame(
+			[ '/wc/v3/orders', '/wc/v3/products' ],
+			$result['route_allowlist'],
+			'Newline-separated textarea string must parse into an array of lines, not collapse to an empty array.'
+		);
 	}
 }
