@@ -63,6 +63,7 @@
         "check:table-naming": "bin/check-table-naming.sh",
         "check:settings-isolation": "bin/check-settings-isolation.sh",
         "check:no-external-calls": "bin/check-no-external-calls.sh",
+        "check:asset-enqueue": "bash bin/check-asset-enqueue.sh",
         "test:unit:coverage-check": "bin/check-coverage.sh 80",
         "coverage": "bin/check-coverage.sh 80",
         "ci": [
