@@ -219,10 +219,12 @@ final class Plugin {
 		// -----------------------------------------------------------------------
 		// Phase 4 — Admin UI (D-55).
 		//
-		// Container bindings for the admin stack. Registered unconditionally so
-		// the current_screen hook fires correctly during integration tests. WP
-		// core's add_management_page / add_submenu_page handle their own
-		// is_admin() guards at call time.
+		// Container bindings are unconditional, but resolution is deferred into
+		// the hook callbacks below. WP_List_Table::__construct calls
+		// convert_to_screen() (declared in wp-admin/includes/template.php), and
+		// template.php is only loaded by wp-admin/admin.php. Resolving the
+		// admin chain eagerly on plugins_loaded would fatal on wp-login.php,
+		// the front-end, and any other non-admin request.
 		// -----------------------------------------------------------------------
 		$this->container->bind(
 			Assets::class,
@@ -274,27 +276,54 @@ final class Plugin {
 			)
 		);
 
-		$admin  = $this->container->get( Admin::class );
-		$assets = $this->container->get( Assets::class );
-
-		\add_action( 'admin_menu', [ $admin, 'register_menus' ], 10 );
-		\add_action( 'current_screen', [ $assets, 'maybe_enqueue' ], 10 );
-		\add_filter( 'admin_body_class', [ $assets, 'add_body_class' ], 10 );
-
-		// Settings page + bulk delete handlers. SettingsScreen is static — no
-		// container binding needed; WP calls the methods directly.
-		\add_action( 'admin_menu', [ SettingsScreen::class, 'register_menu' ], 10 );
-		\add_action( 'admin_init', [ SettingsScreen::class, 'register_fields' ], 10 );
-
 		$this->container->bind(
 			BulkActionHandler::class,
 			static fn ( Container $c ) => new BulkActionHandler(
 				$c->get( LogRepository::class )
 			)
 		);
-		$bulk_handler = $this->container->get( BulkActionHandler::class );
-		\add_action( 'admin_post_brl_bulk_action', [ $bulk_handler, 'handle' ] );
-		\add_action( 'admin_post_brl_delete_log', [ $bulk_handler, 'handle_single_delete' ] );
+
+		$container = $this->container;
+
+		\add_action(
+			'admin_menu',
+			static function () use ( $container ): void {
+				$container->get( Admin::class )->register_menus();
+			},
+			10
+		);
+		\add_action(
+			'current_screen',
+			static function ( $screen ) use ( $container ): void {
+				$container->get( Assets::class )->maybe_enqueue( $screen );
+			},
+			10
+		);
+		\add_filter(
+			'admin_body_class',
+			static function ( $classes ) use ( $container ): string {
+				return $container->get( Assets::class )->add_body_class( $classes );
+			},
+			10
+		);
+
+		// Settings page + bulk delete handlers. SettingsScreen is static — no
+		// container binding needed; WP calls the methods directly.
+		\add_action( 'admin_menu', [ SettingsScreen::class, 'register_menu' ], 10 );
+		\add_action( 'admin_init', [ SettingsScreen::class, 'register_fields' ], 10 );
+
+		\add_action(
+			'admin_post_brl_bulk_action',
+			static function () use ( $container ): void {
+				$container->get( BulkActionHandler::class )->handle();
+			}
+		);
+		\add_action(
+			'admin_post_brl_delete_log',
+			static function () use ( $container ): void {
+				$container->get( BulkActionHandler::class )->handle_single_delete();
+			}
+		);
 
 		// -----------------------------------------------------------------------
 		// Phase 4 — REST surface.
