@@ -21,7 +21,7 @@ final class FiltersView {
 	/** @var string[] HTTP methods available for the method select. */
 	private const METHODS = [ 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD' ];
 
-	/** @var string[] Status classes for radio chips. */
+	/** @var string[] Status classes for the status-class select. */
 	private const STATUS_CLASSES = [ '1xx', '2xx', '3xx', '4xx', '5xx' ];
 
 	/**
@@ -65,46 +65,31 @@ final class FiltersView {
 		);
 		echo '</label>';
 
-		// Status class radios.
-		echo '<fieldset class="brl-filter-bar__status-class">';
-		printf( '<legend class="screen-reader-text">%s</legend>', \esc_html__( 'Status class', 'better-rest-api-logs' ) );
+		// Status class select (replaces the 5-radio chip set — looked broken on narrow widths).
+		echo '<label>';
+		printf( '<span>%s</span>', \esc_html__( 'Status class', 'better-rest-api-logs' ) );
+		printf(
+			'<select name="status_class"><option value="">%s</option>',
+			\esc_html__( 'Any class', 'better-rest-api-logs' )
+		);
 		foreach ( self::STATUS_CLASSES as $class ) {
 			printf(
-				'<label><input type="radio" name="status_class" value="%s"%s> %s</label>',
+				'<option value="%s"%s>%s</option>',
 				\esc_attr( $class ),
-				\checked( $args->status_class, $class, false ),
+				\selected( $args->status_class, $class, false ),
 				\esc_html( $class )
 			);
 		}
-		echo '</fieldset>';
+		echo '</select></label>';
 
-		// Route prefix.
+		// Route prefix — substring-style "prefix" matcher is enough for day-to-day filtering;
+		// User ID / IP / free-text live on the REST and CLI surfaces for advanced queries.
 		echo '<label>';
 		printf( '<span>%s</span>', \esc_html__( 'Route prefix', 'better-rest-api-logs' ) );
 		printf(
 			'<input type="text" name="route_prefix" value="%s" placeholder="%s">',
 			\esc_attr( (string) ( $args->route_prefix ?? '' ) ),
 			\esc_attr__( 'e.g. /wp/v2/', 'better-rest-api-logs' )
-		);
-		echo '</label>';
-
-		// User ID.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'User ID', 'better-rest-api-logs' ) );
-		printf(
-			'<input type="number" name="user_id" min="0" value="%s" placeholder="%s">',
-			\esc_attr( null !== $args->user_id ? (string) $args->user_id : '' ),
-			\esc_attr__( 'Numeric ID', 'better-rest-api-logs' )
-		);
-		echo '</label>';
-
-		// IP address.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'IP address', 'better-rest-api-logs' ) );
-		printf(
-			'<input type="text" name="ip" value="%s" placeholder="%s">',
-			\esc_attr( (string) ( $args->ip ?? '' ) ),
-			\esc_attr__( 'IPv4 or IPv6', 'better-rest-api-logs' )
 		);
 		echo '</label>';
 
@@ -128,15 +113,25 @@ final class FiltersView {
 		);
 		echo '</label>';
 
-		// Free-text search.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'Search route', 'better-rest-api-logs' ) );
-		printf(
-			'<input type="text" name="free_text" value="%s" placeholder="%s">',
-			\esc_attr( (string) ( $args->free_text ?? '' ) ),
-			\esc_attr__( 'Substring match on /route', 'better-rest-api-logs' )
-		);
-		echo '</label>';
+		// Preserve advanced filter state from the URL across submits — REST callers
+		// or bookmarks can still pin user_id / ip / free_text even though they no
+		// longer have a visible input in the admin bar.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter form; no state-changing action.
+		$get_input = $_GET;
+		foreach ( [ 'user_id', 'ip', 'free_text' ] as $hidden ) {
+			if ( ! isset( $get_input[ $hidden ] ) ) {
+				continue;
+			}
+			$raw = \sanitize_text_field( \wp_unslash( (string) $get_input[ $hidden ] ) );
+			if ( '' === $raw ) {
+				continue;
+			}
+			printf(
+				'<input type="hidden" name="%s" value="%s">',
+				\esc_attr( $hidden ),
+				\esc_attr( $raw )
+			);
+		}
 
 		// Submit + reset.
 		printf( '<button type="submit" class="button button-primary">%s</button>', \esc_html__( 'Apply filters', 'better-rest-api-logs' ) );

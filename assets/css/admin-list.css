@@ -39,29 +39,8 @@
     box-sizing: border-box;
   }
 
-  & .brl-filter-bar__status-class {
-    border: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    font-size: 12px;
-
-    & legend {
-      font-size: 12px;
-      font-weight: 600;
-      color: #50575e;
-      float: left;
-      margin-block-end: 2px;
-    }
-
-    & label {
-      flex-direction: row;
-      align-items: center;
-      gap: 4px;
-      font-weight: 400;
-    }
+  & .button-primary {
+    align-self: end;
   }
 }
 
