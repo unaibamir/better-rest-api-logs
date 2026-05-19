@@ -7,13 +7,16 @@ defined( 'ABSPATH' ) || exit;
 
 use BetterRestApiLogs\Admin;
 use BetterRestApiLogs\Admin\Assets;
+use BetterRestApiLogs\Admin\BulkActionHandler;
 use BetterRestApiLogs\Admin\DetailScreen;
 use BetterRestApiLogs\Admin\FiltersView;
 use BetterRestApiLogs\Admin\ListScreen;
 use BetterRestApiLogs\Admin\ListTable;
 use BetterRestApiLogs\Admin\Notices;
+use BetterRestApiLogs\Admin\SettingsScreen;
 use BetterRestApiLogs\Capture;
 use BetterRestApiLogs\Capture\Compressor;
+use BetterRestApiLogs\Cli;
 use BetterRestApiLogs\Capture\Filter;
 use BetterRestApiLogs\Capture\IpResolver;
 use BetterRestApiLogs\Capture\Redactor;
@@ -80,6 +83,10 @@ final class Plugin {
 
 		// Wire the Settings\Registry into WP hooks.
 		$registry = $this->container->get( SettingsRegistry::class );
+		// Closes the housekeeping concern from the capture phase verification:
+		// share the in-memory cache with the static get_internal/set_internal
+		// facades so Breaker and StatsController see the same snapshot.
+		SettingsRegistry::set_global_instance( $registry );
 		\add_action( 'admin_init', [ $registry, 'register_with_wp' ] );
 		\add_action( 'updated_option', [ $registry, 'invalidate_cache_on_option_change' ] );
 		\add_action( 'added_option', [ $registry, 'invalidate_cache_on_option_change' ] );
@@ -267,6 +274,21 @@ final class Plugin {
 		\add_action( 'current_screen', [ $assets, 'maybe_enqueue' ], 10 );
 		\add_filter( 'admin_body_class', [ $assets, 'add_body_class' ], 10 );
 
+		// Settings page + bulk delete handlers. SettingsScreen is static — no
+		// container binding needed; WP calls the methods directly.
+		\add_action( 'admin_menu', [ SettingsScreen::class, 'register_menu' ], 10 );
+		\add_action( 'admin_init', [ SettingsScreen::class, 'register_fields' ], 10 );
+
+		$this->container->bind(
+			BulkActionHandler::class,
+			static fn ( Container $c ) => new BulkActionHandler(
+				$c->get( LogRepository::class )
+			)
+		);
+		$bulk_handler = $this->container->get( BulkActionHandler::class );
+		\add_action( 'admin_post_brl_bulk_action', [ $bulk_handler, 'handle' ] );
+		\add_action( 'admin_post_brl_delete_log', [ $bulk_handler, 'handle_single_delete' ] );
+
 		// -----------------------------------------------------------------------
 		// Phase 4 — REST surface.
 		//
@@ -309,6 +331,13 @@ final class Plugin {
 
 		$rest = $this->container->get( Rest::class );
 		\add_action( 'rest_api_init', [ $rest, 'register_routes' ], 10 );
+
+		// WP-CLI surface — only register when running under WP_CLI so the admin
+		// stack does not pay the cost. The five `wp better-logs` verbs handle
+		// their own defense-in-depth capability checks.
+		if ( \defined( 'WP_CLI' ) && \WP_CLI ) {
+			Cli::register();
+		}
 	}
 
 	public function container(): Container {
