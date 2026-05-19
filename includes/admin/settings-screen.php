@@ -131,7 +131,7 @@ final class SettingsScreen {
 				'<a class="%s" href="%s">%s</a>',
 				\esc_attr( $slug === $active ? 'nav-tab nav-tab-active' : 'nav-tab' ),
 				\esc_url( $url ),
-				self::tab_label( $slug )
+				\esc_html( self::tab_label( $slug ) )
 			);
 		}
 		echo '</h2>';
@@ -162,22 +162,22 @@ final class SettingsScreen {
 	 * The switch uses only literal strings so make-pot picks them up cleanly.
 	 *
 	 * @param  string $slug One of the five TAB_SLUGS.
-	 * @return string Escaped translated label.
+	 * @return string Plain (unescaped) translated label; caller escapes at point of output.
 	 */
 	private static function tab_label( string $slug ): string {
 		switch ( $slug ) {
 			case 'capture':
-				return \esc_html__( 'Capture', 'better-rest-api-logs' );
+				return \__( 'Capture', 'better-rest-api-logs' );
 			case 'privacy':
-				return \esc_html__( 'Privacy', 'better-rest-api-logs' );
+				return \__( 'Privacy', 'better-rest-api-logs' );
 			case 'retention':
-				return \esc_html__( 'Retention', 'better-rest-api-logs' );
+				return \__( 'Retention', 'better-rest-api-logs' );
 			case 'network':
-				return \esc_html__( 'Network', 'better-rest-api-logs' );
+				return \__( 'Network', 'better-rest-api-logs' );
 			case 'advanced':
-				return \esc_html__( 'Advanced', 'better-rest-api-logs' );
+				return \__( 'Advanced', 'better-rest-api-logs' );
 			default:
-				return \esc_html__( 'Unknown', 'better-rest-api-logs' );
+				return \__( 'Unknown', 'better-rest-api-logs' );
 		}
 	}
 

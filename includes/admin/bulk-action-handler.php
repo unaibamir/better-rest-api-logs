@@ -30,7 +30,7 @@ final class BulkActionHandler {
 	 * using the constructor directly. The test scaffold calls new BulkActionHandler()
 	 * without arguments so the zero-arg form is required.
 	 */
-	public function __construct( LogRepository $repo = null ) {
+	public function __construct( ?LogRepository $repo = null ) {
 		$this->repo = $repo ?? new LogRepository();
 	}
 
@@ -63,7 +63,8 @@ final class BulkActionHandler {
 			? \sanitize_key( \wp_unslash( $_POST['bulk_action'] ) )
 			: ( isset( $_POST['action'] ) ? \sanitize_key( \wp_unslash( $_POST['action'] ) ) : '' );
 
-		$raw = isset( $_POST['log_ids'] ) ? (array) $_POST['log_ids'] : [];
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each element is run through absint() in the array_map below before any use.
+		$raw = isset( $_POST['log_ids'] ) ? (array) \wp_unslash( $_POST['log_ids'] ) : [];
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		$ids = \array_values(
