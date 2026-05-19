@@ -136,6 +136,24 @@ final class QueryArgsTest extends TestCase {
 		$this->assertSame( 'some-cursor-token', $args->cursor );
 	}
 
+	public function test_from_array_rejects_malformed_ip(): void {
+		// A bogus IP must surface as an InvalidArgumentException so REST and CLI
+		// callers see a clear validation error. The previous behaviour silently
+		// dropped the filter inside QueryBuilder, broadening the query instead.
+		$this->expectException( \InvalidArgumentException::class );
+		QueryArgs::from_array( [ 'ip' => 'not-an-ip' ] );
+	}
+
+	public function test_from_array_accepts_valid_ipv4(): void {
+		$args = QueryArgs::from_array( [ 'ip' => '192.168.1.1' ] );
+		$this->assertSame( '192.168.1.1', $args->ip );
+	}
+
+	public function test_from_array_accepts_valid_ipv6(): void {
+		$args = QueryArgs::from_array( [ 'ip' => '::1' ] );
+		$this->assertSame( '::1', $args->ip );
+	}
+
 	public function test_to_query_var_array_returns_array_with_set_fields(): void {
 		$args = QueryArgs::from_array(
 			[

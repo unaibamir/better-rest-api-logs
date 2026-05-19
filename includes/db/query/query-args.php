@@ -181,8 +181,17 @@ final class QueryArgs {
 			$a->user_id = $n;
 		}
 
-		// ip — sanitised string; literal validation deferred to QueryBuilder via inet_pton.
-		$a->ip = self::sanitise_string( $input['ip'] ?? null );
+		// ip — validate the IP literal at the boundary so REST and CLI both surface
+		// a clear error on malformed input. QueryBuilder previously dropped the
+		// filter silently when filter_var failed, which broadened the query
+		// instead of narrowing it.
+		$ip_raw = self::sanitise_string( $input['ip'] ?? null );
+		if ( null !== $ip_raw ) {
+			if ( false === \filter_var( $ip_raw, FILTER_VALIDATE_IP ) ) {
+				throw new \InvalidArgumentException( 'Invalid ip value.' );
+			}
+			$a->ip = $ip_raw;
+		}
 
 		// date_from_micros / date_to_micros — integer-only, no upper bound.
 		foreach ( [ 'date_from_micros', 'date_to_micros' ] as $key ) {
