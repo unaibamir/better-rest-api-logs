@@ -58,8 +58,8 @@ final class ListCommand extends \WP_CLI_Command {
 	private const SERVER_CAP = 200;
 
 	/**
-	 * @param array<int, mixed>    $args
-	 * @param array<string, mixed> $assoc_args
+	 * @param array<int, mixed>    $args       Positional command arguments from WP-CLI.
+	 * @param array<string, mixed> $assoc_args Associative arguments from WP-CLI flags.
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
 		$repo = Plugin::instance()->container()->get( LogRepository::class );
@@ -86,7 +86,6 @@ final class ListCommand extends \WP_CLI_Command {
 				$query_args = QueryArgs::from_array( $input );
 			} catch ( \InvalidArgumentException $e ) {
 				\WP_CLI::error( $e->getMessage() );
-				return; // unreachable — \WP_CLI::error throws; satisfies static analysis.
 			}
 
 			$query_args = \apply_filters( 'brl_query_args', $query_args, 'cli' );
