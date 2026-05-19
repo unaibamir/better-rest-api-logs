@@ -25,6 +25,7 @@ use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 final class PluginListTableLoaderTest extends TestCase {
 
 	public function test_list_table_factory_loads_parent_class_before_instantiation(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local source file in a unit test; wp_remote_get is for remote URLs.
 		$source = (string) \file_get_contents( \dirname( __DIR__, 2 ) . '/includes/plugin.php' );
 
 		$this->assertNotSame( '', $source, 'plugin.php must be readable.' );
@@ -40,6 +41,7 @@ final class PluginListTableLoaderTest extends TestCase {
 	}
 
 	public function test_list_table_factory_guards_against_double_load(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local source file in a unit test; wp_remote_get is for remote URLs.
 		$source = (string) \file_get_contents( \dirname( __DIR__, 2 ) . '/includes/plugin.php' );
 
 		$this->assertStringContainsString(

@@ -77,8 +77,8 @@ final class ListCommand extends \WP_CLI_Command {
 			$requested_limit = 20;
 		}
 		$remaining = $requested_limit;
-		$cursor          = null;
-		$collected       = [];
+		$cursor    = null;
+		$collected = [];
 
 		while ( $remaining > 0 ) {
 			$page_limit = min( $remaining, self::SERVER_CAP );
