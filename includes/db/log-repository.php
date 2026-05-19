@@ -402,6 +402,22 @@ final class LogRepository {
 	 * @return int Rows affected in the primary logs table (0 when $ids is empty or rows absent).
 	 */
 	public function delete_many( array $ids ): int {
+		return \count( $this->delete_many_returning_ids( $ids ) );
+	}
+
+	/**
+	 * Same as delete_many() but returns the specific IDs that were actually
+	 * present in the table prior to the DELETE.
+	 *
+	 * The caller needs the exact deleted set (not just the count) so the
+	 * `brl_log_deleted` action fires once per row that genuinely existed —
+	 * missing IDs in a bulk selection no longer notify extensions about
+	 * rows that never went away.
+	 *
+	 * @param  array<mixed> $ids Candidate primary keys, mixed types accepted.
+	 * @return array<int, int>   IDs that existed in the logs table before deletion.
+	 */
+	public function delete_many_returning_ids( array $ids ): array {
 		$ids = array_values(
 			array_filter(
 				array_map( 'intval', $ids ),
@@ -412,7 +428,7 @@ final class LogRepository {
 		);
 
 		if ( [] === $ids ) {
-			return 0;
+			return [];
 		}
 
 		global $wpdb;
@@ -421,13 +437,23 @@ final class LogRepository {
 		$logs_table   = Database::logs_table();
 		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
 
+		// Capture the set actually present before deletion so the caller can
+		// fire `brl_log_deleted` only for rows that were truly removed.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
+		$existing_rows = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$logs_table} WHERE id IN ({$placeholders})", ...$ids ) );
+		$existing      = array_map( 'intval', is_array( $existing_rows ) ? $existing_rows : [] );
+
+		if ( [] === $existing ) {
+			return [];
+		}
+
 		// D-22: cascade order — bodies first, logs second.
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$bodies_table} WHERE log_id IN ({$placeholders})", ...$ids ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$logs_table} WHERE id IN ({$placeholders})", ...$ids ) );
 
-		return (int) $wpdb->rows_affected;
+		return $existing;
 	}
 
 	// -------------------------------------------------------------------------

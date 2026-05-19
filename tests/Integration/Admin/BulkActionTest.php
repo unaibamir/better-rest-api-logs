@@ -171,6 +171,38 @@ final class BulkActionTest extends WP_UnitTestCase {
 		$this->assertSame( 0, $count, 'All three rows must be deleted.' );
 	}
 
+	public function test_bulk_delete_fires_log_deleted_only_for_actually_deleted_rows(): void {
+		Plugin::instance()->boot();
+		\wp_set_current_user( $this->admin_id );
+
+		$real_id    = $this->insert_entry();
+		$missing_id = $real_id + 999_999; // Guaranteed-absent id; never inserted.
+
+		$fired = [];
+		$hook  = static function ( $id, $source ) use ( &$fired ): void {
+			$fired[] = [ (int) $id, (string) $source ];
+		};
+		\add_action( 'brl_log_deleted', $hook, 10, 2 );
+
+		$nonce = \wp_create_nonce( 'brl_bulk' );
+		$_POST = [
+			'action'   => 'delete',
+			'log_ids'  => [ $real_id, $missing_id ],
+			'_wpnonce' => $nonce,
+		];
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- test fixture constructs the superglobals so the handler under test can verify the nonce itself.
+		$_REQUEST = $_POST;
+
+		\add_filter( 'wp_redirect', '__return_false', 99 );
+		( new BulkActionHandler() )->handle();
+		\remove_filter( 'wp_redirect', '__return_false', 99 );
+		\remove_action( 'brl_log_deleted', $hook, 10 );
+
+		$this->assertCount( 1, $fired, 'brl_log_deleted must fire exactly once — only for the row that actually existed.' );
+		$this->assertSame( $real_id, $fired[0][0], 'brl_log_deleted must fire for the existing id, not the missing one.' );
+		$this->assertSame( 'admin', $fired[0][1] );
+	}
+
 	public function test_bulk_delete_cascades_to_spilled_body_rows(): void {
 		global $wpdb;
 		Plugin::instance()->boot();

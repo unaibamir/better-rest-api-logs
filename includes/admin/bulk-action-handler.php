@@ -88,12 +88,15 @@ final class BulkActionHandler {
 			return;
 		}
 
-		$deleted_count = $this->repo->delete_many( $ids );
+		$deleted_ids   = $this->repo->delete_many_returning_ids( $ids );
+		$deleted_count = \count( $deleted_ids );
 		$failed_count  = \count( $ids ) - $deleted_count;
 
-		// Fire brl_log_deleted per deleted ID (callers cannot know which succeeded
-		// in a bulk op, so we fire for all IDs when the full set was removed).
-		foreach ( $ids as $id ) {
+		// Fire brl_log_deleted only for IDs that the repository confirms were
+		// actually removed — extensions must not be notified about a row that
+		// still exists (e.g. a stale checkbox selection in a partial-failure
+		// bulk operation).
+		foreach ( $deleted_ids as $id ) {
 			\do_action( 'brl_log_deleted', $id, 'admin' );
 		}
 
