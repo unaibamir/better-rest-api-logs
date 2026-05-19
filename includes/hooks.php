@@ -298,6 +298,123 @@ defined( 'ABSPATH' ) || exit;
  *   );
  *
  * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Filter: brl_query_args
+ *
+ * Lets extensions mutate the validated QueryArgs object before it reaches
+ * LogRepository::search. Fires from the Admin list screen, the REST list
+ * endpoint, and the WP-CLI list command.
+ *
+ * @since 1.0.0
+ *
+ * @param \BetterRestApiLogs\DB\Query\QueryArgs $args    The validated filter set.
+ * @param string                                $surface One of 'admin' | 'rest' | 'cli'.
+ *
+ * @example
+ *   add_filter(
+ *       'brl_query_args',
+ *       static function ( $args, $surface ) {
+ *           if ( 'rest' === $surface && current_user_can( 'edit_posts' ) ) {
+ *               $args->user_id = get_current_user_id();
+ *           }
+ *           return $args;
+ *       },
+ *       10,
+ *       2
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Filter: brl_rest_response
+ *
+ * Last-word filter on every REST response payload. Lets extensions add
+ * fields without forking a controller.
+ *
+ * @since 1.0.0
+ *
+ * @param array<string,mixed> $payload The response body.
+ * @param string              $route   The matched route slug (e.g. '/logs', '/stats').
+ * @param \WP_REST_Request    $request The originating request.
+ *
+ * @example
+ *   add_filter(
+ *       'brl_rest_response',
+ *       static function ( $payload, $route ) {
+ *           if ( '/stats' === $route ) {
+ *               $payload['my_extra_field'] = 'custom value';
+ *           }
+ *           return $payload;
+ *       },
+ *       10,
+ *       2
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Action: brl_log_deleted
+ *
+ * Fires after a successful delete from any surface (admin UI, REST API, WP-CLI).
+ *
+ * @since 1.0.0
+ *
+ * @param int    $log_id  The deleted row's primary key.
+ * @param string $surface One of 'admin' | 'rest' | 'cli'.
+ *
+ * @example
+ *   add_action(
+ *       'brl_log_deleted',
+ *       static function ( $log_id, $surface ) {
+ *           // Invalidate a related cache keyed on the log ID.
+ *           wp_cache_delete( "brl_detail_{$log_id}" );
+ *       },
+ *       10,
+ *       2
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Filter: brl_admin_required_capability
+ *
+ * Swaps the default `manage_options` cap for a custom role across every cap
+ * check in the admin UI, REST controllers, and WP-CLI verbs. The $context arg
+ * lets you distinguish surface areas when different roles need different access.
+ *
+ * @since 1.0.0
+ * @param string $cap     Default 'manage_options'.
+ * @param string $context One of 'admin' | 'rest' | 'cli'.
+ *
+ * @example
+ *   add_filter(
+ *       'brl_admin_required_capability',
+ *       static function ( $cap, $ctx ) {
+ *           // Let editors view logs via the REST API without giving admin access.
+ *           return 'rest' === $ctx ? 'edit_posts' : $cap;
+ *       },
+ *       10,
+ *       2
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Filter: brl_list_columns
+ *
+ * Lets extensions add, remove, or reorder columns on the admin list table.
+ * The returned array is passed straight to WP_List_Table::get_columns(); keep
+ * the 'cb' key if you want bulk-action checkboxes to remain.
+ *
+ * @since 1.0.0
+ * @param array<string,string> $columns Column slug => label map (WP_List_Table format).
+ *
+ * @example
+ *   add_filter(
+ *       'brl_list_columns',
+ *       static function ( $cols ) {
+ *           $cols['my_plugin_col'] = 'My Plugin';
+ *           return $cols;
+ *       }
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
  */
 final class Hooks {
 	// Phase 6 implements register()/document() methods + docs/HOOKS.md generation.
