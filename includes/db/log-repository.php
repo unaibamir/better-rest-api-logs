@@ -288,7 +288,13 @@ final class LogRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- bounded aggregate for stats display; caller may cache via brl_internal.
 		$rows = $wpdb->get_results( $sql, ARRAY_A );
 
-		$out = [ '1xx' => 0, '2xx' => 0, '3xx' => 0, '4xx' => 0, '5xx' => 0 ];
+		$out = [
+			'1xx' => 0,
+			'2xx' => 0,
+			'3xx' => 0,
+			'4xx' => 0,
+			'5xx' => 0,
+		];
 
 		if ( ! is_array( $rows ) ) {
 			return $out;

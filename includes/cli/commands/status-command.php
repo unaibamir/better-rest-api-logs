@@ -23,18 +23,26 @@ final class StatusCommand extends \WP_CLI_Command {
 	 * @param array<string, mixed> $assoc_args
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
-		$internal = (array) \get_option( 'brl_internal', [] );
-
 		$registry = Plugin::instance()->container()->get( Registry::class );
 
 		$capture_enabled = (bool) $registry->get_setting( 'capture.enabled', true );
-		$circuit_open    = isset( $internal['circuit_open_until'] ) && (int) $internal['circuit_open_until'] > \time();
-		$schema_broken   = (bool) ( $internal['schema_broken'] ?? false );
+		$open_until      = (int) ( Registry::get_internal( 'circuit_open_until' ) ?? 0 );
+		$circuit_open    = $open_until > \time();
+		$schema_broken   = (bool) ( Registry::get_internal( 'schema_broken' ) ?? false );
 
 		$rows = [
-			[ 'Component' => 'Capture',         'State' => $capture_enabled ? 'enabled' : 'disabled' ],
-			[ 'Component' => 'Circuit breaker', 'State' => $circuit_open ? 'armed (logging paused)' : 'normal' ],
-			[ 'Component' => 'Schema',          'State' => $schema_broken ? 'broken (admin notice live)' : 'healthy' ],
+			[
+				'Component' => 'Capture',
+				'State'     => $capture_enabled ? 'enabled' : 'disabled',
+			],
+			[
+				'Component' => 'Circuit breaker',
+				'State'     => $circuit_open ? 'armed (logging paused)' : 'normal',
+			],
+			[
+				'Component' => 'Schema',
+				'State'     => $schema_broken ? 'broken (admin notice live)' : 'healthy',
+			],
 		];
 
 		$format = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';

@@ -18,26 +18,26 @@ defined( 'ABSPATH' ) || exit;
 final class QueryArgs {
 
 	// Whitelist constants — private so callers use from_array(), not reach inside the gate.
-	private const ALLOWED_METHODS       = [ 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD' ];
+	private const ALLOWED_METHODS        = [ 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD' ];
 	private const ALLOWED_STATUS_CLASSES = [ '1xx', '2xx', '3xx', '4xx', '5xx' ];
 	private const STATUS_MIN             = 100;
 	private const STATUS_MAX             = 599;
 	private const LIMIT_DEFAULT          = 20;
 	private const LIMIT_MAX              = 200;
 
-	public ?string $method          = null;   // 'GET'|'POST'|...
-	public ?int    $status          = null;   // 100-599
-	public ?string $status_class    = null;   // '1xx'|'2xx'|'3xx'|'4xx'|'5xx'
-	public ?string $route_prefix    = null;   // exact prefix match, e.g. '/wp/v2/'
-	public ?int    $user_id         = null;
-	public ?string $ip              = null;   // IPv4/IPv6 literal — packed via inet_pton before binding
-	public ?int    $date_from_micros = null;
-	public ?int    $date_to_micros  = null;
-	public ?string $free_text       = null;   // matched against route column
-	public ?string $cursor          = null;   // base64url Paginator token
-	public int     $limit           = self::LIMIT_DEFAULT;   // capped server-side at 200
-	public string  $order_by        = 'created_at';          // 'created_at'|'duration_ms'
-	public string  $order_dir       = 'DESC';                // 'ASC'|'DESC'
+	public ?string $method        = null;   // 'GET'|'POST'|...
+	public ?int $status           = null;   // 100-599
+	public ?string $status_class  = null;   // '1xx'|'2xx'|'3xx'|'4xx'|'5xx'
+	public ?string $route_prefix  = null;   // exact prefix match, e.g. '/wp/v2/'
+	public ?int $user_id          = null;
+	public ?string $ip            = null;   // IPv4/IPv6 literal — packed via inet_pton before binding
+	public ?int $date_from_micros = null;
+	public ?int $date_to_micros   = null;
+	public ?string $free_text     = null;   // matched against route column
+	public ?string $cursor        = null;   // base64url Paginator token
+	public int $limit             = self::LIMIT_DEFAULT;   // capped server-side at 200
+	public string $order_by       = 'created_at';          // 'created_at'|'duration_ms'
+	public string $order_dir      = 'DESC';                // 'ASC'|'DESC'
 
 	/**
 	 * Build a QueryArgs from a raw associative array (URL args, REST params, CLI assoc_args).
@@ -144,11 +144,11 @@ final class QueryArgs {
 		// as \InvalidArgumentException — bad bookmark URLs surface a clear error rather than
 		// silently showing a default-sorted list (plan 04-03 pitfall #2 discusses the trade-off;
 		// the tests assert the throw behaviour).
-		$by  = isset( $input['order_by'] )  ? (string) $input['order_by']  : $a->order_by;
+		$by  = isset( $input['order_by'] ) ? (string) $input['order_by'] : $a->order_by;
 		$dir = isset( $input['order_dir'] ) ? (string) $input['order_dir'] : $a->order_dir;
 		// Only call Sort::validate if the caller supplied order_by or order_dir explicitly.
 		if ( isset( $input['order_by'] ) || isset( $input['order_dir'] ) ) {
-			$sort        = Sort::validate( $by, $dir );
+			$sort         = Sort::validate( $by, $dir );
 			$a->order_by  = $sort['column'];
 			$a->order_dir = $sort['dir'];
 		}

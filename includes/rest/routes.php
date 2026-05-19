@@ -122,20 +122,62 @@ final class Routes {
 	 */
 	private static function list_args(): array {
 		return [
-			'method'           => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'status'           => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'status_class'     => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'route_prefix'     => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'user_id'          => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'ip'               => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'date_from_micros' => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'date_to_micros'   => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'free_text'        => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'cursor'           => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'limit'            => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'per_page'         => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'order_by'         => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
-			'order_dir'        => [ 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
+			'method'           => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'status'           => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'status_class'     => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'route_prefix'     => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'user_id'          => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'ip'               => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'date_from_micros' => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'date_to_micros'   => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'free_text'        => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'cursor'           => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'limit'            => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'per_page'         => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'order_by'         => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'order_dir'        => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
 		];
 	}
 }

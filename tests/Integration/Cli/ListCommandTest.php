@@ -82,7 +82,13 @@ final class ListCommandTest extends WP_UnitTestCase {
 		$command = new ListCommand();
 
 		\ob_start();
-		$command->run( [], [ 'format' => 'json', 'limit' => 5 ] );
+		$command->run(
+			[],
+			[
+				'format' => 'json',
+				'limit'  => 5,
+			]
+		);
 		$output = \ob_get_clean();
 
 		$decoded = json_decode( $output, true );
@@ -96,7 +102,13 @@ final class ListCommandTest extends WP_UnitTestCase {
 		$command = new ListCommand();
 
 		\ob_start();
-		$command->run( [], [ 'format' => 'json', 'limit' => 15 ] );
+		$command->run(
+			[],
+			[
+				'format' => 'json',
+				'limit'  => 15,
+			]
+		);
 		$output = \ob_get_clean();
 
 		$decoded = json_decode( $output, true );
@@ -109,7 +121,13 @@ final class ListCommandTest extends WP_UnitTestCase {
 		$command = new ListCommand();
 
 		\ob_start();
-		$command->run( [], [ 'format' => 'json', 'limit' => 1 ] );
+		$command->run(
+			[],
+			[
+				'format' => 'json',
+				'limit'  => 1,
+			]
+		);
 		$output = \ob_get_clean();
 
 		$decoded = json_decode( $output, true );

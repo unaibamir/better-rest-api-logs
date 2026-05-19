@@ -136,7 +136,12 @@ final class QueryArgsTest extends TestCase {
 	}
 
 	public function test_to_query_var_array_returns_array_with_set_fields(): void {
-		$args = QueryArgs::from_array( [ 'method' => 'GET', 'status' => 200 ] );
+		$args = QueryArgs::from_array(
+			[
+				'method' => 'GET',
+				'status' => 200,
+			]
+		);
 		$vars = $args->to_query_var_array();
 
 		$this->assertIsArray( $vars );

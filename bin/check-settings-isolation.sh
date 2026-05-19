@@ -8,6 +8,10 @@
 #   - includes/db/schema.php    (Schema-broken latch writes brl_internal directly
 #                                — runs at plugins_loaded@0, before Registry
 #                                exists; STATE.md decision Plan 02-04)
+#   - includes/admin/settings-screen.php (renders the brl_settings_delete_on_uninstall
+#                                flat-scalar uninstall opt-in; Registry only models
+#                                tab-shaped settings, not the Phase 1 carve-out flat
+#                                scalar that uninstall.php reads without autoload)
 #   - uninstall.php             (cannot autoload Registry)
 #
 # Second invariant: at least 2 distinct `register_setting('brl_settings_*'...)`
@@ -62,6 +66,7 @@ RAW_HITS=$(echo "$FILES" \
     | grep -v '^\./includes/activator\.php$' \
     | grep -v '^\./includes/deactivator\.php$' \
     | grep -v '^\./includes/db/schema\.php$' \
+    | grep -v '^\./includes/admin/settings-screen\.php$' \
     | grep -v '^\./uninstall\.php$' \
     | grep -v '^\./tests/' \
     | grep -v 'check-settings-isolation\.sh' \

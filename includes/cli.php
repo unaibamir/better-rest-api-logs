@@ -21,9 +21,9 @@ final class Cli {
 
 	public static function register(): void {
 		\WP_CLI::add_command( 'better-logs status', StatusCommand::class );
-		\WP_CLI::add_command( 'better-logs stats',  StatsCommand::class );
-		\WP_CLI::add_command( 'better-logs list',   ListCommand::class );
-		\WP_CLI::add_command( 'better-logs show',   ShowCommand::class );
+		\WP_CLI::add_command( 'better-logs stats', StatsCommand::class );
+		\WP_CLI::add_command( 'better-logs list', ListCommand::class );
+		\WP_CLI::add_command( 'better-logs show', ShowCommand::class );
 		\WP_CLI::add_command( 'better-logs delete', DeleteCommand::class );
 	}
 }

@@ -27,7 +27,7 @@ final class FiltersView {
 	/**
 	 * Emit the filter bar HTML.
 	 *
-	 * @param QueryArgs          $args          Current filter state derived from $_GET.
+	 * @param QueryArgs                                    $args          Current filter state derived from $_GET.
 	 * @param array{oldest:string|null,newest:string|null} $oldest_newest Date range bounds from the log table.
 	 * @return void
 	 */

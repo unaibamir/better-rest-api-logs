@@ -93,9 +93,9 @@ final class ListCommand extends \WP_CLI_Command {
 			$result     = $repo->search( $query_args );
 
 			foreach ( $result['rows'] as $entry ) {
-				$row           = $entry->to_array();
-				$row['id']     = $entry->id;
-				$collected[]   = $row;
+				$row         = $entry->to_array();
+				$row['id']   = $entry->id;
+				$collected[] = $row;
 				if ( count( $collected ) >= $requested_limit ) {
 					break 2;
 				}

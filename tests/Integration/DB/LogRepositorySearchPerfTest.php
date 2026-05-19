@@ -30,10 +30,10 @@ use WP_UnitTestCase;
 
 final class LogRepositorySearchPerfTest extends WP_UnitTestCase {
 
-	private const SEED_ROWS         = 100_000;
-	private const BATCH_SIZE        = 5_000;
-	private const SAMPLES           = 100;
-	private const P95_BUDGET_MS     = 100;
+	private const SEED_ROWS     = 100_000;
+	private const BATCH_SIZE    = 5_000;
+	private const SAMPLES       = 100;
+	private const P95_BUDGET_MS = 100;
 
 	/** @var LogRepository */
 	private $repo;
@@ -74,7 +74,7 @@ final class LogRepositorySearchPerfTest extends WP_UnitTestCase {
 		$combinations = $this->build_filter_combinations();
 		$samples      = [];
 		foreach ( $combinations as $args ) {
-			$t0       = microtime( true );
+			$t0 = microtime( true );
 			$this->repo->search( $args );
 			$samples[] = ( microtime( true ) - $t0 ) * 1000.0;
 		}
@@ -195,47 +195,55 @@ final class LogRepositorySearchPerfTest extends WP_UnitTestCase {
 	 * @return QueryArgs[]
 	 */
 	private function build_filter_combinations(): array {
-		$combinations  = [];
-		$methods       = [ 'GET', 'POST', 'PUT', 'DELETE' ];
+		$combinations   = [];
+		$methods        = [ 'GET', 'POST', 'PUT', 'DELETE' ];
 		$status_classes = [ '2xx', '3xx', '4xx', '5xx' ];
-		$prefixes      = [ '/wp/v2/', '/wc/v3/', '/jwt-auth/v1/', '/custom/v1/' ];
-		$now_micros    = (int) ( microtime( true ) * 1_000_000 );
+		$prefixes       = [ '/wp/v2/', '/wc/v3/', '/jwt-auth/v1/', '/custom/v1/' ];
+		$now_micros     = (int) ( microtime( true ) * 1_000_000 );
 
 		// 20 method+status_class combos.
 		for ( $i = 0; $i < 20; $i++ ) {
-			$combinations[] = QueryArgs::from_array( [
-				'method'       => $methods[ $i % count( $methods ) ],
-				'status_class' => $status_classes[ $i % count( $status_classes ) ],
-				'limit'        => 20,
-			] );
+			$combinations[] = QueryArgs::from_array(
+				[
+					'method'       => $methods[ $i % count( $methods ) ],
+					'status_class' => $status_classes[ $i % count( $status_classes ) ],
+					'limit'        => 20,
+				]
+			);
 		}
 
 		// 20 route_prefix queries (leverages the index).
 		for ( $i = 0; $i < 20; $i++ ) {
-			$combinations[] = QueryArgs::from_array( [
-				'route_prefix' => $prefixes[ $i % count( $prefixes ) ],
-				'limit'        => 20,
-			] );
+			$combinations[] = QueryArgs::from_array(
+				[
+					'route_prefix' => $prefixes[ $i % count( $prefixes ) ],
+					'limit'        => 20,
+				]
+			);
 		}
 
 		// 10 free_text queries (LIKE — no prefix index; narrowed by other filters in practice).
 		for ( $i = 0; $i < 10; $i++ ) {
-			$combinations[] = QueryArgs::from_array( [
-				'free_text' => 'posts',
-				'method'    => $methods[ $i % count( $methods ) ],
-				'limit'     => 20,
-			] );
+			$combinations[] = QueryArgs::from_array(
+				[
+					'free_text' => 'posts',
+					'method'    => $methods[ $i % count( $methods ) ],
+					'limit'     => 20,
+				]
+			);
 		}
 
 		// 10 date-range queries.
 		for ( $i = 0; $i < 10; $i++ ) {
-			$from = $now_micros - ( 10000 + $i * 5000 ) * 1000;
-			$to   = $now_micros - $i * 5000 * 1000;
-			$combinations[] = QueryArgs::from_array( [
-				'date_from_micros' => $from,
-				'date_to_micros'   => $to,
-				'limit'            => 20,
-			] );
+			$from           = $now_micros - ( 10000 + $i * 5000 ) * 1000;
+			$to             = $now_micros - $i * 5000 * 1000;
+			$combinations[] = QueryArgs::from_array(
+				[
+					'date_from_micros' => $from,
+					'date_to_micros'   => $to,
+					'limit'            => 20,
+				]
+			);
 		}
 
 		// 10 DESC cursor walks (simulating page 2 navigation).
@@ -249,12 +257,19 @@ final class LogRepositorySearchPerfTest extends WP_UnitTestCase {
 		}
 
 		// 10 ASC + cursor walks.
-		$page1_asc = $this->repo->search( QueryArgs::from_array( [
-			'limit'     => 20,
-			'order_dir' => 'ASC',
-		] ) );
+		$page1_asc = $this->repo->search(
+			QueryArgs::from_array(
+				[
+					'limit'     => 20,
+					'order_dir' => 'ASC',
+				]
+			)
+		);
 		for ( $i = 0; $i < 10; $i++ ) {
-			$args = [ 'limit' => 20, 'order_dir' => 'ASC' ];
+			$args = [
+				'limit'     => 20,
+				'order_dir' => 'ASC',
+			];
 			if ( null !== $page1_asc['next_cursor'] ) {
 				$args['cursor'] = $page1_asc['next_cursor'];
 			}
