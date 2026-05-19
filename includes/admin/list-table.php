@@ -346,8 +346,8 @@ final class ListTable extends \WP_List_Table {
 	 */
 	private function collect_input(): array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter form; no state-changing action.
-		$raw = $_GET;
-		return \array_map(
+		$raw       = $_GET;
+		$sanitised = \array_map(
 			static function ( $v ) {
 				if ( \is_array( $v ) ) {
 					return $v;
@@ -356,5 +356,7 @@ final class ListTable extends \WP_List_Table {
 			},
 			$raw
 		);
+		// Translate Y-m-d date_from / date_to into the micros bounds QueryArgs consumes.
+		return FiltersView::normalize_date_inputs( $sanitised );
 	}
 }

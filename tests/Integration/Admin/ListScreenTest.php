@@ -157,4 +157,56 @@ final class ListScreenTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'POST', $html );
 		$this->assertStringContainsString( 'DELETE', $html );
 	}
+
+	/**
+	 * Insert a row with an explicit created_at_micros value so date filters can be exercised deterministically.
+	 *
+	 * @param int    $micros Microseconds since Unix epoch for the row's created_at_micros column.
+	 * @param string $route  REST route stored on the row (used to identify it in assertions).
+	 */
+	private function insert_entry_at( int $micros, string $route ): int {
+		$req               = new RequestSnapshot();
+		$req->route        = $route;
+		$req->method       = 'GET';
+		$req->content_type = 'application/json';
+
+		$res               = new ResponseSnapshot();
+		$res->status       = 200;
+		$res->status_class = 2;
+		$res->content_type = 'application/json';
+
+		$entry                    = Entry::from_snapshots( $req, $res, [] );
+		$entry->created_at        = \gmdate( 'Y-m-d H:i:s', (int) ( $micros / 1_000_000 ) );
+		$entry->created_at_micros = $micros;
+		$packed                   = \inet_pton( '::ffff:127.0.0.1' );
+		$entry->ip_raw_remote     = false !== $packed ? $packed : null;
+
+		$repo = new LogRepository();
+		$ids  = $repo->insert_batch( [ $entry ] );
+		return $ids[0];
+	}
+
+	public function test_date_from_and_date_to_narrow_to_rows_within_window(): void {
+		$this->boot_plugin();
+
+		// Row 1: 2024-12-31 (before the window).
+		$this->insert_entry_at( \strtotime( '2024-12-31 12:00:00 UTC' ) * 1_000_000, '/wp/v2/before' );
+		// Row 2: 2025-01-15 (inside the window).
+		$this->insert_entry_at( \strtotime( '2025-01-15 12:00:00 UTC' ) * 1_000_000, '/wp/v2/inside' );
+		// Row 3: 2025-02-01 (after the window).
+		$this->insert_entry_at( \strtotime( '2025-02-01 12:00:00 UTC' ) * 1_000_000, '/wp/v2/after' );
+
+		$_GET['date_from'] = '2025-01-01';
+		$_GET['date_to']   = '2025-01-31';
+
+		\ob_start();
+		ListScreen::render();
+		$html = \ob_get_clean();
+
+		unset( $_GET['date_from'], $_GET['date_to'] );
+
+		$this->assertStringContainsString( '/wp/v2/inside', $html, 'Row inside the window must appear.' );
+		$this->assertStringNotContainsString( '/wp/v2/before', $html, 'Row before the window must be filtered out.' );
+		$this->assertStringNotContainsString( '/wp/v2/after', $html, 'Row after the window must be filtered out.' );
+	}
 }
