@@ -477,4 +477,65 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertSame( '{"req":"data"}', $result['request_body'] );
 		$this->assertSame( '{"res":"data"}', $result['response_body'] );
 	}
+
+	/**
+	 * QueryBuilder emits ORDER BY (created_at_micros, id) regardless of the
+	 * user-facing sort column. The cursor encodes (created_at_micros, id) so
+	 * any other ORDER BY would mismatch the cursor predicate and skip or
+	 * repeat rows across pages.
+	 */
+	public function test_query_builder_orders_by_micros_even_when_sort_is_created_at(): void {
+		$args   = QueryArgs::from_array( [ 'order_by' => 'created_at' ] );
+		$result = ( new QueryBuilder() )->build( $args );
+
+		$this->assertStringContainsString( 'ORDER BY created_at_micros', $result['sql'] );
+	}
+
+	public function test_query_builder_orders_by_micros_even_when_sort_is_duration_ms(): void {
+		// duration_ms is whitelisted in Sort::ALLOWED_COLUMNS for v1, but it is
+		// not a meaningful cursor key — the cursor encodes (created_at_micros, id).
+		// QueryBuilder must therefore always ORDER BY the same tuple the cursor
+		// compares against, regardless of which sort column the caller asked for.
+		$args   = QueryArgs::from_array( [ 'order_by' => 'duration_ms' ] );
+		$result = ( new QueryBuilder() )->build( $args );
+
+		$this->assertStringContainsString( 'ORDER BY created_at_micros', $result['sql'] );
+		$this->assertStringNotContainsString( 'ORDER BY duration_ms', $result['sql'] );
+	}
+
+	public function test_search_cursor_pagination_works_with_duration_ms_sort(): void {
+		// Inserting rows with distinct created_at_micros so cursor walking is
+		// deterministic; the test asserts no row is skipped or repeated even
+		// when the caller asks for sort=duration_ms.
+		$base    = (int) ( microtime( true ) * 1_000_000 );
+		$entries = [];
+		for ( $i = 0; $i < 25; $i++ ) {
+			$entries[] = $this->make_entry( '/wp/v2/posts', 'GET', 200, $base - $i * 1000 );
+		}
+		$this->repo->insert_batch( $entries );
+
+		$collected = [];
+		$cursor    = null;
+		$pages     = 0;
+
+		do {
+			$input = [
+				'limit'    => 10,
+				'order_by' => 'duration_ms',
+			];
+			if ( null !== $cursor ) {
+				$input['cursor'] = $cursor;
+			}
+			$page = $this->repo->search( QueryArgs::from_array( $input ) );
+			foreach ( $page['rows'] as $row ) {
+				$collected[] = $row->id;
+			}
+			$cursor = $page['next_cursor'];
+			++$pages;
+			$this->assertLessThan( 5, $pages, 'Cursor walk should terminate well under 5 pages for 25 rows.' );
+		} while ( $page['has_more'] && null !== $cursor );
+
+		$this->assertCount( 25, $collected, 'All 25 inserted rows must be returned across cursor pages.' );
+		$this->assertCount( 25, array_unique( $collected ), 'No row may appear on more than one page.' );
+	}
 }
