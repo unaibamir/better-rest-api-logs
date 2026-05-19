@@ -104,6 +104,51 @@ final class SettingsScreenTest extends WP_UnitTestCase {
 	 * separated lines; the sanitizer must parse that into the array shape the
 	 * option stores, not silently wipe the list.
 	 */
+	/**
+	 * Settings API sanitization: a missing boolean key in form input means the
+	 * box was unchecked — it must save as false, never silently re-default
+	 * to true. Without a hidden zero input next to the checkbox, an unchecked
+	 * box vanishes from $_POST and the sanitizer can't tell "not present" from
+	 * "never edited".
+	 */
+	public function test_unchecked_default_true_checkbox_saves_as_false(): void {
+		$registry = new SettingsRegistry( new SettingsRepository() );
+
+		$reflector = new ReflectionMethod( SettingsRegistry::class, 'sanitize_capture' );
+		$reflector->setAccessible( true );
+
+		// Emulate the hidden-zero pattern: form submits "0" for the unchecked box.
+		$result = $reflector->invoke( $registry, [ 'enabled' => '0' ] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( false, $result['enabled'], 'enabled must drop to false when the form posts 0.' );
+	}
+
+	public function test_default_true_checkbox_renders_hidden_zero_input(): void {
+		// Settings API form posts must include a hidden zero for every boolean
+		// checkbox so that unchecking the box reaches the sanitizer as "0"
+		// rather than disappearing from $_POST entirely.
+		Plugin::instance()->boot();
+		// Settings fields are registered on admin_init normally; register them
+		// directly here to avoid pulling in WP core's own admin_init listeners
+		// (some of which hit the network or send headers under PHPUnit).
+		SettingsScreen::register_fields();
+		$_GET['page'] = 'better-rest-api-logs-settings';
+		$_GET['tab']  = 'capture';
+
+		\ob_start();
+		SettingsScreen::render();
+		$html = \ob_get_clean();
+
+		unset( $_GET['page'], $_GET['tab'] );
+
+		$this->assertMatchesRegularExpression(
+			'/<input type="hidden" name="brl_settings_capture\\[enabled\\]" value="0"[^>]*>\\s*<label><input type="checkbox" name="brl_settings_capture\\[enabled\\]"/',
+			$html,
+			'Each checkbox must be preceded by a hidden zero input with the same name so unchecked state survives the POST.'
+		);
+	}
+
 	public function test_textarea_string_for_array_setting_is_parsed_into_lines(): void {
 		// The Settings API submits the textarea-backed allowlist as a single
 		// newline-separated string. The per-tab sanitizer must split that into
