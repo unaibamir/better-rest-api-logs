@@ -127,6 +127,24 @@ final class DetailScreenTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'language-json', $html );
 	}
 
+	public function test_detail_screen_back_link_renders_arrow_glyph_not_unicode_escape(): void {
+		Plugin::instance()->boot();
+		$log_id = $this->insert_entry_with_body( '{"k":"v"}' );
+
+		$_GET['log_id'] = $log_id;
+
+		\ob_start();
+		DetailScreen::render();
+		$html = \ob_get_clean();
+
+		unset( $_GET['log_id'] );
+
+		// The back link must render the actual ← character, not the literal
+		// PHP Unicode escape sequence "\u{2190}" leaked into the page.
+		$this->assertStringNotContainsString( '\u{2190}', $html, 'Literal Unicode escape must not appear in rendered HTML.' );
+		$this->assertStringContainsString( "\u{2190} Back to logs", $html );
+	}
+
 	public function test_detail_screen_includes_copy_button_with_clipboard_target(): void {
 		Plugin::instance()->boot();
 		$log_id = $this->insert_entry_with_body( '{"key":"value"}' );

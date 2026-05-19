@@ -87,7 +87,7 @@ final class DetailScreen {
 				)
 			),
 			\esc_url( $back_url ),
-			\esc_html__( '\u{2190} Back to logs', 'better-rest-api-logs' )
+			\esc_html__( '← Back to logs', 'better-rest-api-logs' )
 		);
 
 		self::render_panel( 'request', $entry );
