@@ -96,9 +96,15 @@ final class AssetsTest extends WP_UnitTestCase {
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- test fixture simulates WP firing core 'current_screen' hook to exercise the admin assets enqueue path.
 		\do_action( 'current_screen', $screen );
 
-		global $wp_scripts;
+		global $wp_styles, $wp_scripts;
 
-		$brl_handles = array_filter(
+		$brl_styles  = array_filter(
+			array_keys( $wp_styles->registered ?? [] ),
+			static function ( string $handle ): bool {
+				return 0 === strpos( $handle, 'brl-' );
+			}
+		);
+		$brl_scripts = array_filter(
 			array_keys( $wp_scripts->registered ?? [] ),
 			static function ( string $handle ): bool {
 				return 0 === strpos( $handle, 'brl-' );
@@ -106,8 +112,8 @@ final class AssetsTest extends WP_UnitTestCase {
 		);
 
 		$this->assertNotEmpty(
-			$brl_handles,
-			'At least one brl-* script handle must be registered on the plugin list screen.'
+			array_merge( $brl_styles, $brl_scripts ),
+			'At least one brl-* style or script handle must be registered on the plugin list screen.'
 		);
 	}
 }

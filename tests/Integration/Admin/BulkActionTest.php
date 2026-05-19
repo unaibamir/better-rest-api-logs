@@ -57,6 +57,8 @@ final class BulkActionTest extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
+		$_POST    = [];
+		$_REQUEST = [];
 		while ( \ob_get_level() > $this->ob_level_before ) {
 			\ob_end_clean();
 		}
@@ -145,9 +147,18 @@ final class BulkActionTest extends WP_UnitTestCase {
 			'log_ids'  => [ $id1, $id2, $id3 ],
 			'_wpnonce' => $nonce,
 		];
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- test fixture constructs the superglobals so the handler under test can verify the nonce itself.
+		$_REQUEST = $_POST;
+
+		// The handler ends with wp_safe_redirect(); under PHPUnit headers are
+		// already sent so the actual header() call would fatal. Short-circuit
+		// the redirect for the duration of this test.
+		\add_filter( 'wp_redirect', '__return_false', 99 );
 
 		$handler = new BulkActionHandler();
 		$handler->handle();
+
+		\remove_filter( 'wp_redirect', '__return_false', 99 );
 
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -182,9 +193,15 @@ final class BulkActionTest extends WP_UnitTestCase {
 			'log_ids'  => [ $log_id ],
 			'_wpnonce' => $nonce,
 		];
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- test fixture constructs the superglobals so the handler under test can verify the nonce itself.
+		$_REQUEST = $_POST;
+
+		\add_filter( 'wp_redirect', '__return_false', 99 );
 
 		$handler = new BulkActionHandler();
 		$handler->handle();
+
+		\remove_filter( 'wp_redirect', '__return_false', 99 );
 
 		$body_after = (int) $wpdb->get_var(
 			$wpdb->prepare(

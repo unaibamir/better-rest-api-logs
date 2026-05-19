@@ -32,6 +32,9 @@ final class ListScreenTest extends WP_UnitTestCase {
 	/** @var int Snapshot of ob_get_level() taken before each test. */
 	private int $ob_level_before = 0;
 
+	/** @var int Admin user id; render path runs current_user_can(manage_options). */
+	private int $admin_id = 0;
+
 	public function set_up(): void {
 		parent::set_up();
 		$this->ob_level_before = \ob_get_level();
@@ -41,6 +44,9 @@ final class ListScreenTest extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
+
+		$this->admin_id = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		\wp_set_current_user( $this->admin_id );
 	}
 
 	public function tear_down(): void {
