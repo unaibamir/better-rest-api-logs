@@ -25,8 +25,42 @@
 		 * @returns {void}
 		 */
 		init() {
+			this.#bindTabs();
 			this.#applyHighlighting();
 			this.#bindClipboard();
+		}
+
+		/**
+		 * Wire the JSON / Key-Value tab toggling.
+		 *
+		 * Each [data-brl-tabs] wrapper contains a .brl-tabs__nav of tab buttons
+		 * (data-brl-tab-target="json|kv") and .brl-tabs__panel elements
+		 * (data-brl-tab-panel="json|kv"). Clicking a tab flips `is-active` +
+		 * aria-selected on the buttons and `hidden` on the panels.
+		 *
+		 * @returns {void}
+		 */
+		#bindTabs() {
+			document.querySelectorAll( '.brl-admin [data-brl-tabs]' ).forEach( ( group ) => {
+				const buttons = group.querySelectorAll( '[data-brl-tab-target]' );
+				const panels = group.querySelectorAll( '[data-brl-tab-panel]' );
+
+				buttons.forEach( ( button ) => {
+					button.addEventListener( 'click', () => {
+						const target = button.dataset.brlTabTarget;
+
+						buttons.forEach( ( b ) => {
+							const active = b.dataset.brlTabTarget === target;
+							b.classList.toggle( 'is-active', active );
+							b.setAttribute( 'aria-selected', active ? 'true' : 'false' );
+						} );
+
+						panels.forEach( ( p ) => {
+							p.hidden = p.dataset.brlTabPanel !== target;
+						} );
+					} );
+				} );
+			} );
 		}
 
 		/**

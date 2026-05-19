@@ -107,3 +107,47 @@
   color: #50575e;
   margin-block-end: 24px;
 }
+
+/* ── JSON / Key-Value tabs ── */
+.brl-admin .brl-tabs {
+  margin-block-end: 16px;
+
+  & .brl-tabs__nav {
+    display: flex;
+    gap: 0;
+    border-block-end: 1px solid var(--wp-admin-border, #c3c4c7);
+    margin-block-end: 8px;
+  }
+
+  & .brl-tabs__tab {
+    background: transparent;
+    border: 1px solid transparent;
+    border-block-end: none;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #50575e;
+    cursor: pointer;
+    margin-block-end: -1px;
+
+    &:hover {
+      color: var(--wp-admin-theme-color, #2271b1);
+    }
+
+    &.is-active {
+      color: var(--wp-admin-theme-color, #2271b1);
+      border-color: var(--wp-admin-border, #c3c4c7);
+      border-block-end-color: #fff;
+      background: #fff;
+    }
+
+    &:focus {
+      outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+      outline-offset: 2px;
+    }
+  }
+
+  & .brl-tabs__panel[hidden] {
+    display: none;
+  }
+}

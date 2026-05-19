@@ -146,47 +146,197 @@ final class DetailScreen {
 		}
 		echo '</dl>';
 
-		// Headers table.
+		// Query parameters — request side only, shown when present.
+		if ( $is_request ) {
+			$query_string = (string) ( $entry->query_string ?? '' );
+			if ( '' !== $query_string ) {
+				self::render_query_params( $query_string );
+			}
+		}
+
+		// Headers — tabbed (JSON default, Key/Value fallback).
 		$headers_json = $is_request
 			? (string) ( $entry->request_headers ?? '{}' )
 			: (string) ( $entry->response_headers ?? '{}' );
 		$decoded      = \json_decode( $headers_json, true );
 		$headers      = \is_array( $decoded ) ? $decoded : [];
 
-		\printf( '<h3>%s</h3>', \esc_html__( 'Headers', 'better-rest-api-logs' ) );
-		echo '<table class="brl-headers-table widefat striped"><tbody>';
-		foreach ( $headers as $name => $value ) {
-			\printf(
-				'<tr><th scope="row">%s</th><td>%s</td></tr>',
-				\esc_html( (string) $name ),
-				\esc_html( \is_scalar( $value ) ? (string) $value : (string) \wp_json_encode( $value ) )
-			);
-		}
-		echo '</tbody></table>';
+		self::render_headers_tabs( $headers, $kind );
 
-		// Body code block — esc_html BEFORE injection (T-04-30).
-		// highlight.js reads textContent, so the browser-decoded string is what
-		// hljs tokenises. We never set innerHTML from raw bytes.
+		// Body code block.
 		$body    = $is_request
 			? (string) ( $entry->request_body ?? '' )
 			: (string) ( $entry->response_body ?? '' );
 		$id_attr = $is_request ? 'brl-req-body' : 'brl-resp-body';
 		$lang    = self::guess_language( $headers, $is_request ? $entry->request_content_type : $entry->response_content_type );
 
+		self::render_body_block( $body, $lang, $id_attr );
+
+		echo '</section>';
+	}
+
+	/**
+	 * Render the query-string as a key/value table.
+	 *
+	 * Values are decoded once via parse_str (handles percent-encoding) and
+	 * escaped at output. Multi-value params (?a=1&a=2) collapse to the array
+	 * form parse_str emits.
+	 *
+	 * @param  string $query_string Raw http_build_query output (no leading "?").
+	 * @return void
+	 */
+	private static function render_query_params( string $query_string ): void {
+		$parsed = [];
+		\parse_str( $query_string, $parsed );
+		if ( [] === $parsed ) {
+			return;
+		}
+
+		\printf( '<h3>%s</h3>', \esc_html__( 'Query parameters', 'better-rest-api-logs' ) );
+		echo '<table class="brl-headers-table widefat striped"><tbody>';
+		foreach ( $parsed as $name => $value ) {
+			\printf(
+				'<tr><th scope="row">%s</th><td>%s</td></tr>',
+				\esc_html( (string) $name ),
+				\esc_html( self::flatten_value( $value ) )
+			);
+		}
+		echo '</tbody></table>';
+	}
+
+	/**
+	 * Render the headers as two tabs — JSON (default) and Key/Value.
+	 *
+	 * The JSON tab uses JSON_UNESCAPED_SLASHES so wildcard-style header values
+	 * render as the literal asterisk-slash-asterisk rather than escaped slashes
+	 * (T-04-30 — esc_html still runs). Key/Value joins array-typed header
+	 * values with ", " instead of round-tripping them through wp_json_encode.
+	 *
+	 * @param  array<int|string,mixed> $headers Decoded headers map.
+	 * @param  string                  $kind    'request' or 'response'.
+	 * @return void
+	 */
+	private static function render_headers_tabs( array $headers, string $kind ): void {
+		$json    = (string) \wp_json_encode( $headers, \JSON_UNESCAPED_SLASHES | \JSON_PRETTY_PRINT );
+		$copy_id = 'brl-' . $kind . '-headers-json';
+
+		\printf(
+			'<h3>%s <button type="button" class="button button-small" data-clipboard-target="#%s">%s</button></h3>',
+			\esc_html__( 'Headers', 'better-rest-api-logs' ),
+			\esc_attr( $copy_id ),
+			\esc_html__( 'Copy', 'better-rest-api-logs' )
+		);
+
+		// Tabs wrapper.
+		\printf( '<div class="brl-tabs" data-brl-tabs="%s">', \esc_attr( $kind ) );
+
+		echo '<div class="brl-tabs__nav" role="tablist">';
+		\printf(
+			'<button type="button" class="brl-tabs__tab is-active" role="tab" aria-selected="true" data-brl-tab-target="json">%s</button>',
+			\esc_html__( 'JSON', 'better-rest-api-logs' )
+		);
+		\printf(
+			'<button type="button" class="brl-tabs__tab" role="tab" aria-selected="false" data-brl-tab-target="kv">%s</button>',
+			\esc_html__( 'Key / Value', 'better-rest-api-logs' )
+		);
+		echo '</div>';
+
+		// JSON panel (default visible).
+		echo '<div class="brl-tabs__panel" role="tabpanel" data-brl-tab-panel="json">';
+		\printf(
+			'<pre class="brl-code" id="%s"><code class="language-json">%s</code></pre>',
+			\esc_attr( $copy_id ),
+			\esc_html( $json )
+		);
+		echo '</div>';
+
+		// Key/Value panel (hidden by default; toggled by admin-detail.js).
+		echo '<div class="brl-tabs__panel" role="tabpanel" data-brl-tab-panel="kv" hidden>';
+		echo '<table class="brl-headers-table widefat striped"><tbody>';
+		foreach ( $headers as $name => $value ) {
+			\printf(
+				'<tr><th scope="row">%s</th><td>%s</td></tr>',
+				\esc_html( (string) $name ),
+				\esc_html( self::flatten_value( $value ) )
+			);
+		}
+		echo '</tbody></table>';
+		echo '</div>';
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render a body code block with a Copy button.
+	 *
+	 * Highlight.js reads textContent (browser-decoded) and rewrites innerHTML
+	 * with its own escape-safe output (D-17, T-04-30). We never inject raw
+	 * body bytes — esc_html() runs before output.
+	 *
+	 * @param  string $body    Raw body bytes.
+	 * @param  string $lang    highlight.js language slug.
+	 * @param  string $id_attr DOM id used as clipboard target.
+	 * @return void
+	 */
+	private static function render_body_block( string $body, string $lang, string $id_attr ): void {
 		\printf(
 			'<h3>%s <button type="button" class="button button-small" data-clipboard-target="#%s">%s</button></h3>',
 			\esc_html__( 'Body', 'better-rest-api-logs' ),
 			\esc_attr( $id_attr ),
 			\esc_html__( 'Copy', 'better-rest-api-logs' )
 		);
+
+		// JSON-prettify when the body parses as JSON; otherwise show raw bytes
+		// so non-JSON payloads (form-encoded, XML, plain text) survive
+		// untouched. esc_html runs at the printf call regardless.
+		$display_body = self::maybe_pretty_print_body( $body, $lang );
+
 		\printf(
 			'<pre class="brl-code" id="%s"><code class="language-%s">%s</code></pre>',
 			\esc_attr( $id_attr ),
 			\esc_attr( $lang ),
-			\esc_html( $body )
+			\esc_html( $display_body )
 		);
+	}
 
-		echo '</section>';
+	/**
+	 * Pretty-print body bytes when they're valid JSON; otherwise return as-is.
+	 *
+	 * @param  string $body Raw body.
+	 * @param  string $lang Detected highlight.js language slug.
+	 * @return string       Pretty JSON or untouched body.
+	 */
+	private static function maybe_pretty_print_body( string $body, string $lang ): string {
+		if ( '' === $body || 'json' !== $lang ) {
+			return $body;
+		}
+		$decoded = \json_decode( $body, true );
+		if ( \JSON_ERROR_NONE !== \json_last_error() ) {
+			return $body;
+		}
+		$pretty = \wp_json_encode( $decoded, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_PRETTY_PRINT );
+		return false === $pretty ? $body : $pretty;
+	}
+
+	/**
+	 * Flatten a header/query value into a display string.
+	 *
+	 * WP_REST_Request::get_headers() returns array<string,array<string>> —
+	 * we join the inner array with `, ` instead of json-encoding so the
+	 * display reads naturally. Scalars cast through (string).
+	 *
+	 * @param  mixed $value Header / query param value.
+	 * @return string       Display string.
+	 */
+	private static function flatten_value( $value ): string {
+		if ( \is_array( $value ) ) {
+			$parts = [];
+			foreach ( $value as $v ) {
+				$parts[] = \is_scalar( $v ) ? (string) $v : (string) \wp_json_encode( $v, \JSON_UNESCAPED_SLASHES );
+			}
+			return \implode( ', ', $parts );
+		}
+		return \is_scalar( $value ) ? (string) $value : (string) \wp_json_encode( $value, \JSON_UNESCAPED_SLASHES );
 	}
 
 	/**
