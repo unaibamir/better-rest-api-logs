@@ -1,0 +1,109 @@
+/*
+ * Better REST API Logs — detail page panel layout, code blocks, header tables.
+ *
+ * All rules scoped under .brl-admin (admin_body_class filter on our screens).
+ * Native CSS nesting; no preprocessor. Four highlight.js token overrides keep
+ * the palette muted to match WP admin neutrals — loaded after default.min.css
+ * so source-order wins apply.
+ */
+
+/* ── Detail panels ── */
+.brl-admin .brl-detail-panel {
+  background: #fff;
+  border: 1px solid var(--wp-admin-border, #c3c4c7);
+  border-radius: 4px;
+  padding: 24px;
+  margin-block-end: 32px;
+
+  & h2 {
+    margin-block-start: 0;
+    font-size: 18px;
+    font-weight: 400;
+  }
+
+  & h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-block-end: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* ── Meta definition list ── */
+.brl-admin .brl-detail-panel__meta {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 16px;
+  font-size: 13px;
+  margin-block-end: 16px;
+
+  & dt {
+    font-weight: 600;
+    color: #50575e;
+  }
+
+  & dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── Headers table ── */
+.brl-admin .brl-headers-table {
+  margin-block-end: 16px;
+
+  & th {
+    font-size: 12px;
+    color: #50575e;
+    width: 200px;
+    vertical-align: top;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & td {
+    font-size: 12px;
+    word-break: break-all;
+  }
+}
+
+/* ── Syntax-highlighted code block ── */
+.brl-admin .brl-code {
+  background: #f6f7f7;
+  border: 1px solid var(--wp-admin-border, #c3c4c7);
+  border-radius: 4px;
+  padding: 16px;
+  font-family: var(--wp-font-monospace, Menlo, Consolas, "Roboto Mono", monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  min-height: 80px;
+  max-height: 600px;
+  overflow-y: auto;
+  margin: 0;
+
+  & code {
+    font-family: inherit;
+    font-size: inherit;
+    background: transparent;
+    padding: 0;
+  }
+}
+
+/*
+ * highlight.js token color overrides — muted palette for WP admin.
+ * These four rules replace the default.min.css values to keep syntax
+ * highlighting from clashing with the neutral WP admin chrome.
+ */
+.brl-admin .brl-code .hljs-string  { color: #137333; }
+.brl-admin .brl-code .hljs-number  { color: #0b5394; }
+.brl-admin .brl-code .hljs-keyword { color: #b06000; }
+.brl-admin .brl-code .hljs-attr    { color: #50575e; }
+
+/* ── Detail meta summary line ── */
+.brl-admin .brl-detail-meta {
+  font-size: 13px;
+  color: #50575e;
+  margin-block-end: 24px;
+}

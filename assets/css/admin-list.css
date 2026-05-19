@@ -1,0 +1,151 @@
+/*
+ * Better REST API Logs — list page + filter bar + status pill styles.
+ *
+ * All rules scoped under .brl-admin (applied via admin_body_class filter on
+ * our three screens only — D-35). Native CSS nesting; no preprocessor.
+ * WP admin CSS custom properties with hardcoded 6.4-floor fallbacks.
+ */
+
+/* ── Filter bar ── */
+.brl-admin .brl-filter-bar {
+  background: #fff;
+  border: 1px solid var(--wp-admin-border, #c3c4c7);
+  padding: 8px;
+  margin-block-end: 16px;
+  position: relative;
+
+  & .brl-filter-bar__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    align-items: end;
+  }
+
+  & label {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    gap: 2px;
+
+    & > span {
+      font-weight: 600;
+      color: #50575e;
+    }
+  }
+
+  & input,
+  & select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  & .brl-filter-bar__status-class {
+    border: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+
+    & legend {
+      font-size: 12px;
+      font-weight: 600;
+      color: #50575e;
+      float: left;
+      margin-block-end: 2px;
+    }
+
+    & label {
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      font-weight: 400;
+    }
+  }
+}
+
+.brl-admin .brl-reset-link {
+  font-size: 12px;
+  color: var(--wp-admin-theme-color, #2271b1);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ── Status pill (D-18, A11Y-02) ── */
+.brl-admin .brl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-block: 2px;
+  padding-inline: 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  &.brl-pill--1xx {
+    background: #e8eaf6;
+    color: #303f9f;
+  }
+
+  &.brl-pill--2xx {
+    background: #e6f4ea;
+    color: #137333;
+  }
+
+  &.brl-pill--3xx {
+    background: #e3f2fd;
+    color: #0b5394;
+  }
+
+  &.brl-pill--4xx {
+    background: #fef7e0;
+    color: #b06000;
+  }
+
+  &.brl-pill--5xx {
+    background: #fce8e6;
+    color: #b3261e;
+  }
+}
+
+/* ── Empty state ── */
+.brl-admin .brl-empty-state {
+  background: #fff;
+  border: 1px solid var(--wp-admin-border, #c3c4c7);
+  padding: 48px 24px;
+  text-align: center;
+
+  & .brl-empty-state__heading {
+    font-size: 14px;
+    font-weight: 600;
+    margin-block-end: 8px;
+  }
+
+  & .brl-empty-state__body {
+    font-size: 13px;
+    color: #50575e;
+    margin: 0;
+  }
+}
+
+/* ── Cursor pagination nav ── */
+.brl-admin .tablenav.bottom .tablenav-pages {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-block: 8px;
+}
+
+/* ── Row action always-visible View link ── */
+.brl-admin .wp-list-table .row-actions {
+  position: static;
+  visibility: visible;
+  opacity: 1;
+}
