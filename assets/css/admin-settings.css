@@ -1,0 +1,41 @@
+/*
+ * admin-settings.css — Settings page polish for Better REST API Logs.
+ *
+ * WP core handles the heavy lifting: .nav-tab-wrapper, .form-table, .button.
+ * This file adds only what WP core's defaults miss for our five-tab layout.
+ *
+ * All rules scoped under .brl-admin (added via admin_body_class filter on our
+ * screens only) to prevent global leakage into other admin pages.
+ *
+ * Native CSS nesting used throughout — no preprocessor, no PostCSS.
+ * Spacing tokens from UI-SPEC (multiples of 4):
+ *   xs=4px  sm=8px  md=16px  lg=24px  xl=32px
+ */
+
+.brl-admin {
+	/* Breathe between the tab nav and the settings form below it. */
+	& .nav-tab-wrapper {
+		margin-block-end: 24px;
+	}
+
+	/* Monospace fields — textarea for array values, code blocks. */
+	& .form-table textarea.code {
+		font-family: var(--wp-font-monospace, Menlo, Consolas, "Roboto Mono", monospace);
+		font-size: 12px;
+		line-height: 1.5;
+	}
+
+	/*
+	 * Small-text number inputs (body size cap, retention days, etc.) should not
+	 * expand to their container width — WP core's .small-text does this already,
+	 * but scoping it here avoids fighting specificity wars with theme overrides.
+	 */
+	& .form-table input.small-text {
+		width: 80px;
+	}
+
+	/* Push the submit button down slightly so it has room to breathe. */
+	& .submit {
+		padding-block-start: 8px;
+	}
+}
