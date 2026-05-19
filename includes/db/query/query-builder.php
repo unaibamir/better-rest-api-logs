@@ -99,9 +99,11 @@ final class QueryBuilder {
 			$bindings[] = $args->user_id;
 		}
 
-		// ip — pre-validate with filter_var so inet_pton never sees malformed input.
-		// CLAUDE.md "No @ on built-ins" — filter_var guard eliminates the warning path.
-		if ( null !== $args->ip && \filter_var( $args->ip, FILTER_VALIDATE_IP ) ) {
+		// ip — QueryArgs::from_array already validated the literal so inet_pton
+		// cannot fail here on supported address forms. CLAUDE.md "No @ on
+		// built-ins" — the filter_var guard at the boundary eliminates the
+		// warning path before this point.
+		if ( null !== $args->ip ) {
 			$packed = \inet_pton( $args->ip );
 			if ( false !== $packed ) {
 				$where[]    = 'ip_resolved = %s';
