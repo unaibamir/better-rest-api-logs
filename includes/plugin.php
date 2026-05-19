@@ -239,8 +239,7 @@ final class Plugin {
 		$this->container->bind(
 			ListTable::class,
 			static fn ( Container $c ) => new ListTable(
-				$c->get( LogRepository::class ),
-				$c->get( FiltersView::class )
+				$c->get( LogRepository::class )
 			)
 		);
 		$this->container->bind(
@@ -334,8 +333,10 @@ final class Plugin {
 
 		// WP-CLI surface — only register when running under WP_CLI so the admin
 		// stack does not pay the cost. The five `wp better-logs` verbs handle
-		// their own defense-in-depth capability checks.
-		if ( \defined( 'WP_CLI' ) && \WP_CLI ) {
+		// their own defense-in-depth capability checks. `constant()` is used
+		// instead of a bare `\WP_CLI` lookup so the truthy runtime value is
+		// honoured even when static analysis sees the stub's placeholder.
+		if ( \defined( 'WP_CLI' ) && \constant( 'WP_CLI' ) ) {
 			Cli::register();
 		}
 	}

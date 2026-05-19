@@ -23,4 +23,10 @@ namespace {
 	if ( ! defined( 'BRL_BASENAME' ) ) {
 		define( 'BRL_BASENAME', '' );
 	}
+	// WordPress core defines DB_NAME in wp-config.php at runtime. The phpstan-wordpress
+	// extension does not ship this constant, so the StatsController query that reads
+	// it through information_schema needs a stub to keep level 6 clean.
+	if ( ! defined( 'DB_NAME' ) ) {
+		define( 'DB_NAME', '' );
+	}
 }
