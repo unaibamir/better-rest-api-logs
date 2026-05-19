@@ -342,6 +342,34 @@ final class LogRepository {
 	}
 
 	/**
+	 * Storage footprint of the logs table in bytes.
+	 *
+	 * Queries information_schema.TABLES for DATA_LENGTH + INDEX_LENGTH. Shared
+	 * between the REST /stats endpoint and the `wp better-logs stats` CLI so
+	 * both surfaces report the same number on a cache miss. Returns 0 when the
+	 * privilege is absent or the query returns null (some shared hosts).
+	 *
+	 * @return int
+	 */
+	public function table_size_bytes(): int {
+		global $wpdb;
+
+		$logs_table = Database::logs_table();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- schema and table name flow through prepare.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT (DATA_LENGTH + INDEX_LENGTH) AS bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
+				\DB_NAME,
+				$logs_table
+			),
+			ARRAY_A
+		);
+
+		return null === $row ? 0 : (int) $row['bytes'];
+	}
+
+	/**
 	 * Return the oldest and newest log timestamps as ISO-8601 strings.
 	 *
 	 * Two single-aggregate queries rather than one combined query for

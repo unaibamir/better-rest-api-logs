@@ -113,13 +113,16 @@ final class StatsCommand extends \WP_CLI_Command {
 		$times     = $repo->oldest_newest();
 		$total     = (int) array_sum( $by_class );
 
+		// Share the table-size calculation with the REST /stats endpoint so the
+		// CLI does not report 0 bytes on a cache miss while REST reports the
+		// real number.
 		$fresh = [
 			'total'            => $total,
 			'by_status_class'  => $by_class,
 			'by_method'        => $by_method,
 			'oldest'           => $times['oldest'] ?? '',
 			'newest'           => $times['newest'] ?? '',
-			'table_size_bytes' => 0,
+			'table_size_bytes' => $repo->table_size_bytes(),
 			'computed_at'      => \time(),
 		];
 
