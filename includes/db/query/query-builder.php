@@ -143,12 +143,18 @@ final class QueryBuilder {
 		}
 
 		$where_sql = empty( $where ) ? '' : ' WHERE ' . implode( ' AND ', $where );
-		$sort_col  = $args->order_by;  // Sort::validate already gated this.
 		$sort_dir  = $args->order_dir;
 		$limit_n1  = $args->limit + 1; // N+1 for has_more detection; caller slices.
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from Database accessor (STOR-04); column list from private constant; sort col + dir from Sort::validate whitelist; user values in $bindings only.
-		$sql = "SELECT {$col_list} FROM {$logs_table}{$where_sql} ORDER BY {$sort_col} {$sort_dir}, id {$sort_dir} LIMIT {$limit_n1}";
+		// NOTE: ORDER BY is always (created_at_micros, id) — the same tuple the
+		// cursor token encodes. The user-facing $args->order_by names ('created_at'
+		// and 'duration_ms') remain whitelisted in Sort::ALLOWED_COLUMNS so URLs
+		// stay stable, but the physical ORDER BY must match the cursor predicate
+		// or pagination skips/repeats rows (e.g. duration_ms sort with a
+		// timestamp cursor). created_at_micros is a strict refinement of
+		// created_at, so the visible newest-first order matches user expectation.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from Database accessor (STOR-04); column list from private constant; sort dir from Sort::validate whitelist; user values in $bindings only.
+		$sql = "SELECT {$col_list} FROM {$logs_table}{$where_sql} ORDER BY created_at_micros {$sort_dir}, id {$sort_dir} LIMIT {$limit_n1}";
 
 		return [
 			'sql'      => $sql,
