@@ -64,8 +64,19 @@ final class ListCommand extends \WP_CLI_Command {
 	public function __invoke( array $args, array $assoc_args ): void {
 		$repo = Plugin::instance()->container()->get( LogRepository::class );
 
-		$requested_limit = isset( $assoc_args['limit'] ) ? max( 1, (int) $assoc_args['limit'] ) : 20;
-		$remaining       = $requested_limit;
+		if ( isset( $assoc_args['limit'] ) ) {
+			// Mirror the QueryArgs integer rule (`^-?\d+$`) — reject '3.14',
+			// '1e2', 'abc' and whitespace-padded values rather than letting
+			// (int) silently coerce them to a misleading row count.
+			$raw_limit = \trim( (string) $assoc_args['limit'] );
+			if ( 1 !== \preg_match( '/^-?\d+$/', $raw_limit ) ) {
+				\WP_CLI::error( \sprintf( '--limit must be a positive integer; got: %s', $raw_limit ) );
+			}
+			$requested_limit = \max( 1, (int) $raw_limit );
+		} else {
+			$requested_limit = 20;
+		}
+		$remaining = $requested_limit;
 		$cursor          = null;
 		$collected       = [];
 
