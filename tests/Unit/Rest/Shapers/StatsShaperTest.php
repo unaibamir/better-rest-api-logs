@@ -20,8 +20,9 @@ namespace BetterRestApiLogs\Tests\Unit\Rest\Shapers;
 use BetterRestApiLogs\Rest\Shapers\StatsShaper;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-06) — StatsShaper class does not exist yet.
-
+/**
+ * Covers the StatsShaper output shape and snapshot freshness handling.
+ */
 final class StatsShaperTest extends TestCase {
 
 	/**

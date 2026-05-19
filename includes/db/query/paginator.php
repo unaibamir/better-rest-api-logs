@@ -26,6 +26,7 @@ final class Paginator {
 		// JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES keep the payload compact;
 		// integers stay as integers in the encoded string so json_decode restores
 		// them exactly on 64-bit PHP without any BIGINT flag.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- the cursor token must be an opaque, deterministic byte string. wp_json_encode is a wrapper that can apply filters and returns false on encoding failure with no diagnostic — both unacceptable here.
 		$json = \json_encode(
 			array(
 				'c' => $micros,
@@ -41,6 +42,7 @@ final class Paginator {
 
 		// base64url: replace standard alphabet chars that are unsafe in URLs,
 		// then strip the trailing padding ('=').
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- base64url is the standard cursor-token format; the value is non-secret pagination state, not obfuscated code.
 		return \rtrim( \strtr( \base64_encode( $json ), '+/', '-_' ), '=' );
 	}
 
@@ -59,7 +61,8 @@ final class Paginator {
 
 		// Restore standard base64 padding before decoding.
 		$padded = $token . \str_repeat( '=', ( 4 - \strlen( $token ) % 4 ) % 4 );
-		$raw    = \base64_decode( \strtr( $padded, '-_', '+/' ), true );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- decodes the base64url cursor token produced by encode(); the strict flag rejects malformed input.
+		$raw = \base64_decode( \strtr( $padded, '-_', '+/' ), true );
 
 		if ( false === $raw ) {
 			throw new \InvalidArgumentException( 'Cursor token is not valid base64url.' );

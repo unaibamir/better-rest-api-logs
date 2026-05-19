@@ -28,11 +28,11 @@ use BetterRestApiLogs\Settings\Registry;
  */
 final class StatsCommand extends \WP_CLI_Command {
 
-	private const CACHE_TTL = 300; // 5 minutes
+	private const CACHE_TTL = 300; // 5 minutes.
 
 	/**
-	 * @param array<int, mixed>    $args
-	 * @param array<string, mixed> $assoc_args
+	 * @param array<int, mixed>    $args       Positional command arguments from WP-CLI.
+	 * @param array<string, mixed> $assoc_args Associative arguments from WP-CLI flags.
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
 		$shaped = $this->get_stats();

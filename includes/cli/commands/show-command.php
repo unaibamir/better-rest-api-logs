@@ -31,8 +31,8 @@ use BetterRestApiLogs\Plugin;
 final class ShowCommand extends \WP_CLI_Command {
 
 	/**
-	 * @param array<int, mixed>    $args
-	 * @param array<string, mixed> $assoc_args
+	 * @param array<int, mixed>    $args       Positional command arguments from WP-CLI.
+	 * @param array<string, mixed> $assoc_args Associative arguments from WP-CLI flags.
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
 		if ( ! isset( $args[0] ) ) {

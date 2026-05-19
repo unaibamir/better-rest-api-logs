@@ -17,8 +17,9 @@ namespace BetterRestApiLogs\Tests\Unit\DB\Query;
 use BetterRestApiLogs\DB\Query\Sort;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
-// EXPECTED FAILURE: Wave 1 (Plan 04-03) — Sort class does not exist yet.
-
+/**
+ * Covers the Sort column/direction whitelist validator.
+ */
 final class SortTest extends TestCase {
 
 	public function test_validate_returns_normalized_pair_for_created_at_asc(): void {

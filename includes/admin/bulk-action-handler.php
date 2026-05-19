@@ -29,6 +29,8 @@ final class BulkActionHandler {
 	 * When wired via the container, Plugin::boot() can inject a shared instance
 	 * using the constructor directly. The test scaffold calls new BulkActionHandler()
 	 * without arguments so the zero-arg form is required.
+	 *
+	 * @param LogRepository|null $repo Injected for testability; defaults to a new instance.
 	 */
 	public function __construct( ?LogRepository $repo = null ) {
 		$this->repo = $repo ?? new LogRepository();
@@ -160,10 +162,11 @@ final class BulkActionHandler {
 	/**
 	 * Send a safe redirect.
 	 *
-	 * wp_safe_redirect refuses off-site URLs (T-04-41). The caller is responsible
-	 * for exiting after this when running under a real HTTP request — the class
-	 * itself does not call exit so that integration tests can assert database
-	 * state after the handler completes (exit would terminate the test process).
+	 * The wp_safe_redirect call refuses off-site URLs (T-04-41). The caller is
+	 * responsible for exiting after this when running under a real HTTP request —
+	 * the class itself does not call exit so that integration tests can assert
+	 * database state after the handler completes (exit would terminate the test
+	 * process).
 	 *
 	 * @param string $url Destination URL.
 	 */

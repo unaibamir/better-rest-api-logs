@@ -65,7 +65,7 @@ final class ListScreen {
 		$repo         = new LogRepository();
 		$filters_view = new FiltersView();
 		$notices      = new Notices();
-		$table        = new ListTable( $repo, $filters_view );
+		$table        = new ListTable( $repo );
 		self::render_with( $table, $filters_view, $notices, $repo );
 	}
 

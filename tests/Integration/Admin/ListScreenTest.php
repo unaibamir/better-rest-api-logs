@@ -24,8 +24,9 @@ use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 2 (Plan 04-07) — ListScreen class does not exist yet.
-
+/**
+ * Covers the admin list screen rendering and filter bar wiring.
+ */
 final class ListScreenTest extends WP_UnitTestCase {
 
 	/** @var int Snapshot of ob_get_level() taken before each test. */

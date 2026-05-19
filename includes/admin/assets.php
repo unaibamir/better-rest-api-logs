@@ -8,9 +8,10 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Conditional asset enqueuer for the admin UI (D-33..D-36, UI-08, T-04-35).
  *
- * maybe_enqueue() is called on the current_screen action and slug-matches
- * $screen->id against our three known screens. Nothing is enqueued on any
- * other admin page, keeping wp_scripts->registered clean for unrelated pages.
+ * The maybe_enqueue() entry point is called on the current_screen action and
+ * slug-matches $screen->id against our three known screens. Nothing is
+ * enqueued on any other admin page, keeping wp_scripts->registered clean for
+ * unrelated pages.
  *
  * The detail_screen_id is set dynamically by Admin::register_menus() from the
  * return value of add_submenu_page() (T-04-36 — do not hard-code the slug).

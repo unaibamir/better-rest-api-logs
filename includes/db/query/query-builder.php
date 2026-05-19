@@ -70,30 +70,30 @@ final class QueryBuilder {
 		$where      = [];
 		$bindings   = [];
 
-		// method
+		// Method.
 		if ( null !== $args->method ) {
 			$where[]    = 'method = %s';
 			$bindings[] = $args->method;
 		}
 
-		// status_code exact match takes precedence over class filter
+		// Status_code exact match takes precedence over class filter.
 		if ( null !== $args->status ) {
 			$where[]    = 'status = %d';
 			$bindings[] = $args->status;
 		} elseif ( null !== $args->status_class ) {
-			// status_class is stored as TINYINT (1..5); map '1xx'..'5xx' to integer
+			// Status_class is stored as TINYINT (1..5); map '1xx'..'5xx' to integer.
 			$class_int  = (int) $args->status_class[0];
 			$where[]    = 'status_class = %d';
 			$bindings[] = $class_int;
 		}
 
-		// route_prefix — exact match leverages the route_prefix index
+		// Route_prefix — exact match leverages the route_prefix index.
 		if ( null !== $args->route_prefix ) {
 			$where[]    = 'route_prefix = %s';
 			$bindings[] = $args->route_prefix;
 		}
 
-		// user_id
+		// User_id.
 		if ( null !== $args->user_id ) {
 			$where[]    = 'user_id = %d';
 			$bindings[] = $args->user_id;
@@ -109,7 +109,7 @@ final class QueryBuilder {
 			}
 		}
 
-		// date range — BETWEEN when both ends provided, single-sided otherwise
+		// Date range — BETWEEN when both ends provided, single-sided otherwise.
 		if ( null !== $args->date_from_micros && null !== $args->date_to_micros ) {
 			$where[]    = 'created_at_micros BETWEEN %d AND %d';
 			$bindings[] = $args->date_from_micros;
@@ -122,14 +122,14 @@ final class QueryBuilder {
 			$bindings[] = $args->date_to_micros;
 		}
 
-		// free_text — esc_like must run before the % wrapping (RESEARCH §6 pitfall)
+		// Free_text — esc_like must run before the % wrapping (RESEARCH §6 pitfall).
 		if ( null !== $args->free_text ) {
 			global $wpdb;
 			$where[]    = 'route LIKE %s';
 			$bindings[] = '%' . $wpdb->esc_like( $args->free_text ) . '%';
 		}
 
-		// cursor — tuple comparison for stable keyset pagination.
+		// Cursor — tuple comparison for stable keyset pagination.
 		// Cursor stores created_at_micros; direction determines walk direction.
 		// Throws \InvalidArgumentException on malformed token — propagated to search().
 		if ( null !== $args->cursor ) {
@@ -143,9 +143,9 @@ final class QueryBuilder {
 		}
 
 		$where_sql = empty( $where ) ? '' : ' WHERE ' . implode( ' AND ', $where );
-		$sort_col  = $args->order_by;  // Sort::validate already gated this
+		$sort_col  = $args->order_by;  // Sort::validate already gated this.
 		$sort_dir  = $args->order_dir;
-		$limit_n1  = $args->limit + 1; // N+1 for has_more detection; caller slices
+		$limit_n1  = $args->limit + 1; // N+1 for has_more detection; caller slices.
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from Database accessor (STOR-04); column list from private constant; sort col + dir from Sort::validate whitelist; user values in $bindings only.
 		$sql = "SELECT {$col_list} FROM {$logs_table}{$where_sql} ORDER BY {$sort_col} {$sort_dir}, id {$sort_dir} LIMIT {$limit_n1}";

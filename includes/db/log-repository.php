@@ -235,7 +235,7 @@ final class LogRepository {
 
 		$prepared = empty( $bindings )
 			? $result['sql']
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $result['sql'] composed by QueryBuilder using Database accessors + Sort::validate whitelist; user values flow through $bindings only.
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $result['sql'] composed by QueryBuilder using Database accessors + Sort::validate whitelist; placeholders embedded by the builder, user values flow through $bindings only.
 			: $wpdb->prepare( $result['sql'], $bindings );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is either the QueryBuilder-composed static SQL (no bindings branch) or $wpdb->prepare output; paginated list query, no caching at this layer.
@@ -422,9 +422,9 @@ final class LogRepository {
 		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
 
 		// D-22: cascade order — bodies first, logs second.
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$bodies_table} WHERE log_id IN ({$placeholders})", ...$ids ) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$logs_table} WHERE id IN ({$placeholders})", ...$ids ) );
 
 		return (int) $wpdb->rows_affected;
