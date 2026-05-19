@@ -99,6 +99,29 @@ final class StatsCommandTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'total_estimate', $decoded );
 	}
 
+	public function test_stats_cli_reports_table_size_bytes_above_zero_on_cache_miss(): void {
+		// Delete any cached snapshot so the next call recomputes live.
+		\delete_option( 'brl_internal' );
+
+		// Insert a row so the table has a non-trivial footprint.
+		$this->insert_entry();
+
+		$command = new StatsCommand();
+
+		\ob_start();
+		$command->run( [], [ 'format' => 'json' ] );
+		$output = \ob_get_clean();
+
+		$decoded = json_decode( $output, true );
+		$this->assertIsArray( $decoded );
+		$this->assertArrayHasKey( 'table_size_bytes', $decoded );
+		$this->assertGreaterThan(
+			0,
+			$decoded['table_size_bytes'],
+			'CLI stats must report the real table size on a cache miss, not hard-code 0.'
+		);
+	}
+
 	public function test_stats_json_output_has_by_status_class_with_five_keys(): void {
 		$this->insert_entry( 'GET', 200 );
 

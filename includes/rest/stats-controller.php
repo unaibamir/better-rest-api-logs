@@ -5,7 +5,6 @@ namespace BetterRestApiLogs\Rest;
 
 defined( 'ABSPATH' ) || exit;
 
-use BetterRestApiLogs\DB\Database;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\Rest\Shapers\StatsShaper;
 use BetterRestApiLogs\Settings\Registry as SettingsRegistry;
@@ -84,7 +83,7 @@ final class StatsController {
 		$by_class      = $this->repo->count_by_status_class();
 		$by_method     = $this->repo->count_by_method();
 		$oldest_newest = $this->repo->oldest_newest();
-		$size_bytes    = $this->table_size_bytes();
+		$size_bytes    = $this->repo->table_size_bytes();
 		$total         = (int) \array_sum( $by_class );
 
 		// Store computed_at as $now - 1 so any subsequent request in the same
@@ -109,32 +108,5 @@ final class StatsController {
 		}
 
 		return $snapshot;
-	}
-
-	/**
-	 * Query information_schema for the logs table storage footprint in bytes.
-	 *
-	 * Requires SELECT privileges on information_schema.TABLES. Returns 0 when
-	 * the privilege is absent or the query returns null (e.g. some shared hosts).
-	 * A missing size value does not fail the stats endpoint (T-04-26 / Pitfall 6).
-	 *
-	 * @return int
-	 */
-	private function table_size_bytes(): int {
-		global $wpdb;
-
-		$logs_table = Database::logs_table();
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table name from accessor; schema and table name flow through prepare.
-		$row = $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT (DATA_LENGTH + INDEX_LENGTH) AS bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
-				\DB_NAME,
-				$logs_table
-			),
-			ARRAY_A
-		);
-
-		return null === $row ? 0 : (int) $row['bytes'];
 	}
 }
