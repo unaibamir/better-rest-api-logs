@@ -115,6 +115,36 @@ final class DeleteCommandTest extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_delete_command_denial_message_quotes_filtered_capability(): void {
+		\wp_set_current_user( $this->subscriber_id );
+
+		$filter = static function (): string {
+			return 'edit_logs_custom_cap';
+		};
+		\add_filter( 'brl_admin_required_capability', $filter );
+
+		$log_id  = $this->insert_entry();
+		$command = new DeleteCommand();
+
+		try {
+			$command->run( [ $log_id ], [ 'yes' => true ] );
+			$this->fail( 'DeleteCommand must error for subscriber.' );
+		} catch ( \Exception $e ) {
+			$this->assertStringContainsString(
+				'edit_logs_custom_cap',
+				$e->getMessage(),
+				'Error message must quote the filtered capability, not the hard-coded manage_options.'
+			);
+			$this->assertStringNotContainsString(
+				'manage_options',
+				$e->getMessage(),
+				'Hard-coded manage_options must not leak into the message when the cap is filtered.'
+			);
+		} finally {
+			\remove_filter( 'brl_admin_required_capability', $filter );
+		}
+	}
+
 	public function test_delete_command_removes_row_for_admin(): void {
 		global $wpdb;
 		\wp_set_current_user( $this->admin_id );
