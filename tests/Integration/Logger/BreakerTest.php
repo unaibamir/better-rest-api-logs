@@ -239,6 +239,12 @@ final class BreakerTest extends WP_UnitTestCase {
 		// Rename options table to simulate outage. Restore in finally.
 		$backup = $wpdb->options . '_bkp_' . time();
 		$wpdb->query( "RENAME TABLE {$wpdb->options} TO {$backup}" );
+
+		// The guard() calls below intentionally hit a missing options table; the
+		// wpdb error printout is the expected condition under test, not noise.
+		// suppress_errors() is what gates both error_log() and the HTML print —
+		// hide_errors() only blocks the HTML print, which still leaves noise in CI.
+		$prev_suppress = $wpdb->suppress_errors( true );
 		try {
 			$breaker = new Breaker();
 			$failing = static function () {
@@ -251,6 +257,7 @@ final class BreakerTest extends WP_UnitTestCase {
 			$this->assertTrue( true, 'No exception escaped the guard during options-table outage.' );
 		} finally {
 			$wpdb->query( "RENAME TABLE {$backup} TO {$wpdb->options}" );
+			$wpdb->suppress_errors( $prev_suppress );
 		}
 	}
 }
