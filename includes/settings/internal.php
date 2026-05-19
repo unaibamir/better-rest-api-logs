@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
  *  - circuit_consecutive_failures  (Phase 3 — Logger circuit breaker)
  *  - circuit_window_started_at     (Phase 3 — Logger circuit breaker)
  *  - schema_broken                 (Phase 2 — set by Schema::set_broken_flag)
+ *  - stats_snapshot                (Phase 4 — cached aggregate counts for the stats endpoint)
  *  - purge_state                   (Phase 5 — last-run timestamp, row count)
  *  - migration                     (Phase 6 — nested 7-key MIG-07 marker array)
  *
@@ -30,7 +31,7 @@ final class Internal {
 	 * Reserved-key shape with safe initial values.
 	 *
 	 * Scalars where possible (cheap reads); nested arrays only where the
-	 * value genuinely needs sub-structure (purge_state, migration).
+	 * value genuinely needs sub-structure (stats_snapshot, purge_state, migration).
 	 *
 	 * @return array<string,mixed>
 	 */
@@ -40,6 +41,10 @@ final class Internal {
 			'circuit_consecutive_failures' => 0,
 			'circuit_window_started_at'    => 0,
 			'schema_broken'                => false,
+			// Cached aggregate counts written by the stats endpoint (StatsController).
+			// Shape: array{computed_at:int, by_status_class:array, by_method:array,
+			//        oldest:string, newest:string, table_size_bytes:int}
+			'stats_snapshot'               => [],
 			'purge_state'                  => [],
 			'migration'                    => [],
 		];
