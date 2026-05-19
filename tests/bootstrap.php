@@ -100,5 +100,11 @@ tests_add_filter(
 	}
 );
 
-// 6. Boot the WP test suite.
+// 6. CLI command classes extend \WP_CLI_Command, which ships with the WP-CLI
+// binary at runtime and is absent from WP core, wp-phpunit, and the WordPress
+// stubs package. Pull in the same stub file PHPStan uses so PHPUnit can
+// autoload the command subclasses without fataling on the parent lookup.
+require_once dirname( __DIR__ ) . '/stubs/wp-cli.stub.php';
+
+// 7. Boot the WP test suite.
 require $brl_wp_tests_dir . '/includes/bootstrap.php';
