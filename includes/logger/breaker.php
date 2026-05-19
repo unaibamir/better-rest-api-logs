@@ -47,6 +47,21 @@ final class Breaker {
 	private static ?int $window_started_at = null;
 
 	/**
+	 * Whether this PHP request has already seeded the static counters from the
+	 * brl_internal mirror. PHP-FPM does not preserve static properties across
+	 * requests — each request starts with $consecutive_failures = 0. Without
+	 * this hydration step the breaker would reset to one on every fresh request
+	 * and never accumulate enough failures to arm under real traffic.
+	 *
+	 * Hydration runs at most once per request, on the first call to on_failure().
+	 * reset_state_for_tests() clears it so test cases that wipe brl_internal
+	 * also re-hydrate on the next failure.
+	 *
+	 * @var bool
+	 */
+	private static bool $hydrated_from_persistence = false;
+
+	/**
 	 * No dependencies needed — get_internal / set_internal on Registry are
 	 * static and call directly into the WP options layer.
 	 */
@@ -186,8 +201,39 @@ final class Breaker {
 	 *           if persistence isolation is also required.
 	 */
 	public static function reset_state_for_tests(): void {
-		self::$consecutive_failures = 0;
-		self::$window_started_at    = null;
+		self::$consecutive_failures      = 0;
+		self::$window_started_at         = null;
+		self::$hydrated_from_persistence = false;
+	}
+
+	/**
+	 * Seed in-memory counters from the brl_internal mirror on the first failure
+	 * of this PHP request. PHP-FPM clears static properties between requests,
+	 * so the counter would otherwise reset to one on every request and the
+	 * breaker would never arm. Called from on_failure() before any increment.
+	 */
+	private function hydrate_from_persistence(): void {
+		if ( self::$hydrated_from_persistence ) {
+			return;
+		}
+		self::$hydrated_from_persistence = true;
+
+		try {
+			$persisted_failures = (int) SettingsRegistry::get_internal( 'circuit_consecutive_failures' );
+			$persisted_window   = (int) SettingsRegistry::get_internal( 'circuit_window_started_at' );
+		} catch ( \Throwable $e ) {
+			// Persistence layer is broken (the very thing the breaker exists to handle).
+			// Continue with the default in-memory state — eventual consistency, not correctness blocker.
+			unset( $e );
+			return;
+		}
+
+		// Only adopt persisted state when the window is still fresh. A stale window
+		// from a worker minutes ago must not arm the breaker spuriously.
+		if ( $persisted_failures > 0 && $persisted_window > 0 && ( \time() - $persisted_window ) <= 60 ) {
+			self::$consecutive_failures = $persisted_failures;
+			self::$window_started_at    = $persisted_window;
+		}
 	}
 
 	/**
@@ -195,6 +241,11 @@ final class Breaker {
 	 * the 5-failures-in-60s threshold is crossed (D-20).
 	 */
 	private function on_failure(): void {
+		// PHP-FPM zeroes the static counters at request start. Read the persisted
+		// mirror before deciding whether this failure opens a new window or
+		// extends an in-progress one (resolves SC #4 cross-request arming bug).
+		$this->hydrate_from_persistence();
+
 		$now = \time();
 
 		if ( null === self::$window_started_at || ( $now - self::$window_started_at ) > 60 ) {
