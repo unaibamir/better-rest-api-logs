@@ -271,6 +271,17 @@ final class Capture {
 				break;
 			}
 		}
+
+		// WP_REST_Server adds the final `Content-Type: application/json` header in
+		// rest_send_headers(), which fires AFTER rest_post_dispatch. At priority
+		// 9999 on rest_post_dispatch the Content-Type is usually empty, which
+		// then trips the content-type allowlist in Flusher::redact_body and the
+		// body gets dropped. Default to application/json for WP_REST_Response —
+		// every core handler returns JSON; a custom handler returning something
+		// else would have set its own Content-Type already.
+		if ( '' === $content_type && $result instanceof \WP_REST_Response ) {
+			$content_type = 'application/json';
+		}
 		$s->content_type = $content_type;
 
 		$s->body_bytes_original = null !== $s->body ? \strlen( $s->body ) : 0;
