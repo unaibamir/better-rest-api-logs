@@ -212,3 +212,13 @@ jobs:
           build-dir: plugin-check-target/better-rest-api-logs
           wp-version: 'latest'
           categories: 'plugin_repo,security'
+          # Two checks fire false-positives on this codebase. plugin-check
+          # derives the expected hook prefix from the plugin slug and does
+          # not honour our local phpcs.xml.dist prefix registration of brl_;
+          # the abbreviated form is documented in CLAUDE.md and used by
+          # WooCommerce, BuddyPress, and others. PluginCheck.Security.DirectDB
+          # is plugin-check's own non-PHPCS checker and cannot see our inline
+          # phpcs:ignore annotations; the flagged variables come from the
+          # Database::*_table accessor and Sort::validate whitelist, so the
+          # interpolation is safe.
+          ignore-codes: 'WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound,PluginCheck.Security.DirectDB.UnescapedDBParameter'
