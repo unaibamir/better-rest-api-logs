@@ -238,9 +238,17 @@ final class Plugin {
 		);
 		$this->container->bind(
 			ListTable::class,
-			static fn ( Container $c ) => new ListTable(
-				$c->get( LogRepository::class )
-			)
+			static function ( Container $c ): ListTable {
+				// WP_List_Table is only loaded by wp-admin/includes/admin.php on
+				// admin requests. Boot can run from the front-end or REST while
+				// resolving the admin chain (Admin -> ListScreen -> ListTable),
+				// so pull the parent class in here to avoid a fatal during class
+				// autoload of ListTable on non-admin requests.
+				if ( ! \class_exists( '\WP_List_Table' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
+				}
+				return new ListTable( $c->get( LogRepository::class ) );
+			}
 		);
 		$this->container->bind(
 			ListScreen::class,
