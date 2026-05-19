@@ -5,6 +5,13 @@ namespace BetterRestApiLogs;
 
 defined( 'ABSPATH' ) || exit;
 
+use BetterRestApiLogs\Admin;
+use BetterRestApiLogs\Admin\Assets;
+use BetterRestApiLogs\Admin\DetailScreen;
+use BetterRestApiLogs\Admin\FiltersView;
+use BetterRestApiLogs\Admin\ListScreen;
+use BetterRestApiLogs\Admin\ListTable;
+use BetterRestApiLogs\Admin\Notices;
 use BetterRestApiLogs\Capture;
 use BetterRestApiLogs\Capture\Compressor;
 use BetterRestApiLogs\Capture\Filter;
@@ -18,6 +25,11 @@ use BetterRestApiLogs\Logger;
 use BetterRestApiLogs\Logger\Breaker;
 use BetterRestApiLogs\Logger\Flusher;
 use BetterRestApiLogs\Logger\Queue;
+use BetterRestApiLogs\Rest;
+use BetterRestApiLogs\Rest\ListController;
+use BetterRestApiLogs\Rest\Routes;
+use BetterRestApiLogs\Rest\SingleController;
+use BetterRestApiLogs\Rest\StatsController;
 use BetterRestApiLogs\Settings\Registry as SettingsRegistry;
 use BetterRestApiLogs\Settings\Repository as SettingsRepository;
 use BetterRestApiLogs\Support\Clock;
@@ -196,6 +208,107 @@ final class Plugin {
 		// Breaker admin-surface hooks (T-03-41: these pages are authenticated-only).
 		\add_action( 'admin_notices', [ $breaker, 'maybe_render_armed_notice' ] );
 		\add_filter( 'site_status_tests', [ $breaker, 'register_site_health_test' ] );
+
+		// -----------------------------------------------------------------------
+		// Phase 4 — Admin UI (D-55).
+		//
+		// Container bindings for the admin stack. Registered unconditionally so
+		// the current_screen hook fires correctly during integration tests. WP
+		// core's add_management_page / add_submenu_page handle their own
+		// is_admin() guards at call time.
+		// -----------------------------------------------------------------------
+		$this->container->bind(
+			Assets::class,
+			static fn () => new Assets()
+		);
+		$this->container->bind(
+			Notices::class,
+			static fn () => new Notices()
+		);
+		$this->container->bind(
+			FiltersView::class,
+			static fn () => new FiltersView()
+		);
+		$this->container->bind(
+			ListTable::class,
+			static fn ( Container $c ) => new ListTable(
+				$c->get( LogRepository::class ),
+				$c->get( FiltersView::class )
+			)
+		);
+		$this->container->bind(
+			ListScreen::class,
+			static fn ( Container $c ) => new ListScreen(
+				$c->get( ListTable::class ),
+				$c->get( FiltersView::class ),
+				$c->get( Notices::class ),
+				$c->get( LogRepository::class )
+			)
+		);
+		$this->container->bind(
+			DetailScreen::class,
+			static fn ( Container $c ) => new DetailScreen(
+				$c->get( LogRepository::class )
+			)
+		);
+		$this->container->bind(
+			Admin::class,
+			static fn ( Container $c ) => new Admin(
+				$c->get( ListScreen::class ),
+				$c->get( DetailScreen::class ),
+				$c->get( Assets::class )
+			)
+		);
+
+		$admin  = $this->container->get( Admin::class );
+		$assets = $this->container->get( Assets::class );
+
+		\add_action( 'admin_menu', [ $admin, 'register_menus' ], 10 );
+		\add_action( 'current_screen', [ $assets, 'maybe_enqueue' ], 10 );
+		\add_filter( 'admin_body_class', [ $assets, 'add_body_class' ], 10 );
+
+		// -----------------------------------------------------------------------
+		// Phase 4 — REST surface.
+		//
+		// Three controllers + Routes registrar. LogRepository and
+		// SettingsRegistry are already bound above.
+		// -----------------------------------------------------------------------
+		$this->container->bind(
+			ListController::class,
+			static fn ( Container $c ) => new ListController(
+				$c->get( LogRepository::class )
+			)
+		);
+		$this->container->bind(
+			SingleController::class,
+			static fn ( Container $c ) => new SingleController(
+				$c->get( LogRepository::class )
+			)
+		);
+		$this->container->bind(
+			StatsController::class,
+			static fn ( Container $c ) => new StatsController(
+				$c->get( LogRepository::class ),
+				$c->get( SettingsRegistry::class )
+			)
+		);
+		$this->container->bind(
+			Routes::class,
+			static fn ( Container $c ) => new Routes(
+				$c->get( ListController::class ),
+				$c->get( SingleController::class ),
+				$c->get( StatsController::class )
+			)
+		);
+		$this->container->bind(
+			Rest::class,
+			static fn ( Container $c ) => new Rest(
+				$c->get( Routes::class )
+			)
+		);
+
+		$rest = $this->container->get( Rest::class );
+		\add_action( 'rest_api_init', [ $rest, 'register_routes' ], 10 );
 	}
 
 	public function container(): Container {
