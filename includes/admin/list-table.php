@@ -124,9 +124,9 @@ final class ListTable extends \WP_List_Table {
 
 		$args = \apply_filters( 'brl_query_args', $args, 'admin' );
 
-		$result           = $this->repo->search( $args );
-		$this->items      = $result['rows'];
-		$this->has_more   = $result['has_more'];
+		$result            = $this->repo->search( $args );
+		$this->items       = $result['rows'];
+		$this->has_more    = $result['has_more'];
 		$this->next_cursor = $result['next_cursor'];
 
 		$this->_column_headers = [

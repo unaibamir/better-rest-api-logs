@@ -69,6 +69,7 @@ jobs:
       - run: composer phpstan
       - run: composer check:table-naming
       - run: composer check:settings-isolation
+      - run: composer check:asset-enqueue
 
   test:
     name: PHPUnit (PHP 8.3 × latest WP)

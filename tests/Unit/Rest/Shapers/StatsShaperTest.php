@@ -33,7 +33,10 @@ final class StatsShaperTest extends TestCase {
 		return [
 			'total'            => 12345,
 			'by_status_class'  => [ '2xx' => 9876 ],
-			'by_method'        => [ 'GET' => 8000, 'POST' => 4345 ],
+			'by_method'        => [
+				'GET'  => 8000,
+				'POST' => 4345,
+			],
 			'oldest'           => '2026-05-12T00:01:23Z',
 			'newest'           => '2026-05-19T11:55:00Z',
 			'table_size_bytes' => 4567890,

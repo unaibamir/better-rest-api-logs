@@ -150,6 +150,9 @@ final class QueryBuilder {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from Database accessor (STOR-04); column list from private constant; sort col + dir from Sort::validate whitelist; user values in $bindings only.
 		$sql = "SELECT {$col_list} FROM {$logs_table}{$where_sql} ORDER BY {$sort_col} {$sort_dir}, id {$sort_dir} LIMIT {$limit_n1}";
 
-		return [ 'sql' => $sql, 'bindings' => $bindings ];
+		return [
+			'sql'      => $sql,
+			'bindings' => $bindings,
+		];
 	}
 }

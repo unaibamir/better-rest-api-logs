@@ -52,7 +52,7 @@ final class ListScreen {
 	 * @return void
 	 */
 	public function render_page(): void {
-		static::render_with( $this->table, $this->filters_view, $this->notices, $this->repo );
+		self::render_with( $this->table, $this->filters_view, $this->notices, $this->repo );
 	}
 
 	/**
@@ -66,7 +66,7 @@ final class ListScreen {
 		$filters_view = new FiltersView();
 		$notices      = new Notices();
 		$table        = new ListTable( $repo, $filters_view );
-		static::render_with( $table, $filters_view, $notices, $repo );
+		self::render_with( $table, $filters_view, $notices, $repo );
 	}
 
 	/**

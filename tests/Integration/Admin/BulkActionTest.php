@@ -76,11 +76,11 @@ final class BulkActionTest extends WP_UnitTestCase {
 		$res->status_class = 2;
 		$res->content_type = 'application/json';
 
-		$entry                  = Entry::from_snapshots( $req, $res, [] );
-		$packed                 = \inet_pton( '::ffff:127.0.0.1' );
-		$entry->ip_raw_remote   = false !== $packed ? $packed : null;
-		$entry->bodies_spilled  = $with_spill;
-		$entry->request_body    = $with_spill ? null : '{"test":true}';
+		$entry                 = Entry::from_snapshots( $req, $res, [] );
+		$packed                = \inet_pton( '::ffff:127.0.0.1' );
+		$entry->ip_raw_remote  = false !== $packed ? $packed : null;
+		$entry->bodies_spilled = $with_spill;
+		$entry->request_body   = $with_spill ? null : '{"test":true}';
 
 		$repo = new LogRepository();
 		$ids  = $repo->insert_batch( [ $entry ] );
@@ -97,9 +97,9 @@ final class BulkActionTest extends WP_UnitTestCase {
 		Plugin::instance()->boot();
 		\wp_set_current_user( $this->subscriber_id );
 
-		$log_id    = $this->insert_entry();
-		$nonce     = \wp_create_nonce( 'brl_bulk' );
-		$_POST     = [
+		$log_id = $this->insert_entry();
+		$nonce  = \wp_create_nonce( 'brl_bulk' );
+		$_POST  = [
 			'action'   => 'delete',
 			'log_ids'  => [ $log_id ],
 			'_wpnonce' => $nonce,

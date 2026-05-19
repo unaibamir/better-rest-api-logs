@@ -84,11 +84,11 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$res->status_class = (int) \floor( $status / 100 );
 		$res->content_type = 'application/json';
 
-		$entry                   = Entry::from_snapshots( $req, $res, [] );
+		$entry                    = Entry::from_snapshots( $req, $res, [] );
 		$entry->created_at_micros = $micros ?: (int) ( microtime( true ) * 1_000_000 );
-		$entry->bodies_spilled   = $spilled;
-		$packed                  = \inet_pton( '::ffff:127.0.0.1' );
-		$entry->ip_raw_remote    = false !== $packed ? $packed : null;
+		$entry->bodies_spilled    = $spilled;
+		$packed                   = \inet_pton( '::ffff:127.0.0.1' );
+		$entry->ip_raw_remote     = false !== $packed ? $packed : null;
 
 		return $entry;
 	}
@@ -165,10 +165,12 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 
 	public function test_search_filter_by_method(): void {
 		$now = (int) ( microtime( true ) * 1_000_000 );
-		$this->repo->insert_batch( [
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
-			$this->make_entry( '/wp/v2/posts', 'POST', 201, $now - 1000 ),
-		] );
+		$this->repo->insert_batch(
+			[
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+				$this->make_entry( '/wp/v2/posts', 'POST', 201, $now - 1000 ),
+			]
+		);
 
 		$args   = QueryArgs::from_array( [ 'method' => 'POST' ] );
 		$result = $this->repo->search( $args );
@@ -178,11 +180,13 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 
 	public function test_search_filter_by_status_class(): void {
 		$now = (int) ( microtime( true ) * 1_000_000 );
-		$this->repo->insert_batch( [
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 404, $now - 1000 ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 500, $now - 2000 ),
-		] );
+		$this->repo->insert_batch(
+			[
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 404, $now - 1000 ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 500, $now - 2000 ),
+			]
+		);
 
 		$args   = QueryArgs::from_array( [ 'status_class' => '4xx' ] );
 		$result = $this->repo->search( $args );
@@ -206,26 +210,46 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$this->assertNotNull( $page1['next_cursor'] );
 
 		// Page 2: cursor from page 1.
-		$page2 = $this->repo->search( QueryArgs::from_array( [
-			'limit'  => 10,
-			'cursor' => $page1['next_cursor'],
-		] ) );
+		$page2 = $this->repo->search(
+			QueryArgs::from_array(
+				[
+					'limit'  => 10,
+					'cursor' => $page1['next_cursor'],
+				]
+			)
+		);
 		$this->assertCount( 10, $page2['rows'] );
 		$this->assertTrue( $page2['has_more'] );
 
 		// Page 3: cursor from page 2.
-		$page3 = $this->repo->search( QueryArgs::from_array( [
-			'limit'  => 10,
-			'cursor' => $page2['next_cursor'],
-		] ) );
+		$page3 = $this->repo->search(
+			QueryArgs::from_array(
+				[
+					'limit'  => 10,
+					'cursor' => $page2['next_cursor'],
+				]
+			)
+		);
 		$this->assertCount( 10, $page3['rows'] );
 		$this->assertFalse( $page3['has_more'] );
 
 		// Verify no row is skipped or duplicated across all three pages.
 		$all_ids = array_merge(
-			array_map( static function ( Entry $e ): int { return $e->id; }, $page1['rows'] ),
-			array_map( static function ( Entry $e ): int { return $e->id; }, $page2['rows'] ),
-			array_map( static function ( Entry $e ): int { return $e->id; }, $page3['rows'] )
+			array_map(
+				static function ( Entry $e ): int {
+					return $e->id; },
+				$page1['rows']
+			),
+			array_map(
+				static function ( Entry $e ): int {
+					return $e->id; },
+				$page2['rows']
+			),
+			array_map(
+				static function ( Entry $e ): int {
+					return $e->id; },
+				$page3['rows']
+			)
 		);
 		$this->assertSame( 30, count( $all_ids ) );
 		$this->assertSame( 30, count( array_unique( $all_ids ) ), 'Cursor walk produced duplicate or skipped rows.' );
@@ -239,20 +263,28 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		}
 		$this->repo->insert_batch( $entries );
 
-		$page1 = $this->repo->search( QueryArgs::from_array( [
-			'limit'     => 3,
-			'order_by'  => 'created_at',
-			'order_dir' => 'ASC',
-		] ) );
+		$page1 = $this->repo->search(
+			QueryArgs::from_array(
+				[
+					'limit'     => 3,
+					'order_by'  => 'created_at',
+					'order_dir' => 'ASC',
+				]
+			)
+		);
 		$this->assertCount( 3, $page1['rows'] );
 		$this->assertTrue( $page1['has_more'] );
 
-		$page2 = $this->repo->search( QueryArgs::from_array( [
-			'limit'     => 3,
-			'order_by'  => 'created_at',
-			'order_dir' => 'ASC',
-			'cursor'    => $page1['next_cursor'],
-		] ) );
+		$page2 = $this->repo->search(
+			QueryArgs::from_array(
+				[
+					'limit'     => 3,
+					'order_by'  => 'created_at',
+					'order_dir' => 'ASC',
+					'cursor'    => $page1['next_cursor'],
+				]
+			)
+		);
 		$this->assertCount( 2, $page2['rows'] );
 		$this->assertFalse( $page2['has_more'] );
 
@@ -276,12 +308,14 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 
 	public function test_count_by_status_class_sums_correctly(): void {
 		$now = (int) ( microtime( true ) * 1_000_000 );
-		$this->repo->insert_batch( [
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 201, $now - 1000 ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 404, $now - 2000 ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 500, $now - 3000 ),
-		] );
+		$this->repo->insert_batch(
+			[
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 201, $now - 1000 ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 404, $now - 2000 ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 500, $now - 3000 ),
+			]
+		);
 
 		$result = $this->repo->count_by_status_class();
 		$this->assertSame( 2, $result['2xx'] );
@@ -296,11 +330,13 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 
 	public function test_count_by_method_returns_present_methods_only(): void {
 		$now = (int) ( microtime( true ) * 1_000_000 );
-		$this->repo->insert_batch( [
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000 ),
-			$this->make_entry( '/wp/v2/posts', 'POST', 201, $now - 2000 ),
-		] );
+		$this->repo->insert_batch(
+			[
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000 ),
+				$this->make_entry( '/wp/v2/posts', 'POST', 201, $now - 2000 ),
+			]
+		);
 
 		$result = $this->repo->count_by_method();
 		$this->assertSame( 2, $result['GET'] );
@@ -326,10 +362,12 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 	public function test_oldest_newest_returns_iso8601_strings(): void {
 		$older_micros = 1716109800000000; // 2024-05-19 11:30:00 UTC
 		$newer_micros = 1716196200000000; // 2024-05-20 11:30:00 UTC
-		$this->repo->insert_batch( [
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $older_micros ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $newer_micros ),
-		] );
+		$this->repo->insert_batch(
+			[
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $older_micros ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $newer_micros ),
+			]
+		);
 
 		$result = $this->repo->oldest_newest();
 		$this->assertNotNull( $result['oldest'] );
@@ -350,7 +388,7 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 		$entry = $this->make_entry();
 		$ids   = $this->repo->insert_batch( [ $entry ] );
 
-		$ok    = $this->repo->delete( $ids[0] );
+		$ok = $this->repo->delete( $ids[0] );
 		$this->assertTrue( $ok );
 
 		$count = (int) $wpdb->get_var(
@@ -385,11 +423,13 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 	public function test_delete_many_removes_rows_and_returns_count(): void {
 		global $wpdb;
 		$now = (int) ( microtime( true ) * 1_000_000 );
-		$ids = $this->repo->insert_batch( [
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000 ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 2000 ),
-		] );
+		$ids = $this->repo->insert_batch(
+			[
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000 ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 2000 ),
+			]
+		);
 
 		$affected = $this->repo->delete_many( [ $ids[0], $ids[1] ] );
 		$this->assertSame( 2, $affected );
@@ -410,11 +450,13 @@ final class LogRepositoryReadTest extends WP_UnitTestCase {
 
 	public function test_delete_many_cascades_spilled_bodies(): void {
 		global $wpdb;
-		$now  = (int) ( microtime( true ) * 1_000_000 );
-		$ids  = $this->repo->insert_batch( [
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now, true ),
-			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000, true ),
-		] );
+		$now = (int) ( microtime( true ) * 1_000_000 );
+		$ids = $this->repo->insert_batch(
+			[
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now, true ),
+				$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000, true ),
+			]
+		);
 		$this->body_repo->insert_spilled( $ids[0], '{"a":1}', null );
 		$this->body_repo->insert_spilled( $ids[1], '{"b":2}', null );
 

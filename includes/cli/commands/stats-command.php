@@ -44,16 +44,46 @@ final class StatsCommand extends \WP_CLI_Command {
 		}
 
 		$rows = [
-			[ 'Metric' => 'Total rows (estimate)',  'Value' => (string) $shaped['total_estimate'] ],
-			[ 'Metric' => '1xx',                    'Value' => (string) $shaped['by_status_class']['1xx'] ],
-			[ 'Metric' => '2xx',                    'Value' => (string) $shaped['by_status_class']['2xx'] ],
-			[ 'Metric' => '3xx',                    'Value' => (string) $shaped['by_status_class']['3xx'] ],
-			[ 'Metric' => '4xx',                    'Value' => (string) $shaped['by_status_class']['4xx'] ],
-			[ 'Metric' => '5xx',                    'Value' => (string) $shaped['by_status_class']['5xx'] ],
-			[ 'Metric' => 'Oldest',                 'Value' => (string) $shaped['oldest'] ],
-			[ 'Metric' => 'Newest',                 'Value' => (string) $shaped['newest'] ],
-			[ 'Metric' => 'Table size (bytes)',      'Value' => (string) $shaped['table_size_bytes'] ],
-			[ 'Metric' => 'Cache age (sec)',         'Value' => (string) $shaped['cache_age_seconds'] ],
+			[
+				'Metric' => 'Total rows (estimate)',
+				'Value'  => (string) $shaped['total_estimate'],
+			],
+			[
+				'Metric' => '1xx',
+				'Value'  => (string) $shaped['by_status_class']['1xx'],
+			],
+			[
+				'Metric' => '2xx',
+				'Value'  => (string) $shaped['by_status_class']['2xx'],
+			],
+			[
+				'Metric' => '3xx',
+				'Value'  => (string) $shaped['by_status_class']['3xx'],
+			],
+			[
+				'Metric' => '4xx',
+				'Value'  => (string) $shaped['by_status_class']['4xx'],
+			],
+			[
+				'Metric' => '5xx',
+				'Value'  => (string) $shaped['by_status_class']['5xx'],
+			],
+			[
+				'Metric' => 'Oldest',
+				'Value'  => (string) $shaped['oldest'],
+			],
+			[
+				'Metric' => 'Newest',
+				'Value'  => (string) $shaped['newest'],
+			],
+			[
+				'Metric' => 'Table size (bytes)',
+				'Value'  => (string) $shaped['table_size_bytes'],
+			],
+			[
+				'Metric' => 'Cache age (sec)',
+				'Value'  => (string) $shaped['cache_age_seconds'],
+			],
 		];
 
 		\WP_CLI\Utils\format_items( $format, $rows, [ 'Metric', 'Value' ] );
@@ -77,11 +107,11 @@ final class StatsCommand extends \WP_CLI_Command {
 		}
 
 		// Cache miss or stale — recompute live.
-		$repo    = Plugin::instance()->container()->get( LogRepository::class );
-		$by_class = $repo->count_by_status_class();
+		$repo      = Plugin::instance()->container()->get( LogRepository::class );
+		$by_class  = $repo->count_by_status_class();
 		$by_method = $repo->count_by_method();
-		$times    = $repo->oldest_newest();
-		$total    = (int) array_sum( $by_class );
+		$times     = $repo->oldest_newest();
+		$total     = (int) array_sum( $by_class );
 
 		$fresh = [
 			'total'            => $total,

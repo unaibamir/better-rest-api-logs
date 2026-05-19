@@ -25,7 +25,7 @@ use BetterRestApiLogs\Settings\Registry as SettingsRegistry;
  */
 final class StatsController {
 
-	private const TTL_SECONDS   = 300;
+	private const TTL_SECONDS    = 300;
 	private const LOCK_TRANSIENT = 'brl_stats_lock';
 	private const LOCK_TTL       = 30;
 

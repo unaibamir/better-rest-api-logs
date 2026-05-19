@@ -66,10 +66,10 @@ final class DetailScreenTest extends WP_UnitTestCase {
 		$res->status_class = 2;
 		$res->content_type = 'application/json';
 
-		$entry               = Entry::from_snapshots( $req, $res, [] );
-		$packed              = \inet_pton( '::ffff:127.0.0.1' );
+		$entry                = Entry::from_snapshots( $req, $res, [] );
+		$packed               = \inet_pton( '::ffff:127.0.0.1' );
 		$entry->ip_raw_remote = false !== $packed ? $packed : null;
-		$entry->request_body = $body;
+		$entry->request_body  = $body;
 
 		$repo = new LogRepository();
 		$ids  = $repo->insert_batch( [ $entry ] );

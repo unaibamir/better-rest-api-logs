@@ -40,7 +40,7 @@ final class DetailScreen {
 	 * @return void
 	 */
 	public function render_page(): void {
-		static::render_with( $this->repo );
+		self::render_with( $this->repo );
 	}
 
 	/**
@@ -49,7 +49,7 @@ final class DetailScreen {
 	 * @return void
 	 */
 	public static function render(): void {
-		static::render_with( new LogRepository() );
+		self::render_with( new LogRepository() );
 	}
 
 	/**
@@ -90,8 +90,8 @@ final class DetailScreen {
 			\esc_html__( '\u{2190} Back to logs', 'better-rest-api-logs' )
 		);
 
-		static::render_panel( 'request', $entry );
-		static::render_panel( 'response', $entry );
+		self::render_panel( 'request', $entry );
+		self::render_panel( 'response', $entry );
 
 		echo '</div>';
 	}
@@ -166,11 +166,11 @@ final class DetailScreen {
 		// Body code block — esc_html BEFORE injection (T-04-30).
 		// highlight.js reads textContent, so the browser-decoded string is what
 		// hljs tokenises. We never set innerHTML from raw bytes.
-		$body     = $is_request
+		$body    = $is_request
 			? (string) ( $entry->request_body ?? '' )
 			: (string) ( $entry->response_body ?? '' );
-		$id_attr  = $is_request ? 'brl-req-body' : 'brl-resp-body';
-		$lang     = static::guess_language( $headers, $is_request ? $entry->request_content_type : $entry->response_content_type );
+		$id_attr = $is_request ? 'brl-req-body' : 'brl-resp-body';
+		$lang    = self::guess_language( $headers, $is_request ? $entry->request_content_type : $entry->response_content_type );
 
 		\printf(
 			'<h3>%s <button type="button" class="button button-small" data-clipboard-target="#%s">%s</button></h3>',
