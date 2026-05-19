@@ -1,4 +1,4 @@
-name: better-rest-api-logs
+name: better-rest-api-logs-gsd
 type: wordpress
 docroot: wp
 php_version: "8.3"
@@ -12,8 +12,8 @@ database:
 use_dns_when_possible: true
 composer_version: "2"
 web_environment:
-    - WP_DEBUG=true
     - WP_DEBUG_LOG=true
+    - WP_DEBUG=true
 nodejs_version: "20"
 corepack_enable: false
 
