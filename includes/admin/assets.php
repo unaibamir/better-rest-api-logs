@@ -56,10 +56,16 @@ final class Assets {
 	 * Every wp_enqueue_* call in this method body is guarded by a $screen->id
 	 * comparison — required by bin/check-asset-enqueue.sh.
 	 *
-	 * @param  \WP_Screen $screen Current admin screen.
+	 * @param  \WP_Screen|null $screen Current admin screen. WP can fire current_screen
+	 *                                 before a screen object exists (e.g. early ajax,
+	 *                                 some test setups); we have nothing to enqueue then.
 	 * @return void
 	 */
-	public function maybe_enqueue( \WP_Screen $screen ): void {
+	public function maybe_enqueue( ?\WP_Screen $screen = null ): void {
+		if ( null === $screen ) {
+			return;
+		}
+
 		if ( self::SCREEN_LIST === $screen->id ) {
 			\wp_enqueue_style(
 				'brl-admin-list',
