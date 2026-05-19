@@ -271,6 +271,63 @@ final class LogRepository {
 	}
 
 	/**
+	 * Count rows matching the QueryArgs filter set.
+	 *
+	 * Used by the admin list page's WP_List_Table pagination, which needs an
+	 * absolute total to compute page numbers. REST and CLI keep using the
+	 * cursor-paginated search() so they never pay this scan cost.
+	 *
+	 * @param  QueryArgs $args Validated filter set.
+	 * @return int             Total matching rows.
+	 */
+	public function count( QueryArgs $args ): int {
+		global $wpdb;
+
+		$result   = $this->query_builder->build_count( $args );
+		$bindings = $result['bindings'];
+
+		$prepared = empty( $bindings )
+			? $result['sql']
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $result['sql'] composed by QueryBuilder::build_count using Database accessors + private WHERE composer; user values flow through $bindings only.
+			: $wpdb->prepare( $result['sql'], $bindings );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is either composed-static SQL or $wpdb->prepare output; count for admin pager, no caching layer needed.
+		return (int) $wpdb->get_var( $prepared );
+	}
+
+	/**
+	 * Offset-paginated search for the admin list table.
+	 *
+	 * @param  QueryArgs $args     Validated filter set (cursor ignored).
+	 * @param  int       $offset   Zero-based row offset.
+	 * @param  int       $per_page Page size from Screen Options.
+	 * @return list<Entry>         Hydrated rows for the current page.
+	 */
+	public function search_paged( QueryArgs $args, int $offset, int $per_page ): array {
+		global $wpdb;
+
+		$result   = $this->query_builder->build_paged( $args, $offset, $per_page );
+		$bindings = $result['bindings'];
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $result['sql'] composed by QueryBuilder::build_paged using accessors + Sort whitelist; placeholders in $bindings.
+		$prepared = $wpdb->prepare( $result['sql'], $bindings );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is $wpdb->prepare output; offset-paginated list, no caching at this layer.
+		$rows = $wpdb->get_results( $prepared, ARRAY_A );
+
+		if ( ! is_array( $rows ) ) {
+			return [];
+		}
+
+		$entries = [];
+		foreach ( $rows as $row ) {
+			$entries[] = Entry::from_array( $row );
+		}
+
+		return $entries;
+	}
+
+	/**
 	 * Count log entries by HTTP status class over the most recent 10k rows.
 	 *
 	 * Bounded scan avoids a full-table aggregate. Missing classes default to 0.

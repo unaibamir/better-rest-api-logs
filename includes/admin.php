@@ -8,6 +8,7 @@ defined( 'ABSPATH' ) || exit;
 use BetterRestApiLogs\Admin\Assets;
 use BetterRestApiLogs\Admin\DetailScreen;
 use BetterRestApiLogs\Admin\ListScreen;
+use BetterRestApiLogs\Admin\ListTable;
 
 /**
  * Admin boot-entry façade — registers the Tools and Settings menu items and
@@ -68,13 +69,21 @@ final class Admin {
 	public function register_menus(): void {
 		$cap = (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' );
 
-		\add_management_page(
+		$list_hook = \add_management_page(
 			\__( 'REST API Logs', 'better-rest-api-logs' ),
 			\__( 'REST API Logs', 'better-rest-api-logs' ),
 			$cap,
 			'better-rest-api-logs',
 			[ $this->list, 'render_page' ]
 		);
+
+		// Wire Screen Options "Per page" on the list page. The set-screen-option
+		// filter persists the value into user_meta.
+		if ( false !== $list_hook ) {
+			\add_action( 'load-' . $list_hook, [ self::class, 'register_screen_options' ] );
+		}
+		\add_filter( 'set-screen-option', [ self::class, 'save_per_page_screen_option' ], 10, 3 );
+		\add_filter( 'set_screen_option_' . ListTable::PER_PAGE_OPTION, [ self::class, 'save_per_page_screen_option' ], 10, 3 );
 
 		// Hidden submenu (parent slug = '') — not rendered in sidebar, but
 		// gets a proper screen_id and capability gate from WP core.
@@ -91,6 +100,51 @@ final class Admin {
 			$this->screen_id = (string) $hook;
 			$this->assets->set_detail_screen_id( $this->screen_id );
 		}
+	}
+
+	/**
+	 * Register the "Per page" Screen Option on the list page.
+	 *
+	 * Fires on `load-<list_hook>`, well before the screen renders, so the
+	 * value is available when ListTable::prepare_items() reads it via
+	 * ListTable::resolve_per_page().
+	 *
+	 * @return void
+	 */
+	public static function register_screen_options(): void {
+		\add_screen_option(
+			'per_page',
+			[
+				'label'   => \__( 'Logs per page', 'better-rest-api-logs' ),
+				'default' => ListTable::DEFAULT_PER_PAGE,
+				'option'  => ListTable::PER_PAGE_OPTION,
+			]
+		);
+	}
+
+	/**
+	 * Persist the "Per page" value into user_meta when the Screen Options form
+	 * is submitted. WP core fires both the generic `set-screen-option` filter
+	 * and the option-name-specific `set_screen_option_{option}` filter — either
+	 * one needs to return the value (not the default false) to persist.
+	 *
+	 * @param  mixed  $status Default `false` — replace with the sanitised int to persist.
+	 * @param  string $option Option name being saved.
+	 * @param  mixed  $value  Raw value from the form.
+	 * @return mixed          Sanitised int when this is our option, otherwise the original $status.
+	 */
+	public static function save_per_page_screen_option( $status, string $option, $value ) {
+		if ( ListTable::PER_PAGE_OPTION !== $option ) {
+			return $status;
+		}
+		$n = (int) $value;
+		if ( $n < 1 ) {
+			$n = ListTable::DEFAULT_PER_PAGE;
+		}
+		if ( $n > 500 ) {
+			$n = 500;
+		}
+		return $n;
 	}
 
 	/**

@@ -12,9 +12,9 @@ use BetterRestApiLogs\Domain\Entry;
 /**
  * WP_List_Table subclass for the REST API log list page.
  *
- * Implements cursor-based pagination (D-06) with LIMIT N+1 detection (D-08)
- * so we never fire a full-table COUNT(*) (REL-03). The display_tablenav()
- * override replaces WP's page-number links with Older/Newer cursor links.
+ * Uses standard WP pagination — page numbers + Screen Options per_page (default 50).
+ * REST and CLI surfaces still expose cursor pagination via LogRepository::search();
+ * the admin trades the COUNT(*) scan for a familiar pager.
  *
  * Status pill renders color + Unicode glyph + screen-reader label (A11Y-02).
  * I18N-03: status labels are literal __() calls so wp-i18n make-pot sees them.
@@ -23,14 +23,14 @@ use BetterRestApiLogs\Domain\Entry;
  */
 final class ListTable extends \WP_List_Table {
 
+	/** @var int Default page size when the user has not picked one via Screen Options. */
+	public const DEFAULT_PER_PAGE = 50;
+
+	/** @var string Screen Options key under which per_page is stored. */
+	public const PER_PAGE_OPTION = 'better_rest_api_logs_per_page';
+
 	/** @var LogRepository */
 	private $repo;
-
-	/** @var string|null Base64url cursor token for the next page, if any. */
-	private $next_cursor = null;
-
-	/** @var bool Whether there are more rows beyond the current page. */
-	private $has_more = false;
 
 	/**
 	 * Unicode glyph per status class (D-18).
@@ -119,10 +119,12 @@ final class ListTable extends \WP_List_Table {
 
 		$args = \apply_filters( 'brl_query_args', $args, 'admin' );
 
-		$result            = $this->repo->search( $args );
-		$this->items       = $result['rows'];
-		$this->has_more    = $result['has_more'];
-		$this->next_cursor = $result['next_cursor'];
+		$per_page    = self::resolve_per_page();
+		$current     = \max( 1, (int) $this->get_pagenum() );
+		$offset      = ( $current - 1 ) * $per_page;
+		$total_items = $this->repo->count( $args );
+
+		$this->items = $this->repo->search_paged( $args, $offset, $per_page );
 
 		$this->_column_headers = [
 			$this->get_columns(),
@@ -130,6 +132,31 @@ final class ListTable extends \WP_List_Table {
 			$this->get_sortable_columns(),
 			'timestamp',                 // Primary column.
 		];
+
+		$this->set_pagination_args(
+			[
+				'total_items' => $total_items,
+				'per_page'    => $per_page,
+				'total_pages' => (int) \ceil( $total_items / $per_page ),
+			]
+		);
+	}
+
+	/**
+	 * Read per_page from Screen Options (clamped), falling back to the default.
+	 *
+	 * Exposed as a static helper so ListScreen can register a matching
+	 * `screen_settings` panel without depending on a constructed ListTable.
+	 *
+	 * @return int Effective rows-per-page.
+	 */
+	public static function resolve_per_page(): int {
+		$user     = \function_exists( 'get_current_user_id' ) ? \get_current_user_id() : 0;
+		$stored   = $user > 0 ? (int) \get_user_meta( $user, self::PER_PAGE_OPTION, true ) : 0;
+		$per_page = $stored > 0 ? $stored : self::DEFAULT_PER_PAGE;
+
+		// Upper clamp keeps the COUNT-paged query honest if someone hand-edits user_meta.
+		return $per_page > 500 ? 500 : $per_page;
 	}
 
 	/**
@@ -277,45 +304,6 @@ final class ListTable extends \WP_List_Table {
 			$code,
 			\esc_html( $label )
 		);
-	}
-
-	/**
-	 * Replace WP's page-number tablenav with cursor Older/Newer links (D-06).
-	 *
-	 * Page numbers are intentionally absent — REL-03 forbids full-table COUNT(*).
-	 *
-	 * @param  string $which 'top' or 'bottom'.
-	 * @return void
-	 */
-	public function display_tablenav( $which ): void {
-		if ( 'top' === $which ) {
-			echo '<div class="tablenav top"></div>';
-			return;
-		}
-
-		// Bottom nav — cursor navigation only.
-		echo '<div class="tablenav bottom">';
-		echo '<div class="tablenav-pages">';
-
-		if ( $this->has_more && null !== $this->next_cursor ) {
-			$older_url = \add_query_arg( 'cursor', $this->next_cursor );
-			\printf(
-				'<a href="%s" class="button">%s</a> ',
-				\esc_url( $older_url ),
-				\esc_html__( 'Older entries', 'better-rest-api-logs' )
-			);
-		}
-
-		// Newest = same page without cursor arg.
-		$newest_url = \remove_query_arg( 'cursor' );
-		\printf(
-			'<a href="%s" class="button">%s</a>',
-			\esc_url( $newest_url ),
-			\esc_html__( 'Newest entries', 'better-rest-api-logs' )
-		);
-
-		echo '</div>';
-		echo '</div>';
 	}
 
 	/**
