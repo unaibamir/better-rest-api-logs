@@ -207,7 +207,17 @@ final class LogRepositoryTest extends WP_UnitTestCase {
 
 		// Drop the table to force a failure.
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
-		$ids = $repo->insert_batch( [ $entry ] );
+
+		// The INSERT below intentionally targets a missing table; the wpdb error
+		// printout is the expected condition under test, not a failure signal.
+		// suppress_errors() is what gates both error_log() and the HTML print —
+		// hide_errors() only blocks the HTML print, which still leaves noise in CI.
+		$prev_suppress = $wpdb->suppress_errors( true );
+		try {
+			$ids = $repo->insert_batch( [ $entry ] );
+		} finally {
+			$wpdb->suppress_errors( $prev_suppress );
+		}
 		$this->assertSame( [], $ids );
 
 		// Restore the table for tear_down.
