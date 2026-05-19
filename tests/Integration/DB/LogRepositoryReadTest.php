@@ -1,11 +1,10 @@
 <?php
 /**
- * Integration tests for LogRepository read methods added in Phase 4.
+ * Integration tests for the Phase 4 read path on LogRepository and BodyRepository.
  *
- * RED-bar scaffold: all tests fail until Plan 04-05 implements the read
- * methods in includes/db/log-repository.php. Covers find(), search(),
- * count_by_status_class(), count_by_method(), oldest_newest(), delete(),
- * and delete_many() against a 50-row seeded fixture.
+ * Covers: find/search/count_by_status_class/count_by_method/oldest_newest/delete/
+ * delete_many and BodyRepository::find_by_log_id. Exercises cursor pagination with
+ * tie-break on id, and verifies cascade-delete ordering (D-22).
  *
  * @package BetterRestApiLogs
  */
@@ -17,211 +16,431 @@ namespace BetterRestApiLogs\Tests\Integration\DB;
 use BetterRestApiLogs\DB\BodyRepository;
 use BetterRestApiLogs\DB\Database;
 use BetterRestApiLogs\DB\LogRepository;
+use BetterRestApiLogs\DB\Query\Paginator;
 use BetterRestApiLogs\DB\Query\QueryArgs;
+use BetterRestApiLogs\DB\Query\QueryBuilder;
 use BetterRestApiLogs\DB\Schema;
 use BetterRestApiLogs\Domain\Entry;
 use BetterRestApiLogs\Domain\RequestSnapshot;
 use BetterRestApiLogs\Domain\ResponseSnapshot;
 use WP_UnitTestCase;
 
-// EXPECTED FAILURE: Wave 1 (Plan 04-05) — LogRepository read methods do not exist yet.
-
 final class LogRepositoryReadTest extends WP_UnitTestCase {
 
-	/** @var int */
-	private int $ob_level_before = 0;
+	/** @var LogRepository */
+	private $repo;
 
-	/** @var int[] IDs inserted during set_up. */
-	private array $seeded_ids = [];
+	/** @var BodyRepository */
+	private $body_repo;
 
 	public function set_up(): void {
 		parent::set_up();
-		$this->ob_level_before = \ob_get_level();
+		// Real tables required — WP_UnitTestCase proxies CREATE to CREATE TEMPORARY.
 		\remove_filter( 'query', [ $this, '_create_temporary_tables' ] );
 		\remove_filter( 'query', [ $this, '_drop_temporary_tables' ] );
 		Schema::install();
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
-
-		$this->seeded_ids = $this->seed_fixture( 50 );
+		$this->repo      = new LogRepository( new QueryBuilder() );
+		$this->body_repo = new BodyRepository();
 	}
 
 	public function tear_down(): void {
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
-		$this->seeded_ids = [];
-		while ( \ob_get_level() > $this->ob_level_before ) {
-			\ob_end_clean();
-		}
-		while ( \ob_get_level() < $this->ob_level_before ) {
-			\ob_start();
-		}
 		parent::tear_down();
 	}
 
+	// -------------------------------------------------------------------------
+	// Helpers
+	// -------------------------------------------------------------------------
+
 	/**
-	 * Seed N rows split across methods and status classes for predictable counts.
+	 * Build a minimal Entry suitable for INSERT.
 	 *
-	 * @param int $count Total rows to insert.
-	 * @return int[] Inserted IDs.
+	 * @param string $route         REST route.
+	 * @param string $method        HTTP method.
+	 * @param int    $status        HTTP status code.
+	 * @param int    $micros        created_at_micros value.
+	 * @param bool   $spilled       Whether bodies are spilled.
 	 */
-	private function seed_fixture( int $count ): array {
-		$methods  = [ 'GET', 'POST', 'PUT', 'DELETE', 'PATCH' ];
-		$statuses = [ 200, 201, 301, 400, 404, 500 ];
-		$entries  = [];
+	private function make_entry(
+		string $route = '/wp/v2/posts',
+		string $method = 'GET',
+		int $status = 200,
+		int $micros = 0,
+		bool $spilled = false
+	): Entry {
+		$req               = new RequestSnapshot();
+		$req->route        = $route;
+		$req->route_prefix = '/' . ( explode( '/', ltrim( $route, '/' ) )[0] ?? 'wp' );
+		$req->method       = $method;
+		$req->content_type = 'application/json';
 
-		for ( $i = 0; $i < $count; $i++ ) {
-			$method = $methods[ $i % count( $methods ) ];
-			$status = $statuses[ $i % count( $statuses ) ];
+		$res               = new ResponseSnapshot();
+		$res->status       = $status;
+		$res->status_class = (int) \floor( $status / 100 );
+		$res->content_type = 'application/json';
 
-			$req               = new RequestSnapshot();
-			$req->route        = '/wp/v2/posts';
-			$req->method       = $method;
-			$req->content_type = 'application/json';
+		$entry                   = Entry::from_snapshots( $req, $res, [] );
+		$entry->created_at_micros = $micros ?: (int) ( microtime( true ) * 1_000_000 );
+		$entry->bodies_spilled   = $spilled;
+		$packed                  = \inet_pton( '::ffff:127.0.0.1' );
+		$entry->ip_raw_remote    = false !== $packed ? $packed : null;
 
-			$res               = new ResponseSnapshot();
-			$res->status       = $status;
-			$res->status_class = (int) floor( $status / 100 );
-			$res->content_type = 'application/json';
-
-			$entry                = Entry::from_snapshots( $req, $res, [] );
-			$packed               = \inet_pton( '::ffff:127.0.0.1' );
-			$entry->ip_raw_remote = false !== $packed ? $packed : null;
-			$entries[]            = $entry;
-		}
-
-		$repo = new LogRepository();
-		return $repo->insert_batch( $entries );
+		return $entry;
 	}
 
-	public function test_find_returns_entry_for_existing_id(): void {
-		$repo  = new LogRepository();
-		$first = $this->seeded_ids[0];
-		$entry = $repo->find( $first );
+	// -------------------------------------------------------------------------
+	// find()
+	// -------------------------------------------------------------------------
 
-		$this->assertNotNull( $entry );
-		$this->assertInstanceOf( Entry::class, $entry );
-		$this->assertSame( $first, $entry->id );
+	public function test_find_returns_entry_for_existing_id(): void {
+		$entry = $this->make_entry();
+		$ids   = $this->repo->insert_batch( [ $entry ] );
+		$this->assertCount( 1, $ids );
+
+		$found = $this->repo->find( $ids[0] );
+		$this->assertInstanceOf( Entry::class, $found );
+		$this->assertSame( $ids[0], $found->id );
+		$this->assertSame( 'GET', $found->method );
 	}
 
 	public function test_find_returns_null_for_missing_id(): void {
-		$repo  = new LogRepository();
-		$entry = $repo->find( 99999 );
-
-		$this->assertNull( $entry );
+		$found = $this->repo->find( 99999 );
+		$this->assertNull( $found );
 	}
 
-	public function test_search_returns_struct_with_required_keys(): void {
-		$repo   = new LogRepository();
-		$args   = QueryArgs::from_array( [] );
-		$result = $repo->search( $args );
+	public function test_find_joins_spilled_bodies(): void {
+		$entry = $this->make_entry( '/wp/v2/posts', 'GET', 200, 0, true );
+		$ids   = $this->repo->insert_batch( [ $entry ] );
+		$this->body_repo->insert_spilled( $ids[0], '{"req":"data"}', '{"res":"data"}' );
 
-		$this->assertArrayHasKey( 'rows', $result );
-		$this->assertArrayHasKey( 'has_more', $result );
-		$this->assertArrayHasKey( 'next_cursor', $result );
+		$found = $this->repo->find( $ids[0] );
+		$this->assertNotNull( $found );
+		$this->assertTrue( $found->bodies_spilled );
+		$this->assertSame( '{"req":"data"}', $found->request_body );
+		$this->assertSame( '{"res":"data"}', $found->response_body );
 	}
 
-	public function test_search_with_method_filter_narrows_results(): void {
-		$repo   = new LogRepository();
-		$args   = QueryArgs::from_array( [ 'method' => 'GET' ] );
-		$result = $repo->search( $args );
+	// -------------------------------------------------------------------------
+	// search()
+	// -------------------------------------------------------------------------
 
-		foreach ( $result['rows'] as $entry ) {
-			$this->assertSame( 'GET', $entry->method );
+	public function test_search_returns_empty_on_empty_table(): void {
+		$result = $this->repo->search( new QueryArgs() );
+		$this->assertSame( [], $result['rows'] );
+		$this->assertFalse( $result['has_more'] );
+		$this->assertNull( $result['next_cursor'] );
+	}
+
+	public function test_search_returns_entries_in_desc_order(): void {
+		$now = (int) ( microtime( true ) * 1_000_000 );
+		$e1  = $this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000 );
+		$e2  = $this->make_entry( '/wp/v2/posts', 'GET', 200, $now );
+		$this->repo->insert_batch( [ $e1, $e2 ] );
+
+		$result = $this->repo->search( new QueryArgs() );
+		$this->assertCount( 2, $result['rows'] );
+		// Newest first (DESC)
+		$this->assertGreaterThan( $result['rows'][1]->created_at_micros, $result['rows'][0]->created_at_micros );
+	}
+
+	public function test_search_has_more_true_when_extra_row_returned(): void {
+		// Insert limit+1 rows and assert has_more is true with default limit=20.
+		$now     = (int) ( microtime( true ) * 1_000_000 );
+		$entries = [];
+		for ( $i = 0; $i < 21; $i++ ) {
+			$entries[] = $this->make_entry( '/wp/v2/posts', 'GET', 200, $now - $i * 1000 );
 		}
+		$this->repo->insert_batch( $entries );
+
+		$result = $this->repo->search( new QueryArgs() );
+		$this->assertCount( 20, $result['rows'] );
+		$this->assertTrue( $result['has_more'] );
+		$this->assertNotNull( $result['next_cursor'] );
 	}
 
-	public function test_search_has_more_true_when_rows_exceed_limit(): void {
-		$repo   = new LogRepository();
-		$args   = QueryArgs::from_array( [ 'limit' => 5 ] );
-		$result = $repo->search( $args );
+	public function test_search_filter_by_method(): void {
+		$now = (int) ( microtime( true ) * 1_000_000 );
+		$this->repo->insert_batch( [
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+			$this->make_entry( '/wp/v2/posts', 'POST', 201, $now - 1000 ),
+		] );
 
-		$this->assertTrue( $result['has_more'], 'has_more must be true when fixture exceeds limit.' );
-		$this->assertNotNull( $result['next_cursor'], 'next_cursor must be set when has_more is true.' );
+		$args   = QueryArgs::from_array( [ 'method' => 'POST' ] );
+		$result = $this->repo->search( $args );
+		$this->assertCount( 1, $result['rows'] );
+		$this->assertSame( 'POST', $result['rows'][0]->method );
 	}
 
-	public function test_count_by_status_class_returns_five_class_keys(): void {
-		$repo   = new LogRepository();
-		$counts = $repo->count_by_status_class();
+	public function test_search_filter_by_status_class(): void {
+		$now = (int) ( microtime( true ) * 1_000_000 );
+		$this->repo->insert_batch( [
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 404, $now - 1000 ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 500, $now - 2000 ),
+		] );
 
-		$this->assertArrayHasKey( '2xx', $counts );
-		$this->assertArrayHasKey( '3xx', $counts );
-		$this->assertArrayHasKey( '4xx', $counts );
-		$this->assertArrayHasKey( '5xx', $counts );
+		$args   = QueryArgs::from_array( [ 'status_class' => '4xx' ] );
+		$result = $this->repo->search( $args );
+		$this->assertCount( 1, $result['rows'] );
+		$this->assertSame( 404, $result['rows'][0]->status );
 	}
 
-	public function test_count_by_status_class_sums_match_seeded_rows(): void {
-		$repo   = new LogRepository();
-		$counts = $repo->count_by_status_class();
+	public function test_search_cursor_pagination_walks_without_skips(): void {
+		// 30 rows with the same created_at_micros to stress-test id tie-breaking.
+		$shared_micros = (int) ( microtime( true ) * 1_000_000 );
+		$entries       = [];
+		for ( $i = 0; $i < 30; $i++ ) {
+			$entries[] = $this->make_entry( '/wp/v2/posts', 'GET', 200, $shared_micros );
+		}
+		$this->repo->insert_batch( $entries );
 
-		$total = array_sum( $counts );
-		$this->assertSame( 50, $total, 'Status class counts must sum to the number of seeded rows.' );
+		// Page 1: limit 10.
+		$page1 = $this->repo->search( QueryArgs::from_array( [ 'limit' => 10 ] ) );
+		$this->assertCount( 10, $page1['rows'] );
+		$this->assertTrue( $page1['has_more'] );
+		$this->assertNotNull( $page1['next_cursor'] );
+
+		// Page 2: cursor from page 1.
+		$page2 = $this->repo->search( QueryArgs::from_array( [
+			'limit'  => 10,
+			'cursor' => $page1['next_cursor'],
+		] ) );
+		$this->assertCount( 10, $page2['rows'] );
+		$this->assertTrue( $page2['has_more'] );
+
+		// Page 3: cursor from page 2.
+		$page3 = $this->repo->search( QueryArgs::from_array( [
+			'limit'  => 10,
+			'cursor' => $page2['next_cursor'],
+		] ) );
+		$this->assertCount( 10, $page3['rows'] );
+		$this->assertFalse( $page3['has_more'] );
+
+		// Verify no row is skipped or duplicated across all three pages.
+		$all_ids = array_merge(
+			array_map( static function ( Entry $e ): int { return $e->id; }, $page1['rows'] ),
+			array_map( static function ( Entry $e ): int { return $e->id; }, $page2['rows'] ),
+			array_map( static function ( Entry $e ): int { return $e->id; }, $page3['rows'] )
+		);
+		$this->assertSame( 30, count( $all_ids ) );
+		$this->assertSame( 30, count( array_unique( $all_ids ) ), 'Cursor walk produced duplicate or skipped rows.' );
 	}
 
-	public function test_count_by_method_returns_expected_methods(): void {
-		$repo   = new LogRepository();
-		$counts = $repo->count_by_method();
+	public function test_search_cursor_asc_direction(): void {
+		$now     = (int) ( microtime( true ) * 1_000_000 );
+		$entries = [];
+		for ( $i = 0; $i < 5; $i++ ) {
+			$entries[] = $this->make_entry( '/wp/v2/posts', 'GET', 200, $now + $i * 1000 );
+		}
+		$this->repo->insert_batch( $entries );
 
-		$this->assertArrayHasKey( 'GET', $counts );
-		$this->assertArrayHasKey( 'POST', $counts );
+		$page1 = $this->repo->search( QueryArgs::from_array( [
+			'limit'     => 3,
+			'order_by'  => 'created_at',
+			'order_dir' => 'ASC',
+		] ) );
+		$this->assertCount( 3, $page1['rows'] );
+		$this->assertTrue( $page1['has_more'] );
+
+		$page2 = $this->repo->search( QueryArgs::from_array( [
+			'limit'     => 3,
+			'order_by'  => 'created_at',
+			'order_dir' => 'ASC',
+			'cursor'    => $page1['next_cursor'],
+		] ) );
+		$this->assertCount( 2, $page2['rows'] );
+		$this->assertFalse( $page2['has_more'] );
+
+		// ASC: page2 rows should have higher micros than page1 last row.
+		$page1_last = end( $page1['rows'] );
+		$this->assertGreaterThan( $page1_last->created_at_micros, $page2['rows'][0]->created_at_micros );
 	}
 
-	public function test_oldest_newest_returns_boundary_timestamps(): void {
-		$repo   = new LogRepository();
-		$result = $repo->oldest_newest();
+	// -------------------------------------------------------------------------
+	// count_by_status_class()
+	// -------------------------------------------------------------------------
 
-		$this->assertArrayHasKey( 'oldest', $result );
-		$this->assertArrayHasKey( 'newest', $result );
+	public function test_count_by_status_class_returns_all_five_keys(): void {
+		$result = $this->repo->count_by_status_class();
+		$this->assertArrayHasKey( '1xx', $result );
+		$this->assertArrayHasKey( '2xx', $result );
+		$this->assertArrayHasKey( '3xx', $result );
+		$this->assertArrayHasKey( '4xx', $result );
+		$this->assertArrayHasKey( '5xx', $result );
+	}
+
+	public function test_count_by_status_class_sums_correctly(): void {
+		$now = (int) ( microtime( true ) * 1_000_000 );
+		$this->repo->insert_batch( [
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 201, $now - 1000 ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 404, $now - 2000 ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 500, $now - 3000 ),
+		] );
+
+		$result = $this->repo->count_by_status_class();
+		$this->assertSame( 2, $result['2xx'] );
+		$this->assertSame( 1, $result['4xx'] );
+		$this->assertSame( 1, $result['5xx'] );
+		$this->assertSame( 0, $result['3xx'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// count_by_method()
+	// -------------------------------------------------------------------------
+
+	public function test_count_by_method_returns_present_methods_only(): void {
+		$now = (int) ( microtime( true ) * 1_000_000 );
+		$this->repo->insert_batch( [
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000 ),
+			$this->make_entry( '/wp/v2/posts', 'POST', 201, $now - 2000 ),
+		] );
+
+		$result = $this->repo->count_by_method();
+		$this->assertSame( 2, $result['GET'] );
+		$this->assertSame( 1, $result['POST'] );
+		$this->assertArrayNotHasKey( 'DELETE', $result );
+	}
+
+	public function test_count_by_method_empty_table(): void {
+		$result = $this->repo->count_by_method();
+		$this->assertSame( [], $result );
+	}
+
+	// -------------------------------------------------------------------------
+	// oldest_newest()
+	// -------------------------------------------------------------------------
+
+	public function test_oldest_newest_returns_null_on_empty_table(): void {
+		$result = $this->repo->oldest_newest();
+		$this->assertNull( $result['oldest'] );
+		$this->assertNull( $result['newest'] );
+	}
+
+	public function test_oldest_newest_returns_iso8601_strings(): void {
+		$older_micros = 1716109800000000; // 2024-05-19 11:30:00 UTC
+		$newer_micros = 1716196200000000; // 2024-05-20 11:30:00 UTC
+		$this->repo->insert_batch( [
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $older_micros ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $newer_micros ),
+		] );
+
+		$result = $this->repo->oldest_newest();
 		$this->assertNotNull( $result['oldest'] );
 		$this->assertNotNull( $result['newest'] );
+		// Verify ISO-8601 format with Z suffix.
+		$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $result['oldest'] );
+		$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $result['newest'] );
+		// Oldest must be earlier than newest.
+		$this->assertLessThan( $result['newest'], $result['oldest'] );
 	}
 
-	public function test_delete_removes_one_row(): void {
+	// -------------------------------------------------------------------------
+	// delete()
+	// -------------------------------------------------------------------------
+
+	public function test_delete_removes_row_and_returns_true(): void {
 		global $wpdb;
-		$repo    = new LogRepository();
-		$log_id  = $this->seeded_ids[0];
+		$entry = $this->make_entry();
+		$ids   = $this->repo->insert_batch( [ $entry ] );
 
-		$ok    = $repo->delete( $log_id );
+		$ok    = $this->repo->delete( $ids[0] );
+		$this->assertTrue( $ok );
+
 		$count = (int) $wpdb->get_var(
-			$wpdb->prepare( 'SELECT COUNT(*) FROM ' . Database::logs_table() . ' WHERE id = %d', $log_id )
+			$wpdb->prepare( 'SELECT COUNT(*) FROM ' . Database::logs_table() . ' WHERE id = %d', $ids[0] )
 		);
+		$this->assertSame( 0, $count );
+	}
 
-		$this->assertTrue( $ok, 'delete() must return true on success.' );
-		$this->assertSame( 0, $count, 'Row must no longer exist after delete().' );
+	public function test_delete_returns_false_for_missing_id(): void {
+		$ok = $this->repo->delete( 99999 );
+		$this->assertFalse( $ok );
 	}
 
 	public function test_delete_cascades_spilled_body(): void {
 		global $wpdb;
-		$repo     = new LogRepository();
-		$log_id   = $this->seeded_ids[1];
+		$entry = $this->make_entry( '/wp/v2/posts', 'GET', 200, 0, true );
+		$ids   = $this->repo->insert_batch( [ $entry ] );
+		$this->body_repo->insert_spilled( $ids[0], '{"req":"data"}', null );
 
-		// Insert a spill row manually.
-		$body_repo = new BodyRepository();
-		$body_repo->insert_spilled( $log_id, '{"req":"data"}', '{"res":"data"}' );
-
-		$repo->delete( $log_id );
+		$this->repo->delete( $ids[0] );
 
 		$body_count = (int) $wpdb->get_var(
-			$wpdb->prepare( 'SELECT COUNT(*) FROM ' . Database::bodies_table() . ' WHERE log_id = %d', $log_id )
+			$wpdb->prepare( 'SELECT COUNT(*) FROM ' . Database::bodies_table() . ' WHERE log_id = %d', $ids[0] )
 		);
-		$this->assertSame( 0, $body_count, 'Body spill must be cascade-deleted.' );
+		$this->assertSame( 0, $body_count, 'D-22: cascade delete must remove the bodies row.' );
 	}
 
-	public function test_delete_many_removes_multiple_rows(): void {
+	// -------------------------------------------------------------------------
+	// delete_many()
+	// -------------------------------------------------------------------------
+
+	public function test_delete_many_removes_rows_and_returns_count(): void {
 		global $wpdb;
-		$repo = new LogRepository();
-		$ids  = [ $this->seeded_ids[2], $this->seeded_ids[3], $this->seeded_ids[4] ];
+		$now = (int) ( microtime( true ) * 1_000_000 );
+		$ids = $this->repo->insert_batch( [
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000 ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 2000 ),
+		] );
 
-		$affected = $repo->delete_many( $ids );
-		$this->assertSame( 3, $affected, 'delete_many() must return 3 for 3 IDs.' );
+		$affected = $this->repo->delete_many( [ $ids[0], $ids[1] ] );
+		$this->assertSame( 2, $affected );
 
-		foreach ( $ids as $id ) {
-			$count = (int) $wpdb->get_var(
-				$wpdb->prepare( 'SELECT COUNT(*) FROM ' . Database::logs_table() . ' WHERE id = %d', $id )
-			);
-			$this->assertSame( 0, $count, "Row {$id} must be deleted by delete_many()." );
-		}
+		$remaining = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::logs_table() );
+		$this->assertSame( 1, $remaining );
+	}
+
+	public function test_delete_many_empty_array_returns_zero(): void {
+		$affected = $this->repo->delete_many( [] );
+		$this->assertSame( 0, $affected );
+	}
+
+	public function test_delete_many_filters_non_positive_ids(): void {
+		$affected = $this->repo->delete_many( [ 0, -1, -999 ] );
+		$this->assertSame( 0, $affected );
+	}
+
+	public function test_delete_many_cascades_spilled_bodies(): void {
+		global $wpdb;
+		$now  = (int) ( microtime( true ) * 1_000_000 );
+		$ids  = $this->repo->insert_batch( [
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now, true ),
+			$this->make_entry( '/wp/v2/posts', 'GET', 200, $now - 1000, true ),
+		] );
+		$this->body_repo->insert_spilled( $ids[0], '{"a":1}', null );
+		$this->body_repo->insert_spilled( $ids[1], '{"b":2}', null );
+
+		$this->repo->delete_many( $ids );
+
+		$body_count = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::bodies_table() );
+		$this->assertSame( 0, $body_count, 'D-22: bulk cascade delete must remove all bodies rows.' );
+	}
+
+	// -------------------------------------------------------------------------
+	// BodyRepository::find_by_log_id()
+	// -------------------------------------------------------------------------
+
+	public function test_find_by_log_id_returns_null_for_missing(): void {
+		$result = $this->body_repo->find_by_log_id( 99999 );
+		$this->assertNull( $result );
+	}
+
+	public function test_find_by_log_id_returns_bodies(): void {
+		$entry = $this->make_entry( '/wp/v2/posts', 'GET', 200, 0, true );
+		$ids   = $this->repo->insert_batch( [ $entry ] );
+		$this->body_repo->insert_spilled( $ids[0], '{"req":"data"}', '{"res":"data"}' );
+
+		$result = $this->body_repo->find_by_log_id( $ids[0] );
+		$this->assertNotNull( $result );
+		$this->assertSame( '{"req":"data"}', $result['request_body'] );
+		$this->assertSame( '{"res":"data"}', $result['response_body'] );
 	}
 }

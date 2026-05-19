@@ -46,4 +46,38 @@ final class BodyRepository {
 
 		return false !== $result;
 	}
+
+	/**
+	 * Fetch the spilled body payloads for a log entry.
+	 *
+	 * Returns null when no spill row exists (e.g. bodies_spilled=0 on the parent row).
+	 * Both body fields in the returned array may be null when the corresponding payload
+	 * was not spilled (only one side was over the inline threshold).
+	 *
+	 * @param  int $log_id Primary key of the parent brl_logs row.
+	 * @return array{request_body:string|null,response_body:string|null}|null
+	 */
+	public function find_by_log_id( int $log_id ): ?array {
+		global $wpdb;
+
+		$bodies_table = Database::bodies_table();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table name from accessor; $log_id via prepare.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT request_body, response_body FROM {$bodies_table} WHERE log_id = %d LIMIT 1",
+				$log_id
+			),
+			ARRAY_A
+		);
+
+		if ( null === $row ) {
+			return null;
+		}
+
+		return [
+			'request_body'  => isset( $row['request_body'] ) ? (string) $row['request_body'] : null,
+			'response_body' => isset( $row['response_body'] ) ? (string) $row['response_body'] : null,
+		];
+	}
 }
