@@ -145,8 +145,11 @@ final class SettingsScreen {
 	 */
 	public static function render_uninstall_checkbox(): void {
 		$value = (bool) \get_option( 'brl_settings_delete_on_uninstall', false );
+		// Hidden zero so unchecking the box submits the literal "0" — the boolean
+		// sanitize_callback registered on this option treats missing as the
+		// stored default rather than as "off".
 		\printf(
-			'<label><input type="checkbox" name="brl_settings_delete_on_uninstall" value="1" %s /> %s</label>',
+			'<input type="hidden" name="brl_settings_delete_on_uninstall" value="0" /><label><input type="checkbox" name="brl_settings_delete_on_uninstall" value="1" %s /> %s</label>',
 			\checked( $value, true, false ),
 			\esc_html__( 'OFF by default. When ON, uninstalling the plugin drops the log tables and removes all plugin options.', 'better-rest-api-logs' )
 		);
@@ -226,8 +229,12 @@ final class SettingsScreen {
 
 		switch ( $type ) {
 			case 'boolean':
+				// Hidden zero pairs with the checkbox so unchecking the box sends
+				// the literal "0" instead of dropping the key from $_POST. Without
+				// it, the sanitizer cannot tell "unchecked" from "field absent"
+				// and a default-true field can never be disabled from the UI.
 				\printf(
-					'<label><input type="checkbox" name="%s" value="1" %s /> %s</label>',
+					'<input type="hidden" name="%1$s" value="0" /><label><input type="checkbox" name="%1$s" value="1" %2$s /> %3$s</label>',
 					\esc_attr( $name ),
 					\checked( (bool) $value, true, false ),
 					\esc_html( $description )
