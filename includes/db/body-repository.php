@@ -62,9 +62,10 @@ final class BodyRepository {
 
 		$bodies_table = Database::bodies_table();
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table name from accessor; $log_id via prepare.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database::bodies_table() (STOR-04); $log_id flows through $wpdb->prepare.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $bodies_table from Database::bodies_table() (STOR-04); $log_id flows through %d placeholder.
 				"SELECT request_body, response_body FROM {$bodies_table} WHERE log_id = %d LIMIT 1",
 				$log_id
 			),

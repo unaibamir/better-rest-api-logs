@@ -33,7 +33,7 @@ final class FiltersView {
 	 */
 	public function render( QueryArgs $args, array $oldest_newest ): void {
 		$page_slug  = 'better-rest-api-logs';
-		$back_url   = \esc_url( \admin_url( 'tools.php?page=' . $page_slug ) );
+		$back_url   = \admin_url( 'tools.php?page=' . $page_slug );
 		$oldest_iso = isset( $oldest_newest['oldest'] ) ? $this->micros_to_date( $oldest_newest['oldest'] ) : '';
 		$newest_iso = isset( $oldest_newest['newest'] ) ? $this->micros_to_date( $oldest_newest['newest'] ) : '';
 
@@ -147,7 +147,7 @@ final class FiltersView {
 		// Reset link — plain anchor, not a button.
 		printf(
 			'<a href="%s" class="brl-reset-link">%s</a>',
-			$back_url,
+			\esc_url( $back_url ),
 			\esc_html__( 'Reset filters', 'better-rest-api-logs' )
 		);
 	}

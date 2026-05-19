@@ -110,7 +110,7 @@ final class LogRepository {
 	/**
 	 * @param QueryBuilder|null $query_builder Injected for testability; defaults to a new instance.
 	 */
-	public function __construct( QueryBuilder $query_builder = null ) {
+	public function __construct( ?QueryBuilder $query_builder = null ) {
 		$this->query_builder = $query_builder ?? new QueryBuilder();
 	}
 
@@ -194,9 +194,9 @@ final class LogRepository {
 		$logs_table = Database::logs_table();
 		$col_list   = 'id, ' . implode( ', ', self::COLUMNS );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from accessor; column list from static const; $id flows through prepare.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table from Database::logs_table() (STOR-04); $col_list from private COLUMNS const; $id flows through $wpdb->prepare.
 		$sql = $wpdb->prepare( "SELECT {$col_list} FROM {$logs_table} WHERE id = %d LIMIT 1", $id );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- direct fetch by primary key; no applicable caching layer.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is the return of $wpdb->prepare on line 198; direct fetch by PK, no caching layer.
 		$row = $wpdb->get_row( $sql, ARRAY_A );
 
 		if ( null === $row ) {
@@ -233,12 +233,12 @@ final class LogRepository {
 		$result   = $this->query_builder->build( $args );
 		$bindings = $result['bindings'];
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- composed by QueryBuilder; user values in $bindings only.
 		$prepared = empty( $bindings )
 			? $result['sql']
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $result['sql'] composed by QueryBuilder using Database accessors + Sort::validate whitelist; user values flow through $bindings only.
 			: $wpdb->prepare( $result['sql'], $bindings );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- paginated log list; no caching layer for variable-filter queries.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is either the QueryBuilder-composed static SQL (no bindings branch) or $wpdb->prepare output; paginated list query, no caching at this layer.
 		$rows = $wpdb->get_results( $prepared, ARRAY_A );
 
 		if ( ! is_array( $rows ) ) {
@@ -250,7 +250,7 @@ final class LogRepository {
 
 		if ( count( $rows ) > $args->limit ) {
 			$has_more = true;
-			array_pop( $rows ); // discard the N+1 probe row
+			array_pop( $rows ); // Discard the N+1 probe row.
 		}
 
 		$entries = [];
@@ -283,9 +283,9 @@ final class LogRepository {
 		global $wpdb;
 
 		$logs_table = Database::logs_table();
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- inner table name from accessor; outer query fully static; no user input.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table from Database::logs_table() (STOR-04); outer query fully static; no user input.
 		$sql = "SELECT status_class, COUNT(*) AS n FROM ( SELECT status_class FROM {$logs_table} ORDER BY id DESC LIMIT 10000 ) sub GROUP BY status_class";
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- bounded aggregate for stats display; caller may cache via brl_internal.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is fully static apart from $logs_table from accessor; bounded 10k-row aggregate for stats display.
 		$rows = $wpdb->get_results( $sql, ARRAY_A );
 
 		$out = [
@@ -323,9 +323,9 @@ final class LogRepository {
 		global $wpdb;
 
 		$logs_table = Database::logs_table();
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- inner table name from accessor; outer query fully static.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table from Database::logs_table() (STOR-04); outer query fully static.
 		$sql = "SELECT method, COUNT(*) AS n FROM ( SELECT method FROM {$logs_table} ORDER BY id DESC LIMIT 10000 ) sub GROUP BY method";
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- bounded aggregate for stats; no caching at this layer.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is fully static apart from $logs_table from accessor; bounded 10k-row aggregate.
 		$rows = $wpdb->get_results( $sql, ARRAY_A );
 
 		$out = [];
@@ -355,9 +355,9 @@ final class LogRepository {
 
 		$logs_table = Database::logs_table();
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- static aggregate on indexed column; no user input.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database::logs_table() (STOR-04); static MIN aggregate on indexed column.
 		$oldest = $wpdb->get_var( "SELECT MIN(created_at_micros) FROM {$logs_table}" );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- static aggregate on indexed column; no user input.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database::logs_table() (STOR-04); static MAX aggregate on indexed column.
 		$newest = $wpdb->get_var( "SELECT MAX(created_at_micros) FROM {$logs_table}" );
 
 		return [
@@ -382,9 +382,9 @@ final class LogRepository {
 		$logs_table   = Database::logs_table();
 
 		// D-22: cascade order — bodies first, logs second.
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table names from accessor; $id via prepare.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database::bodies_table() (STOR-04); $id flows through $wpdb->prepare.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$bodies_table} WHERE log_id = %d", $id ) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table name from accessor; $id via prepare.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database::logs_table() (STOR-04); $id flows through $wpdb->prepare.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$logs_table} WHERE id = %d", $id ) );
 
 		return $wpdb->rows_affected > 0;
@@ -422,9 +422,9 @@ final class LogRepository {
 		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
 
 		// D-22: cascade order — bodies first, logs second.
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table name from accessor; IDs via prepare splat.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$bodies_table} WHERE log_id IN ({$placeholders})", ...$ids ) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table name from accessor; IDs via prepare splat.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor; $placeholders is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$logs_table} WHERE id IN ({$placeholders})", ...$ids ) );
 
 		return (int) $wpdb->rows_affected;

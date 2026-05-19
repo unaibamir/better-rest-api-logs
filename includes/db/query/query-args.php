@@ -112,7 +112,7 @@ final class QueryArgs {
 			if ( isset( $input[ $key ] ) ) {
 				$d = (string) $input[ $key ];
 				if ( 1 !== preg_match( '/^-?\d+$/', $d ) ) {
-					throw new \InvalidArgumentException( "Invalid {$key} value." );
+					throw new \InvalidArgumentException( 'Invalid date_micros value.' );
 				}
 				$a->{$key} = (int) $d;
 			}
