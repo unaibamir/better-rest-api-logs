@@ -5,6 +5,7 @@ namespace BetterRestApiLogs\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use BetterRestApiLogs\DB\Database;
 use BetterRestApiLogs\Settings\Defaults;
 
 /**
@@ -104,12 +105,207 @@ final class SettingsScreen {
 
 		echo '<div class="wrap brl-admin">';
 		printf( '<h1>%s</h1>', \esc_html__( 'REST API Logs Settings', 'better-rest-api-logs' ) );
+		self::render_truncate_notice();
 		self::render_tab_nav( $active );
 		echo '<form action="options.php" method="post">';
 		\settings_fields( "brl_settings_{$active}" );
 		\do_settings_sections( "brl_settings_{$active}" );
 		\submit_button();
-		echo '</form></div>';
+		echo '</form>';
+
+		if ( 'advanced' === $active ) {
+			self::render_truncate_section();
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render the "Truncate all logs" panel on the Advanced tab.
+	 *
+	 * Lives outside the options.php settings form so submitting it doesn't
+	 * confuse the Settings API. The button posts to admin-post.php where
+	 * handle_truncate_all() empties both log tables in one step.
+	 *
+	 * @return void
+	 */
+	private static function render_truncate_section(): void {
+		global $wpdb;
+
+		$logs_table = Database::logs_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor (STOR-04); zero-arg COUNT against our own table; per-page admin render.
+		$count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$logs_table}" );
+
+		$advanced = (array) \get_option( 'brl_settings_advanced', [] );
+		$phrase   = isset( $advanced['truncate_confirm_copy'] ) ? (string) $advanced['truncate_confirm_copy'] : '';
+
+		$action_url = \admin_url( 'admin-post.php' );
+
+		echo '<hr style="margin: 32px 0 16px;" />';
+		echo '<div class="brl-truncate-panel">';
+		\printf( '<h2>%s</h2>', \esc_html__( 'Truncate all logs', 'better-rest-api-logs' ) );
+		\printf(
+			'<p>%s</p>',
+			\esc_html__( 'Removes every captured request from the database in one shot. The autoincrement counter resets so the next captured row starts at 1. This action cannot be undone.', 'better-rest-api-logs' )
+		);
+
+		\printf(
+			'<form method="post" action="%s">',
+			\esc_url( $action_url )
+		);
+		echo '<input type="hidden" name="action" value="brl_truncate_all" />';
+		\wp_nonce_field( 'brl_truncate_all' );
+
+		if ( '' !== $phrase ) {
+			\printf(
+				'<p><label>%s<br /><input type="text" name="truncate_phrase" value="" autocomplete="off" class="regular-text" /></label></p>',
+				\esc_html(
+					\sprintf(
+						/* translators: %s: the phrase the user configured under "Truncate confirmation phrase". */
+						\__( 'Type %s to confirm:', 'better-rest-api-logs' ),
+						'"' . $phrase . '"'
+					)
+				)
+			);
+		}
+
+		$label = '' === $phrase
+			? \sprintf(
+				/* translators: 1: number of rows currently stored. */
+				\_n( 'Purge %s entry now', 'Purge all %s entries now', $count, 'better-rest-api-logs' ),
+				\number_format_i18n( $count )
+			)
+			: \sprintf(
+				/* translators: 1: number of rows currently stored. */
+				\_n( 'Purge %s entry now', 'Purge all %s entries now', $count, 'better-rest-api-logs' ),
+				\number_format_i18n( $count )
+			);
+
+		$js_confirm = '' === $phrase
+			? \sprintf(
+				/* translators: %d: number of rows that will be removed. */
+				\__( 'Permanently delete %d log entries? This cannot be undone.', 'better-rest-api-logs' ),
+				$count
+			)
+			: '';
+
+		\printf(
+			'<button type="submit" class="button button-secondary"%s%s>%s</button>',
+			$count > 0 ? '' : ' disabled',
+			'' !== $js_confirm ? ' onclick="return confirm(\'' . \esc_js( $js_confirm ) . '\');"' : '',
+			\esc_html( $label )
+		);
+
+		echo '</form>';
+		echo '</div>';
+	}
+
+	/**
+	 * Flash notice for the truncate redirect — green on success, red on phrase
+	 * mismatch. Rendered above the tab nav so it's the first thing the admin
+	 * sees after the redirect.
+	 *
+	 * @return void
+	 */
+	private static function render_truncate_notice(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash arg set by handle_truncate_all's redirect.
+		$status = isset( $_GET['brl_truncate'] ) ? \sanitize_key( \wp_unslash( (string) $_GET['brl_truncate'] ) ) : '';
+		if ( '' === $status ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash arg for display count.
+		$removed = isset( $_GET['brl_truncate_n'] ) ? \absint( $_GET['brl_truncate_n'] ) : 0;
+
+		switch ( $status ) {
+			case 'done':
+				\printf(
+					'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+					\esc_html(
+						\sprintf(
+							/* translators: %d: number of log rows removed by the truncate action. */
+							\_n( 'Removed %d log entry.', 'Removed %d log entries.', $removed, 'better-rest-api-logs' ),
+							$removed
+						)
+					)
+				);
+				break;
+			case 'phrase_mismatch':
+				\printf(
+					'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+					\esc_html__( 'Confirmation phrase did not match. No rows were removed.', 'better-rest-api-logs' )
+				);
+				break;
+			case 'empty':
+				\printf(
+					'<div class="notice notice-info is-dismissible"><p>%s</p></div>',
+					\esc_html__( 'There were no log entries to remove.', 'better-rest-api-logs' )
+				);
+				break;
+		}
+	}
+
+	/**
+	 * Handler for admin-post.php?action=brl_truncate_all.
+	 *
+	 * Empties both wp_brl_logs and wp_brl_logs_bodies via TRUNCATE so the
+	 * autoincrement counters reset. Verifies the typed confirmation phrase
+	 * when one is configured under Advanced → Truncate confirmation phrase;
+	 * otherwise relies on the JS confirm rendered next to the button.
+	 *
+	 * @return void
+	 */
+	public static function handle_truncate_all(): void {
+		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
+			\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
+		}
+
+		\check_admin_referer( 'brl_truncate_all' );
+
+		$settings_url = \admin_url( 'options-general.php?page=better-rest-api-logs-settings&tab=advanced' );
+
+		$advanced = (array) \get_option( 'brl_settings_advanced', [] );
+		$required = isset( $advanced['truncate_confirm_copy'] ) ? (string) $advanced['truncate_confirm_copy'] : '';
+
+		if ( '' !== $required ) {
+			$typed = isset( $_POST['truncate_phrase'] )
+				? \sanitize_text_field( \wp_unslash( (string) $_POST['truncate_phrase'] ) )
+				: '';
+			if ( $typed !== $required ) {
+				\wp_safe_redirect( \add_query_arg( 'brl_truncate', 'phrase_mismatch', $settings_url ) );
+				exit;
+			}
+		}
+
+		global $wpdb;
+		$logs_table   = Database::logs_table();
+		$bodies_table = Database::bodies_table();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor; count before truncate so the flash notice reports the actual rows removed.
+		$count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$logs_table}" );
+
+		if ( 0 === $count ) {
+			\wp_safe_redirect( \add_query_arg( 'brl_truncate', 'empty', $settings_url ) );
+			exit;
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs_table from Database accessor; TRUNCATE resets autoincrement, no user data in SQL.
+		$wpdb->query( "TRUNCATE TABLE {$logs_table}" );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database accessor; TRUNCATE resets autoincrement, no user data in SQL.
+		$wpdb->query( "TRUNCATE TABLE {$bodies_table}" );
+
+		\do_action( 'brl_logs_truncated', $count );
+
+		\wp_safe_redirect(
+			\add_query_arg(
+				[
+					'brl_truncate'   => 'done',
+					'brl_truncate_n' => $count,
+				],
+				$settings_url
+			)
+		);
+		exit;
 	}
 
 	/**
@@ -439,7 +635,7 @@ final class SettingsScreen {
 		if ( 'advanced' === $slug ) {
 			switch ( $key ) {
 				case 'truncate_confirm_copy':
-					return __( 'Custom confirmation phrase for the truncate action. Leave blank to use the default.', 'better-rest-api-logs' );
+					return __( 'Optional. When set, the "Purge all entries now" button below requires this exact phrase to be typed before it runs. Leave blank to fall back to a plain browser confirm dialog.', 'better-rest-api-logs' );
 			}
 		}
 
