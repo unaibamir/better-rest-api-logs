@@ -14,6 +14,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 8px;
+  /* WP core's .tablenav has display:block by default with margin: 6px 0 4px.
+     Switching to flex collapses that margin on some browsers, so restore
+     the gap between the filter row and the column header row explicitly. */
+  margin-block-end: 8px;
 
   & .alignleft.actions {
     /* Override core's float-left so the flex layout takes effect. */
@@ -142,9 +146,6 @@
   padding-block: 8px;
 }
 
-/* ── Row action always-visible View link ── */
-.brl-admin .wp-list-table .row-actions {
-  position: static;
-  visibility: visible;
-  opacity: 1;
-}
+/* Row actions follow WP core defaults — hidden until the row is hovered or
+   the View/Delete link receives keyboard focus. The previous override that
+   forced them visible across every row added a lot of visual noise. */
