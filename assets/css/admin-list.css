@@ -7,65 +7,7 @@
  */
 
 /* ── Inline filter controls inside the tablenav row ── */
-.brl-admin .tablenav.top {
-  /* Allow the filter group to wrap onto a second line on narrow viewports
-     without breaking vertical alignment with the bulk-actions select. */
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  /* WP core's .tablenav has display:block by default with margin: 6px 0 4px.
-     Switching to flex collapses that margin on some browsers, so restore
-     the gap between the filter row and the column header row explicitly. */
-  margin-block-end: 8px;
 
-  & .alignleft.actions {
-    /* Override core's float-left so the flex layout takes effect. */
-    float: none;
-  }
-}
-
-.brl-admin .tablenav.top .brl-filters {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-
-  & input[type="date"],
-  & input[type="text"],
-  & select {
-    height: 30px;
-    line-height: 1;
-    margin: 0;
-    box-sizing: border-box;
-  }
-
-  & input[type="date"] {
-    /* Safari renders date inputs taller than selects by default — explicit
-       padding makes the box height match a <select> across browsers. */
-    padding-block: 0;
-    padding-inline: 6px;
-    min-width: 140px;
-  }
-
-  /* Keep a visual gap between From and To so they don't read as one wide
-     control. The 6px from the parent gap is enough but a tiny extra hint
-     helps when the inputs share the same chrome on Chrome. */
-  & input[name="date_to"] {
-    margin-inline-start: 2px;
-  }
-
-  & input[type="text"][name="route_prefix"] {
-    min-width: 220px;
-  }
-
-  & .button {
-    height: 30px;
-    line-height: 28px;
-    margin: 0;
-    padding-block: 0;
-  }
-}
 
 .brl-admin .brl-reset-link {
   font-size: 12px;
