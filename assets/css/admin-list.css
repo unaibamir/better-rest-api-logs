@@ -39,45 +39,35 @@
   }
 }
 
-/* ── Status pill (D-18, A11Y-02) ── */
+/* ── Method + Status pills (solid-fill blocks) ── */
 .brl-admin .brl-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  display: inline-block;
   padding-block: 2px;
   padding-inline: 8px;
-  border-radius: 999px;
+  border-radius: 3px;
+  font-family: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.4;
+  color: #fff;
+  background: #646970;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-
-  &.brl-pill--1xx {
-    background: #e8eaf6;
-    color: #303f9f;
-  }
-
-  &.brl-pill--2xx {
-    background: #e6f4ea;
-    color: #137333;
-  }
-
-  &.brl-pill--3xx {
-    background: #e3f2fd;
-    color: #0b5394;
-  }
-
-  &.brl-pill--4xx {
-    background: #fef7e0;
-    color: #b06000;
-  }
-
-  &.brl-pill--5xx {
-    background: #fce8e6;
-    color: #b3261e;
-  }
 }
+
+.brl-admin .brl-pill--method-get     { background: #2271b1; }
+.brl-admin .brl-pill--method-post    { background: #1e7e34; }
+.brl-admin .brl-pill--method-put     { background: #b45309; }
+.brl-admin .brl-pill--method-patch   { background: #8a4500; }
+.brl-admin .brl-pill--method-delete  { background: #b32d2e; }
+.brl-admin .brl-pill--method-head    { background: #646970; }
+.brl-admin .brl-pill--method-options { background: #8c8f94; }
+
+.brl-admin .brl-pill--status-1xx { background: #0073aa; }
+.brl-admin .brl-pill--status-2xx { background: #1e7e34; }
+.brl-admin .brl-pill--status-3xx { background: #b45309; }
+.brl-admin .brl-pill--status-4xx { background: #b32d2e; }
+.brl-admin .brl-pill--status-5xx { background: #7d1f1f; }
 
 /* ── Empty state ── */
 .brl-admin .brl-empty-state {

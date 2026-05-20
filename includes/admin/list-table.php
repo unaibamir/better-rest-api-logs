@@ -45,18 +45,6 @@ final class ListTable extends \WP_List_Table {
 		'newest' => null,
 	];
 
-	/**
-	 * Unicode glyph per status class (D-18).
-	 *
-	 * @var array<string,string>
-	 */
-	private static $glyphs = [
-		'1xx' => "\u{2022}",          // •
-		'2xx' => "\u{2713}",          // ✓
-		'3xx' => "\u{2192}",          // →
-		'4xx' => "\u{26A0}\u{FE0E}", // ⚠︎ text-presentation selector
-		'5xx' => "\u{2715}",          // ✕
-	];
 
 	/**
 	 * @param LogRepository    $repo         Data access layer.
@@ -216,7 +204,7 @@ final class ListTable extends \WP_List_Table {
 			case 'timestamp':
 				return $this->render_timestamp_column( $item );
 			case 'method':
-				return \esc_html( (string) $item->method );
+				return $this->render_method_pill( (string) $item->method );
 			case 'status':
 				$class = (string) ( $item->status_class ) . 'xx';
 				return $this->render_status_pill( (int) $item->status, $class );
@@ -395,11 +383,13 @@ final class ListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * Status pill — color + glyph + screen-reader label (D-18, A11Y-02, T-04-32).
+	 * Status pill — solid-fill color block with the numeric code. The
+	 * accessible name combines the code and a class-specific label
+	 * (`200 Success`, `404 Client error`) so screen readers announce both.
 	 *
-	 * Labels are literal __() calls — I18N-03 forbids variables inside __().
-	 * The class name derives entirely from the server-side status_class column
-	 * (validated at Phase 2 insertion). No user bytes flow into the pill HTML.
+	 * The class name derives entirely from the server-side status_class
+	 * column, validated at Phase 2 insertion; no user bytes flow into the
+	 * pill HTML.
 	 *
 	 * @param  int    $code  HTTP status code.
 	 * @param  string $class '1xx'..'5xx' — derived from DB column.
@@ -407,8 +397,6 @@ final class ListTable extends \WP_List_Table {
 	 */
 	// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.classFound -- the parameter mirrors the DB column name (`status_class`); renaming would drift the schema vocabulary.
 	private function render_status_pill( int $code, string $class ): string {
-		$glyph = self::$glyphs[ $class ] ?? "\u{2022}";
-
 		switch ( $class ) {
 			case '1xx':
 				$label = \__( 'Informational', 'better-rest-api-logs' );
@@ -431,11 +419,31 @@ final class ListTable extends \WP_List_Table {
 		}
 
 		return \sprintf(
-			'<span class="brl-pill brl-pill--%s" aria-hidden="false">%s %d<span class="screen-reader-text">%s</span></span>',
+			'<span class="brl-pill brl-pill--status brl-pill--status-%s" aria-label="%s">%d</span>',
 			\esc_attr( $class ),
-			\esc_html( $glyph ),
-			$code,
-			\esc_html( $label )
+			\esc_attr( \sprintf( '%d %s', $code, $label ) ),
+			$code
+		);
+	}
+
+	/**
+	 * Method pill — solid-fill color block with the HTTP verb.
+	 *
+	 * The modifier class is derived from lower-cased method; falls back to
+	 * a neutral pill for anything outside the documented method list.
+	 *
+	 * @param  string $method HTTP method (uppercase as captured).
+	 * @return string
+	 */
+	private function render_method_pill( string $method ): string {
+		$slug = \strtolower( $method );
+		if ( ! \in_array( $slug, [ 'get', 'post', 'put', 'patch', 'delete', 'head', 'options' ], true ) ) {
+			$slug = 'other';
+		}
+		return \sprintf(
+			'<span class="brl-pill brl-pill--method brl-pill--method-%s">%s</span>',
+			\esc_attr( $slug ),
+			\esc_html( $method )
 		);
 	}
 
