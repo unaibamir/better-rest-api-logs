@@ -190,10 +190,22 @@ final class QueryBuilder {
 			$bindings[] = $class_int;
 		}
 
-		// Route_prefix — exact match leverages the route_prefix index.
+		// Route filter — supports `*` as a wildcard. With no wildcard we still
+		// match as a prefix (implicit trailing `%`) to keep older bookmarks
+		// working. Match the full `route` column rather than `route_prefix`
+		// because patterns with mid-string wildcards can't be served by the
+		// prefix index anyway.
 		if ( null !== $args->route_prefix ) {
-			$where[]    = 'route_prefix = %s';
-			$bindings[] = $args->route_prefix;
+			global $wpdb;
+			$raw = $args->route_prefix;
+			if ( false !== strpos( $raw, '*' ) ) {
+				$escaped = $wpdb->esc_like( $raw );
+				$pattern = str_replace( '*', '%', $escaped );
+			} else {
+				$pattern = $wpdb->esc_like( $raw ) . '%';
+			}
+			$where[]    = 'route LIKE %s';
+			$bindings[] = $pattern;
 		}
 
 		// User_id.
