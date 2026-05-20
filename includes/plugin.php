@@ -249,7 +249,10 @@ final class Plugin {
 				if ( ! \class_exists( '\WP_List_Table' ) ) {
 					require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 				}
-				return new ListTable( $c->get( LogRepository::class ) );
+				return new ListTable(
+					$c->get( LogRepository::class ),
+					$c->get( FiltersView::class )
+				);
 			}
 		);
 		$this->container->bind(
@@ -312,12 +315,9 @@ final class Plugin {
 		\add_action( 'admin_menu', [ SettingsScreen::class, 'register_menu' ], 10 );
 		\add_action( 'admin_init', [ SettingsScreen::class, 'register_fields' ], 10 );
 
-		\add_action(
-			'admin_post_brl_bulk_action',
-			static function () use ( $container ): void {
-				$container->get( BulkActionHandler::class )->handle();
-			}
-		);
+		// Bulk delete is dispatched inline from ListScreen::render() now that the
+		// list page lives inside a single <form method="get">. The single-row
+		// "Delete" row action still posts to admin-post.php with a per-row nonce.
 		\add_action(
 			'admin_post_brl_delete_log',
 			static function () use ( $container ): void {

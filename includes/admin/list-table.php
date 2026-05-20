@@ -8,6 +8,7 @@ defined( 'ABSPATH' ) || exit;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\DB\Query\QueryArgs;
 use BetterRestApiLogs\Domain\Entry;
+use BetterRestApiLogs\Admin\FiltersView;
 
 /**
  * WP_List_Table subclass for the REST API log list page.
@@ -32,6 +33,18 @@ final class ListTable extends \WP_List_Table {
 	/** @var LogRepository */
 	private $repo;
 
+	/** @var FiltersView|null */
+	private $filters_view = null;
+
+	/** @var QueryArgs|null Cached filter state from prepare_items(), reused by extra_tablenav(). */
+	private $current_args = null;
+
+	/** @var array{oldest:string|null,newest:string|null} */
+	private $oldest_newest = [
+		'oldest' => null,
+		'newest' => null,
+	];
+
 	/**
 	 * Unicode glyph per status class (D-18).
 	 *
@@ -46,9 +59,10 @@ final class ListTable extends \WP_List_Table {
 	];
 
 	/**
-	 * @param LogRepository $repo Data access layer.
+	 * @param LogRepository    $repo         Data access layer.
+	 * @param FiltersView|null $filters_view Optional filter renderer used by extra_tablenav.
 	 */
-	public function __construct( LogRepository $repo ) {
+	public function __construct( LogRepository $repo, ?FiltersView $filters_view = null ) {
 		parent::__construct(
 			[
 				'singular' => 'log',
@@ -56,7 +70,8 @@ final class ListTable extends \WP_List_Table {
 				'ajax'     => false,
 			]
 		);
-		$this->repo = $repo;
+		$this->repo         = $repo;
+		$this->filters_view = $filters_view;
 	}
 
 	/**
@@ -102,6 +117,22 @@ final class ListTable extends \WP_List_Table {
 	}
 
 	/**
+	 * Inject the filter controls into the top tablenav row.
+	 *
+	 * WP_List_Table::display_tablenav() emits this method's output right after
+	 * the bulk-actions <select> + Apply button, so the date / method / status /
+	 * route_prefix inputs sit on the same row.
+	 *
+	 * @param string $which 'top' or 'bottom'.
+	 */
+	protected function extra_tablenav( $which ): void {
+		if ( 'top' !== $which || null === $this->filters_view || null === $this->current_args ) {
+			return;
+		}
+		$this->filters_view->render_inline( $this->current_args, $this->oldest_newest );
+	}
+
+	/**
 	 * Execute the DB query and populate $this->items from the filter state.
 	 *
 	 * Reads $_GET (sanitised via collect_input) and builds QueryArgs. On invalid
@@ -118,6 +149,9 @@ final class ListTable extends \WP_List_Table {
 		}
 
 		$args = \apply_filters( 'brl_query_args', $args, 'admin' );
+
+		$this->current_args  = $args;
+		$this->oldest_newest = $this->repo->oldest_newest();
 
 		$per_page    = self::resolve_per_page();
 		$current     = \max( 1, (int) $this->get_pagenum() );

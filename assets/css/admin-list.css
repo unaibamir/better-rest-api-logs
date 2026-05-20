@@ -6,41 +6,26 @@
  * WP admin CSS custom properties with hardcoded 6.4-floor fallbacks.
  */
 
-/* ── Filter bar ── */
-.brl-admin .brl-filter-bar {
-  background: #fff;
-  border: 1px solid var(--wp-admin-border, #c3c4c7);
-  padding: 8px;
-  margin-block-end: 16px;
-  position: relative;
+/* ── Inline filter controls inside the tablenav row ── */
+.brl-admin .tablenav.top .brl-filters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: 4px;
 
-  & .brl-filter-bar__row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 8px;
-    align-items: end;
-  }
-
-  & label {
-    display: flex;
-    flex-direction: column;
-    font-size: 12px;
-    gap: 2px;
-
-    & > span {
-      font-weight: 600;
-      color: #50575e;
-    }
-  }
-
-  & input,
+  & input[type="date"],
+  & input[type="text"],
   & select {
-    width: 100%;
-    box-sizing: border-box;
+    margin: 0;
   }
 
-  & .button-primary {
-    align-self: end;
+  & input[type="text"][name="route_prefix"] {
+    min-width: 220px;
+  }
+
+  & .button {
+    margin: 0;
   }
 }
 

@@ -25,26 +25,56 @@ final class FiltersView {
 	private const STATUS_CLASSES = [ '1xx', '2xx', '3xx', '4xx', '5xx' ];
 
 	/**
-	 * Emit the filter bar HTML.
+	 * Emit the filter controls as inline tablenav children.
 	 *
-	 * @param QueryArgs                                    $args          Current filter state derived from $_GET.
-	 * @param array{oldest:string|null,newest:string|null} $oldest_newest Date range bounds from the log table.
+	 * The list view wraps everything in a single <form method="get"> (matching
+	 * WP core's edit.php pattern), so this renders bare inputs — no outer form,
+	 * no hidden page input. The bulk-action dropdown and Apply button live in
+	 * the same row, courtesy of WP_List_Table::display_tablenav().
+	 *
+	 * @param  QueryArgs                                    $args          Current filter state derived from $_GET.
+	 * @param  array{oldest:string|null,newest:string|null} $oldest_newest Date range bounds from the log table.
 	 * @return void
 	 */
-	public function render( QueryArgs $args, array $oldest_newest ): void {
-		$page_slug  = 'better-rest-api-logs';
-		$back_url   = \admin_url( 'tools.php?page=' . $page_slug );
+	public function render_inline( QueryArgs $args, array $oldest_newest ): void {
 		$oldest_iso = isset( $oldest_newest['oldest'] ) ? $this->micros_to_date( $oldest_newest['oldest'] ) : '';
 		$newest_iso = isset( $oldest_newest['newest'] ) ? $this->micros_to_date( $oldest_newest['newest'] ) : '';
 
-		echo '<form method="get" class="brl-filter-bar">';
-		printf( '<input type="hidden" name="page" value="%s">', \esc_attr( $page_slug ) );
-		echo '<div class="brl-filter-bar__row">';
+		echo '<div class="alignleft actions brl-filters">';
+
+		// Date from.
+		printf(
+			'<label class="screen-reader-text" for="brl-filter-date-from">%s</label>',
+			\esc_html__( 'From', 'better-rest-api-logs' )
+		);
+		printf(
+			'<input type="date" id="brl-filter-date-from" name="date_from" value="%s" aria-label="%s"%s>',
+			\esc_attr( $this->micros_to_date( null !== $args->date_from_micros ? (string) $args->date_from_micros : '' ) ),
+			\esc_attr__( 'From date', 'better-rest-api-logs' ),
+			$oldest_iso ? ' min="' . \esc_attr( $oldest_iso ) . '"' : ''
+		);
+
+		// Date to.
+		printf(
+			'<label class="screen-reader-text" for="brl-filter-date-to">%s</label>',
+			\esc_html__( 'To', 'better-rest-api-logs' )
+		);
+		printf(
+			'<input type="date" id="brl-filter-date-to" name="date_to" value="%s" aria-label="%s"%s>',
+			\esc_attr( $this->micros_to_date( null !== $args->date_to_micros ? (string) $args->date_to_micros : '' ) ),
+			\esc_attr__( 'To date', 'better-rest-api-logs' ),
+			$newest_iso ? ' max="' . \esc_attr( $newest_iso ) . '"' : ''
+		);
 
 		// Method select.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'Method', 'better-rest-api-logs' ) );
-		printf( '<select name="method"><option value="">%s</option>', \esc_html__( 'Any method', 'better-rest-api-logs' ) );
+		printf(
+			'<label class="screen-reader-text" for="brl-filter-method">%s</label>',
+			\esc_html__( 'Method', 'better-rest-api-logs' )
+		);
+		printf(
+			'<select id="brl-filter-method" name="method"><option value="">%s</option>',
+			\esc_html__( 'Any method', 'better-rest-api-logs' )
+		);
 		foreach ( self::METHODS as $method ) {
 			printf(
 				'<option value="%s"%s>%s</option>',
@@ -53,23 +83,15 @@ final class FiltersView {
 				\esc_html( $method )
 			);
 		}
-		echo '</select></label>';
+		echo '</select>';
 
-		// Status code text input.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'Status code', 'better-rest-api-logs' ) );
+		// Status class select.
 		printf(
-			'<input type="text" name="status" inputmode="numeric" value="%s" placeholder="%s">',
-			\esc_attr( null !== $args->status ? (string) $args->status : '' ),
-			\esc_attr__( 'e.g. 200, 404', 'better-rest-api-logs' )
+			'<label class="screen-reader-text" for="brl-filter-status-class">%s</label>',
+			\esc_html__( 'Status class', 'better-rest-api-logs' )
 		);
-		echo '</label>';
-
-		// Status class select (replaces the 5-radio chip set — looked broken on narrow widths).
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'Status class', 'better-rest-api-logs' ) );
 		printf(
-			'<select name="status_class"><option value="">%s</option>',
+			'<select id="brl-filter-status-class" name="status_class"><option value="">%s</option>',
 			\esc_html__( 'Any class', 'better-rest-api-logs' )
 		);
 		foreach ( self::STATUS_CLASSES as $class ) {
@@ -80,71 +102,28 @@ final class FiltersView {
 				\esc_html( $class )
 			);
 		}
-		echo '</select></label>';
+		echo '</select>';
 
-		// Route prefix — substring-style "prefix" matcher is enough for day-to-day filtering;
-		// User ID / IP / free-text live on the REST and CLI surfaces for advanced queries.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'Route prefix', 'better-rest-api-logs' ) );
+		// Route prefix text input.
 		printf(
-			'<input type="text" name="route_prefix" value="%s" placeholder="%s">',
+			'<label class="screen-reader-text" for="brl-filter-route">%s</label>',
+			\esc_html__( 'Route prefix', 'better-rest-api-logs' )
+		);
+		printf(
+			'<input type="text" id="brl-filter-route" name="route_prefix" value="%s" placeholder="%s">',
 			\esc_attr( (string) ( $args->route_prefix ?? '' ) ),
-			\esc_attr__( 'e.g. /wp/v2/', 'better-rest-api-logs' )
+			\esc_attr__( 'e.g. /wp/v2/* or */users/*', 'better-rest-api-logs' )
 		);
-		echo '</label>';
 
-		// Date from.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'From', 'better-rest-api-logs' ) );
-		printf(
-			'<input type="date" name="date_from" value="%s"%s>',
-			\esc_attr( $this->micros_to_date( null !== $args->date_from_micros ? (string) $args->date_from_micros : '' ) ),
-			$oldest_iso ? ' min="' . \esc_attr( $oldest_iso ) . '"' : ''
+		\submit_button(
+			\__( 'Filter', 'better-rest-api-logs' ),
+			'',
+			'brl_filter',
+			false,
+			[ 'id' => 'brl-filter-submit' ]
 		);
-		echo '</label>';
-
-		// Date to.
-		echo '<label>';
-		printf( '<span>%s</span>', \esc_html__( 'To', 'better-rest-api-logs' ) );
-		printf(
-			'<input type="date" name="date_to" value="%s"%s>',
-			\esc_attr( $this->micros_to_date( null !== $args->date_to_micros ? (string) $args->date_to_micros : '' ) ),
-			$newest_iso ? ' max="' . \esc_attr( $newest_iso ) . '"' : ''
-		);
-		echo '</label>';
-
-		// Preserve advanced filter state from the URL across submits — REST callers
-		// or bookmarks can still pin user_id / ip / free_text even though they no
-		// longer have a visible input in the admin bar.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter form; no state-changing action.
-		$get_input = $_GET;
-		foreach ( [ 'user_id', 'ip', 'free_text' ] as $hidden ) {
-			if ( ! isset( $get_input[ $hidden ] ) ) {
-				continue;
-			}
-			$raw = \sanitize_text_field( \wp_unslash( (string) $get_input[ $hidden ] ) );
-			if ( '' === $raw ) {
-				continue;
-			}
-			printf(
-				'<input type="hidden" name="%s" value="%s">',
-				\esc_attr( $hidden ),
-				\esc_attr( $raw )
-			);
-		}
-
-		// Submit + reset.
-		printf( '<button type="submit" class="button button-primary">%s</button>', \esc_html__( 'Apply filters', 'better-rest-api-logs' ) );
 
 		echo '</div>';
-		echo '</form>';
-
-		// Reset link — plain anchor, not a button.
-		printf(
-			'<a href="%s" class="brl-reset-link">%s</a>',
-			\esc_url( $back_url ),
-			\esc_html__( 'Reset filters', 'better-rest-api-logs' )
-		);
 	}
 
 	/**

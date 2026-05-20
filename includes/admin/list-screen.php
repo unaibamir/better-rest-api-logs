@@ -5,6 +5,7 @@ namespace BetterRestApiLogs\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use BetterRestApiLogs\Admin\BulkActionHandler;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\DB\Query\QueryArgs;
 
@@ -65,7 +66,7 @@ final class ListScreen {
 		$repo         = new LogRepository();
 		$filters_view = new FiltersView();
 		$notices      = new Notices();
-		$table        = new ListTable( $repo );
+		$table        = new ListTable( $repo, $filters_view );
 		self::render_with( $table, $filters_view, $notices, $repo );
 	}
 
@@ -79,45 +80,105 @@ final class ListScreen {
 	 * @return void
 	 */
 	private static function render_with( ListTable $table, FiltersView $filters_view, Notices $notices, LogRepository $repo ): void {
+		unset( $filters_view, $repo ); // Threaded through ListTable; locals only kept to preserve the constructor signature.
+
 		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
 			\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
 		}
 
-		// Silently recover from invalid filter args — a bad bookmark URL should
-		// not wp_die; the table just shows unfiltered results.
-		try {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter form; no state-changing action.
-			$sanitised = \array_map(
-				static function ( $v ) {
-					return \is_array( $v ) ? $v : \sanitize_text_field( \wp_unslash( (string) $v ) );
-				},
-				$_GET // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			);
-			$args      = QueryArgs::from_array( FiltersView::normalize_date_inputs( $sanitised ) );
-		} catch ( \InvalidArgumentException $e ) {
-			$args = new QueryArgs();
-		}
-
-		$oldest_newest = $repo->oldest_newest();
+		// Bulk delete is handled inline from $_GET so the whole list page can
+		// live inside a single <form method="get">, the same pattern wp-admin's
+		// edit.php uses. The handler still runs check_admin_referer() (which
+		// reads $_REQUEST) and the capability check, so a hand-typed URL
+		// without a nonce can't trigger anything destructive.
+		self::maybe_handle_bulk_delete();
 
 		echo '<div class="wrap brl-admin">';
 		\printf( '<h1>%s</h1>', \esc_html__( 'REST API Logs', 'better-rest-api-logs' ) );
 
 		$notices->render();
-		$filters_view->render( $args, $oldest_newest );
 
-		// Bulk-action form wraps the list table so checkboxes submit to admin-post.php.
-		\printf(
-			'<form method="post" action="%s">',
-			\esc_url( \admin_url( 'admin-post.php' ) )
-		);
-		echo '<input type="hidden" name="action" value="brl_bulk_action" />';
-		\wp_nonce_field( 'brl_bulk', '_wpnonce' );
+		echo '<form id="brl-logs-form" method="get">';
+		echo '<input type="hidden" name="page" value="better-rest-api-logs" />';
+		\wp_nonce_field( 'brl_bulk', '_wpnonce', false, true );
+
+		// Preserve advanced filter state from the URL across submits — REST
+		// callers or bookmarks can still pin user_id / ip / free_text even
+		// though they no longer have a visible input in the tablenav row.
+		self::emit_hidden_inputs_for_passthrough_filters();
 
 		$table->prepare_items();
 		$table->display();
 
 		echo '</form>';
 		echo '</div>';
+	}
+
+	/**
+	 * Run the inline bulk-delete dispatch when the GET form posts back with
+	 * `action=brl_delete` (or the bulk-action select's `-1` placeholder for
+	 * "no action"). BulkActionHandler reads $_POST for the heavy lifting,
+	 * so mirror the relevant fields across.
+	 *
+	 * @return void
+	 */
+	private static function maybe_handle_bulk_delete(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing -- nonce verified inside BulkActionHandler::handle() via check_admin_referer; this block only mirrors GET values into $_POST so the existing handler can read them.
+		$top    = isset( $_GET['action'] ) ? \sanitize_key( \wp_unslash( (string) $_GET['action'] ) ) : '';
+		$bottom = isset( $_GET['action2'] ) ? \sanitize_key( \wp_unslash( (string) $_GET['action2'] ) ) : '';
+		$action = '' !== $top && '-1' !== $top ? $top : $bottom;
+
+		if ( '' === $action || '-1' === $action ) {
+			return;
+		}
+
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each element is run through absint() below before any use.
+		$ids_raw = isset( $_GET['log_ids'] ) && \is_array( $_GET['log_ids'] )
+			? \wp_unslash( $_GET['log_ids'] )
+			: [];
+		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$ids = \array_values( \array_filter( \array_map( 'absint', (array) $ids_raw ) ) );
+
+		// BulkActionHandler reads from $_POST; mirror the GET payload over so
+		// the handler logic stays in one place. $_REQUEST is read by
+		// check_admin_referer() and PHP already populated it from $_GET, but
+		// we set it explicitly to be safe under PHPUnit too.
+		$_POST['action']      = $action;
+		$_POST['bulk_action'] = $action;
+		$_POST['log_ids']     = $ids;
+		if ( isset( $_GET['_wpnonce'] ) ) {
+			$nonce                = \sanitize_text_field( \wp_unslash( (string) $_GET['_wpnonce'] ) );
+			$_POST['_wpnonce']    = $nonce;
+			$_REQUEST['_wpnonce'] = $nonce;
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing
+
+		( new BulkActionHandler() )->handle();
+	}
+
+	/**
+	 * Emit hidden inputs for any URL params the visible filter row doesn't
+	 * expose (user_id, ip, free_text, sort state, page number). Without these,
+	 * applying a filter would silently drop the rest of the URL state.
+	 *
+	 * @return void
+	 */
+	private static function emit_hidden_inputs_for_passthrough_filters(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only re-emit of URL state into hidden inputs.
+		foreach ( [ 'user_id', 'ip', 'free_text', 'orderby', 'order', 'status' ] as $key ) {
+			if ( ! isset( $_GET[ $key ] ) || \is_array( $_GET[ $key ] ) ) {
+				continue;
+			}
+			$raw = \sanitize_text_field( \wp_unslash( (string) $_GET[ $key ] ) );
+			if ( '' === $raw ) {
+				continue;
+			}
+			\printf(
+				'<input type="hidden" name="%s" value="%s" />',
+				\esc_attr( $key ),
+				\esc_attr( $raw )
+			);
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 }
