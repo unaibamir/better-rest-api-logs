@@ -83,14 +83,15 @@ final class ListTable extends \WP_List_Table {
 	 */
 	public function get_columns(): array {
 		$columns = [
-			'cb'        => '<input type="checkbox" />',
-			'timestamp' => \esc_html__( 'Time', 'better-rest-api-logs' ),
-			'method'    => \esc_html__( 'Method', 'better-rest-api-logs' ),
-			'status'    => \esc_html__( 'Status', 'better-rest-api-logs' ),
-			'route'     => \esc_html__( 'Route', 'better-rest-api-logs' ),
-			'duration'  => \esc_html__( 'Duration', 'better-rest-api-logs' ),
-			'user'      => \esc_html__( 'User', 'better-rest-api-logs' ),
-			'ip'        => \esc_html__( 'IP', 'better-rest-api-logs' ),
+			'cb'            => '<input type="checkbox" />',
+			'route'         => \esc_html__( 'Route', 'better-rest-api-logs' ),
+			'method'        => \esc_html__( 'Method', 'better-rest-api-logs' ),
+			'status'        => \esc_html__( 'Status', 'better-rest-api-logs' ),
+			'ip'            => \esc_html__( 'IP', 'better-rest-api-logs' ),
+			'duration'      => \esc_html__( 'Duration', 'better-rest-api-logs' ),
+			'response_size' => \esc_html__( 'Response', 'better-rest-api-logs' ),
+			'user'          => \esc_html__( 'User', 'better-rest-api-logs' ),
+			'timestamp'     => \esc_html__( 'Time', 'better-rest-api-logs' ),
 		];
 		return (array) \apply_filters( 'brl_list_columns', $columns );
 	}
@@ -164,7 +165,7 @@ final class ListTable extends \WP_List_Table {
 			$this->get_columns(),
 			[],                          // Hidden columns.
 			$this->get_sortable_columns(),
-			'timestamp',                 // Primary column.
+			'route',                     // Primary column hosts the row actions.
 		];
 
 		$this->set_pagination_args(
@@ -220,26 +221,22 @@ final class ListTable extends \WP_List_Table {
 				$class = (string) ( $item->status_class ) . 'xx';
 				return $this->render_status_pill( (int) $item->status, $class );
 			case 'route':
-				return \esc_html( (string) $item->route );
+				return $this->render_route_column( $item );
 			case 'duration':
 				return \esc_html( \sprintf( '%d ms', (int) $item->duration_ms ) );
+			case 'response_size':
+				return $this->render_response_size_column( $item );
 			case 'user':
-				$uid = (int) $item->user_id;
-				return $uid ? \esc_html( (string) $uid ) : '&mdash;';
+				return $this->render_user_column( $item );
 			case 'ip':
-				$ip = ( null !== $item->ip_resolved && '' !== $item->ip_resolved )
-					? \inet_ntop( $item->ip_resolved )
-					: false;
-				return ( false !== $ip && '' !== $ip ) ? \esc_html( $ip ) : '&mdash;';
+				return $this->render_ip_column( $item );
 		}
 		return '';
 	}
 
 	/**
-	 * Render the timestamp column with View / Delete row actions.
-	 *
-	 * View is always visible (not hover-reveal per UI-SPEC). Delete fires a
-	 * JS confirm before following the nonce-signed URL (D-20 / T-04-33).
+	 * Render the timestamp column — plain text only. Row actions now live on
+	 * the primary `route` cell.
 	 *
 	 * @param  Entry $item Current row.
 	 * @return string
@@ -248,8 +245,21 @@ final class ListTable extends \WP_List_Table {
 		$micros = (int) $item->created_at_micros;
 		$ts     = $micros > 0
 			? \gmdate( 'Y-m-d H:i:s', (int) ( $micros / 1_000_000 ) )
-			: \esc_html( (string) $item->created_at );
+			: (string) $item->created_at;
 
+		return \esc_html( $ts );
+	}
+
+	/**
+	 * Render the route column with a link to the detail view and the
+	 * View / Delete row actions. WP convention puts row actions on the
+	 * primary column; that's also what the column-headers configuration
+	 * declares (see prepare_items()).
+	 *
+	 * @param  Entry $item Current row.
+	 * @return string
+	 */
+	private function render_route_column( Entry $item ): string {
 		$view_url = \add_query_arg(
 			[
 				'page'   => 'better-rest-api-logs-detail',
@@ -278,13 +288,19 @@ final class ListTable extends \WP_List_Table {
 			)
 		);
 
+		$route_link = \sprintf(
+			'<strong><a href="%s">%s</a></strong>',
+			\esc_url( $view_url ),
+			\esc_html( (string) $item->route )
+		);
+
 		$actions = [
-			'view'   => sprintf(
+			'view'   => \sprintf(
 				'<span class="view"><a href="%s">%s</a></span>',
 				\esc_url( $view_url ),
 				\esc_html__( 'View', 'better-rest-api-logs' )
 			),
-			'delete' => sprintf(
+			'delete' => \sprintf(
 				'<span class="delete"><a href="%s" class="submitdelete" onclick="return confirm(\'%s\');">%s</a></span>',
 				\esc_url( $delete_url ),
 				$confirm_msg,
@@ -292,7 +308,90 @@ final class ListTable extends \WP_List_Table {
 			),
 		];
 
-		return \esc_html( $ts ) . $this->row_actions( $actions, true );
+		return $route_link . $this->row_actions( $actions, true );
+	}
+
+	/**
+	 * Render the response-size column. response_body_bytes is stored as an
+	 * integer; format as KB with one decimal. Empty bodies render as an em
+	 * dash so the column reads cleanly for HEAD/204 entries.
+	 *
+	 * @param  Entry $item Current row.
+	 * @return string
+	 */
+	private function render_response_size_column( Entry $item ): string {
+		$bytes = (int) $item->response_body_bytes;
+		if ( $bytes <= 0 ) {
+			return '&mdash;';
+		}
+		$kb = $bytes / 1024;
+		return \esc_html( \sprintf( '%.1f KB', $kb ) );
+	}
+
+	/**
+	 * Render the user column. Authenticated rows link to user-edit.php with
+	 * the captured login; guests show as a literal "(guest)". Deleted users
+	 * (where get_userdata returns false) degrade to "User #N" so the row
+	 * still tells you which id was active.
+	 *
+	 * Performance note: this fires one get_userdata() per row. Per-page is
+	 * capped via Screen Options so the worst case is ~500 lookups per page;
+	 * a future commit could prefetch in bulk if it ever shows up in profiles.
+	 *
+	 * @param  Entry $item Current row.
+	 * @return string
+	 */
+	private function render_user_column( Entry $item ): string {
+		$uid = (int) $item->user_id;
+		if ( $uid <= 0 ) {
+			return \esc_html__( '(guest)', 'better-rest-api-logs' );
+		}
+
+		$user = \get_userdata( $uid );
+		if ( false === $user ) {
+			return \esc_html(
+				\sprintf(
+				/* translators: %d: user ID */
+					\__( 'User #%d', 'better-rest-api-logs' ),
+					$uid
+				)
+			);
+		}
+
+		$edit_url = \add_query_arg( 'user_id', $uid, \admin_url( 'user-edit.php' ) );
+		return \sprintf(
+			'<a href="%s">%s</a>',
+			\esc_url( $edit_url ),
+			\esc_html( (string) $user->user_login )
+		);
+	}
+
+	/**
+	 * Render the IP column. Prefer the resolved IP and fall back to the raw
+	 * remote address. inet_ntop returns IPv4 form already for native v4
+	 * addresses, but ::ffff:127.0.0.1 (IPv4-mapped IPv6) prints as
+	 * ::ffff:127.0.0.1 on some platforms; strip the prefix manually so the
+	 * column reads consistently.
+	 *
+	 * @param  Entry $item Current row.
+	 * @return string
+	 */
+	private function render_ip_column( Entry $item ): string {
+		$packed = ( null !== $item->ip_resolved && '' !== $item->ip_resolved )
+			? $item->ip_resolved
+			: $item->ip_raw_remote;
+		if ( null === $packed || '' === $packed ) {
+			return '&mdash;';
+		}
+		$printable = \inet_ntop( $packed );
+		if ( false === $printable || '' === $printable ) {
+			return '&mdash;';
+		}
+		// IPv4-mapped IPv6 prefix — show the v4 form for readability.
+		if ( 0 === \strncasecmp( $printable, '::ffff:', 7 ) ) {
+			$printable = \substr( $printable, 7 );
+		}
+		return \esc_html( $printable );
 	}
 
 	/**
