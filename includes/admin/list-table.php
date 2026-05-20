@@ -77,7 +77,7 @@ final class ListTable extends \WP_List_Table {
 			'status'        => \esc_html__( 'Status', 'better-rest-api-logs' ),
 			'ip'            => \esc_html__( 'IP', 'better-rest-api-logs' ),
 			'duration'      => \esc_html__( 'Duration', 'better-rest-api-logs' ),
-			'response_size' => \esc_html__( 'Response', 'better-rest-api-logs' ),
+			'response_size' => \esc_html__( 'Response Size', 'better-rest-api-logs' ),
 			'user'          => \esc_html__( 'User', 'better-rest-api-logs' ),
 			'timestamp'     => \esc_html__( 'Time', 'better-rest-api-logs' ),
 		];
@@ -303,9 +303,9 @@ final class ListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * Render the response-size column. response_body_bytes is stored as an
-	 * integer; format as KB with one decimal. Empty bodies render as an em
-	 * dash so the column reads cleanly for HEAD/204 entries.
+	 * Render the response-size column. Stored as an integer byte count; we
+	 * pick the right unit so a 256-byte response reads as "256 B" rather
+	 * than "0.3 KB", and bigger payloads roll up into MB / GB cleanly.
 	 *
 	 * @param  Entry $item Current row.
 	 * @return string
@@ -315,8 +315,31 @@ final class ListTable extends \WP_List_Table {
 		if ( $bytes <= 0 ) {
 			return '&mdash;';
 		}
+		return \esc_html( self::format_bytes( $bytes ) );
+	}
+
+	/**
+	 * Format a byte count using the IEC-ish progression most admins expect:
+	 * bytes under 1 KiB stay as B, then KB, MB, GB with one decimal place.
+	 * Kept as a pure static helper so unit tests can exercise the edges
+	 * without bootstrapping WordPress.
+	 *
+	 * @param  int $bytes Non-negative byte count.
+	 * @return string
+	 */
+	public static function format_bytes( int $bytes ): string {
+		if ( $bytes < 1024 ) {
+			return \sprintf( '%d B', $bytes );
+		}
 		$kb = $bytes / 1024;
-		return \esc_html( \sprintf( '%.1f KB', $kb ) );
+		if ( $kb < 1024 ) {
+			return \sprintf( '%.1f KB', $kb );
+		}
+		$mb = $kb / 1024;
+		if ( $mb < 1024 ) {
+			return \sprintf( '%.1f MB', $mb );
+		}
+		return \sprintf( '%.1f GB', $mb / 1024 );
 	}
 
 	/**
