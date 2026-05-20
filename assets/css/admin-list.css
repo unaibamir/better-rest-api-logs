@@ -7,17 +7,48 @@
  */
 
 /* ── Inline filter controls inside the tablenav row ── */
+.brl-admin .tablenav.top {
+  /* Allow the filter group to wrap onto a second line on narrow viewports
+     without breaking vertical alignment with the bulk-actions select. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+
+  & .alignleft.actions {
+    /* Override core's float-left so the flex layout takes effect. */
+    float: none;
+  }
+}
+
 .brl-admin .tablenav.top .brl-filters {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-inline-start: 4px;
 
   & input[type="date"],
   & input[type="text"],
   & select {
+    height: 30px;
+    line-height: 1;
     margin: 0;
+    box-sizing: border-box;
+  }
+
+  & input[type="date"] {
+    /* Safari renders date inputs taller than selects by default — explicit
+       padding makes the box height match a <select> across browsers. */
+    padding-block: 0;
+    padding-inline: 6px;
+    min-width: 140px;
+  }
+
+  /* Keep a visual gap between From and To so they don't read as one wide
+     control. The 6px from the parent gap is enough but a tiny extra hint
+     helps when the inputs share the same chrome on Chrome. */
+  & input[name="date_to"] {
+    margin-inline-start: 2px;
   }
 
   & input[type="text"][name="route_prefix"] {
@@ -25,7 +56,10 @@
   }
 
   & .button {
+    height: 30px;
+    line-height: 28px;
     margin: 0;
+    padding-block: 0;
   }
 }
 
@@ -42,17 +76,28 @@
 /* ── Method + Status pills (solid-fill blocks) ── */
 .brl-admin .brl-pill {
   display: inline-block;
-  padding-block: 2px;
+  padding-block: 3px;
   padding-inline: 8px;
   border-radius: 3px;
   font-family: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1;
   color: #fff;
   background: #646970;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+  /* Vertical centering inside the table cell — `top` aligns the pill with
+     the x-height of the surrounding text rather than the baseline, which
+     looks off when the cell mixes plain text and pills. */
+  vertical-align: middle;
+}
+
+.brl-admin .wp-list-table td {
+  /* Pills are taller than the default 13px text — bump the cell line-height
+     a touch so the row doesn't visually compress. */
+  vertical-align: middle;
 }
 
 .brl-admin .brl-pill--method-get     { background: #2271b1; }
