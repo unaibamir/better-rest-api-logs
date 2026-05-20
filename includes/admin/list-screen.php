@@ -7,7 +7,6 @@ defined( 'ABSPATH' ) || exit;
 
 use BetterRestApiLogs\Admin\BulkActionHandler;
 use BetterRestApiLogs\DB\LogRepository;
-use BetterRestApiLogs\DB\Query\QueryArgs;
 
 /**
  * Render callback for the Tools → REST API Logs admin page (D-01).
