@@ -12,7 +12,14 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Sort {
 
-	private const ALLOWED_COLUMNS = [ 'created_at', 'duration_ms' ];
+	private const ALLOWED_COLUMNS = [
+		'created_at',
+		'created_at_micros',
+		'duration_ms',
+		'route',
+		'method',
+		'status',
+	];
 	private const ALLOWED_DIRS    = [ 'ASC', 'DESC' ];
 
 	/**

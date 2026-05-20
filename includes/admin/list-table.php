@@ -91,8 +91,11 @@ final class ListTable extends \WP_List_Table {
 	 */
 	public function get_sortable_columns(): array {
 		return [
-			'timestamp' => [ 'created_at', true ],  // second element = currently sorted desc?
+			'route'     => [ 'route', false ],
+			'method'    => [ 'method', false ],
+			'status'    => [ 'status', false ],
 			'duration'  => [ 'duration_ms', false ],
+			'timestamp' => [ 'created_at_micros', true ],  // Default sort is DESC.
 		];
 	}
 
@@ -485,6 +488,16 @@ final class ListTable extends \WP_List_Table {
 			},
 			$raw
 		);
+
+		// WP_List_Table emits `orderby` / `order` on the sort-column links;
+		// translate into the order_by / order_dir vocabulary QueryArgs uses.
+		if ( isset( $sanitised['orderby'] ) && ! isset( $sanitised['order_by'] ) ) {
+			$sanitised['order_by'] = $sanitised['orderby'];
+		}
+		if ( isset( $sanitised['order'] ) && ! isset( $sanitised['order_dir'] ) ) {
+			$sanitised['order_dir'] = $sanitised['order'];
+		}
+
 		// Translate Y-m-d date_from / date_to into the micros bounds QueryArgs consumes.
 		return FiltersView::normalize_date_inputs( $sanitised );
 	}

@@ -59,14 +59,29 @@ final class SortTest extends TestCase {
 		Sort::validate( 'id', 'DESC' );
 	}
 
-	public function test_validate_rejects_route_column(): void {
+	public function test_validate_rejects_user_id_column(): void {
 		$this->expectException( \InvalidArgumentException::class );
-		Sort::validate( 'route', 'ASC' );
+		Sort::validate( 'user_id', 'ASC' );
 	}
 
-	public function test_validate_rejects_status_column(): void {
-		$this->expectException( \InvalidArgumentException::class );
-		Sort::validate( 'status', 'ASC' );
+	public function test_validate_accepts_route_column(): void {
+		$result = Sort::validate( 'route', 'ASC' );
+		$this->assertSame( 'route', $result['column'] );
+	}
+
+	public function test_validate_accepts_status_column(): void {
+		$result = Sort::validate( 'status', 'DESC' );
+		$this->assertSame( 'status', $result['column'] );
+	}
+
+	public function test_validate_accepts_method_column(): void {
+		$result = Sort::validate( 'method', 'ASC' );
+		$this->assertSame( 'method', $result['column'] );
+	}
+
+	public function test_validate_accepts_created_at_micros_column(): void {
+		$result = Sort::validate( 'created_at_micros', 'DESC' );
+		$this->assertSame( 'created_at_micros', $result['column'] );
 	}
 
 	public function test_validate_rejects_unknown_direction(): void {

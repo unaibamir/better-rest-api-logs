@@ -149,8 +149,18 @@ final class QueryBuilder {
 		$offset     = max( 0, $offset );
 		$per_page   = max( 1, $per_page );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name + column list from constants/accessor; sort dir from Sort::validate whitelist; LIMIT/OFFSET integers (clamped above); user values flow through bindings.
-		$sql        = "SELECT {$col_list} FROM {$logs_table}{$where_sql} ORDER BY created_at_micros {$sort_dir}, id {$sort_dir} LIMIT %d OFFSET %d";
+		$order_by = self::resolve_order_column( $args->order_by );
+
+		// Secondary (created_at_micros, id) keeps the result set deterministic
+		// when the primary column has ties — newest first as a tiebreak.
+		if ( 'created_at_micros' === $order_by ) {
+			$order_sql = "ORDER BY created_at_micros {$sort_dir}, id {$sort_dir}";
+		} else {
+			$order_sql = "ORDER BY {$order_by} {$sort_dir}, created_at_micros DESC, id DESC";
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name + column list from constants/accessor; sort dir from Sort::validate whitelist; order column resolved through Sort whitelist; LIMIT/OFFSET integers (clamped above); user values flow through bindings.
+		$sql        = "SELECT {$col_list} FROM {$logs_table}{$where_sql} {$order_sql} LIMIT %d OFFSET %d";
 		$bindings   = $where_parts['bindings'];
 		$bindings[] = $per_page;
 		$bindings[] = $offset;
@@ -159,6 +169,21 @@ final class QueryBuilder {
 			'sql'      => $sql,
 			'bindings' => $bindings,
 		];
+	}
+
+	/**
+	 * Map the user-facing order_by string to the physical column the SELECT
+	 * orders on. `created_at` is the legacy alias for `created_at_micros`
+	 * (the actual indexed column); both arrive through Sort::validate.
+	 *
+	 * @param  string $order_by Whitelisted value from Sort::ALLOWED_COLUMNS.
+	 * @return string           Physical column name to use in ORDER BY.
+	 */
+	private static function resolve_order_column( string $order_by ): string {
+		if ( 'created_at' === $order_by ) {
+			return 'created_at_micros';
+		}
+		return $order_by;
 	}
 
 	/**

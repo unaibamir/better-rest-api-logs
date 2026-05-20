@@ -76,4 +76,73 @@ final class QueryBuilderTest extends TestCase {
 
 		$this->assertContains( '/wp/\\_internal/%', $out['bindings'] );
 	}
+
+	public function test_default_sort_uses_created_at_micros_tuple(): void {
+		$args = QueryArgs::from_array( [] );
+		$out  = ( new QueryBuilder() )->build_paged( $args, 0, 10 );
+
+		$this->assertStringContainsString( 'ORDER BY created_at_micros DESC, id DESC', $out['sql'] );
+	}
+
+	public function test_sort_by_route_uses_route_with_tiebreak(): void {
+		$args = QueryArgs::from_array(
+			[
+				'order_by'  => 'route',
+				'order_dir' => 'asc',
+			]
+		);
+		$out  = ( new QueryBuilder() )->build_paged( $args, 0, 10 );
+
+		$this->assertStringContainsString( 'ORDER BY route ASC, created_at_micros DESC, id DESC', $out['sql'] );
+	}
+
+	public function test_sort_by_status_desc(): void {
+		$args = QueryArgs::from_array(
+			[
+				'order_by'  => 'status',
+				'order_dir' => 'desc',
+			]
+		);
+		$out  = ( new QueryBuilder() )->build_paged( $args, 0, 10 );
+
+		$this->assertStringContainsString( 'ORDER BY status DESC, created_at_micros DESC, id DESC', $out['sql'] );
+	}
+
+	public function test_sort_by_method_asc(): void {
+		$args = QueryArgs::from_array(
+			[
+				'order_by'  => 'method',
+				'order_dir' => 'asc',
+			]
+		);
+		$out  = ( new QueryBuilder() )->build_paged( $args, 0, 10 );
+
+		$this->assertStringContainsString( 'ORDER BY method ASC, created_at_micros DESC, id DESC', $out['sql'] );
+	}
+
+	public function test_sort_by_duration_ms_desc(): void {
+		$args = QueryArgs::from_array(
+			[
+				'order_by'  => 'duration_ms',
+				'order_dir' => 'desc',
+			]
+		);
+		$out  = ( new QueryBuilder() )->build_paged( $args, 0, 10 );
+
+		$this->assertStringContainsString( 'ORDER BY duration_ms DESC, created_at_micros DESC, id DESC', $out['sql'] );
+	}
+
+	public function test_legacy_created_at_alias_resolves_to_created_at_micros(): void {
+		$args = QueryArgs::from_array(
+			[
+				'order_by'  => 'created_at',
+				'order_dir' => 'asc',
+			]
+		);
+		$out  = ( new QueryBuilder() )->build_paged( $args, 0, 10 );
+
+		// The user-facing alias must produce the same tuple as the canonical
+		// created_at_micros — both columns hold the same value.
+		$this->assertStringContainsString( 'ORDER BY created_at_micros ASC, id ASC', $out['sql'] );
+	}
 }
