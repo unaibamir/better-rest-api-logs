@@ -299,7 +299,7 @@ final class ListTable extends \WP_List_Table {
 			),
 		];
 
-		return $route_link . $this->row_actions( $actions, true );
+		return $route_link . $this->row_actions( $actions );
 	}
 
 	/**
