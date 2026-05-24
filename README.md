@@ -11,7 +11,7 @@ Pre-1.0. Tooling, CI, and lifecycle hooks land first; capture, storage, REST API
 ## Tech
 
 - PHP 7.4 → 8.4 (7.4 floor for WP.org install reach)
-- WordPress 6.6 → current (7.0 verified at tag time when released)
+- WordPress 6.6 → 7.0
 - Composer classmap autoload over `includes/`
 - WPCS 3.3 + PHPCompatibilityWP 2.1 (testVersion 7.4-)
 - PHPStan level 6 (level 8 target in v1.1)
