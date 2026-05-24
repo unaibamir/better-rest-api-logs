@@ -99,7 +99,36 @@ final class Admin {
 		if ( false !== $hook ) {
 			$this->screen_id = (string) $hook;
 			$this->assets->set_detail_screen_id( $this->screen_id );
+
+			// Hidden submenu pages (parent_slug = '') aren't recorded in $menu
+			// or $submenu, so get_admin_page_title() can't find a title and
+			// leaves the global $title as null. wp-admin/admin-header.php then
+			// runs strip_tags( $title ) — deprecated on PHP 8.1+. Seed $title
+			// ourselves on load-{hook}, which fires before admin-header.php.
+			\add_action( 'load-' . $hook, [ self::class, 'seed_detail_page_title' ] );
 		}
+	}
+
+	/**
+	 * Populate $GLOBALS['title'] for the hidden detail submenu page so
+	 * wp-admin/admin-header.php has a non-null value to strip_tags().
+	 *
+	 * @return void
+	 */
+	public static function seed_detail_page_title(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only title hint; the render path enforces capability + nonce on every state-changing action.
+		$log_id = isset( $_GET['log_id'] ) ? \absint( $_GET['log_id'] ) : 0;
+
+		$title = $log_id > 0
+			? \sprintf(
+				/* translators: %d: log entry ID */
+				\__( 'REST API Log #%d', 'better-rest-api-logs' ),
+				$log_id
+			)
+			: \__( 'Log entry', 'better-rest-api-logs' );
+
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- $title is the canonical global wp-admin/admin-header.php reads on every screen; WP core itself sets it the same way from wp-admin/post.php, wp-admin/edit.php, etc.
+		$GLOBALS['title'] = $title;
 	}
 
 	/**
