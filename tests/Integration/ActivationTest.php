@@ -16,6 +16,13 @@ final class ActivationTest extends WP_UnitTestCase {
 		\delete_option( 'brl_settings_delete_on_uninstall' );
 	}
 
+	public function tear_down(): void {
+		// activate() schedules brl_purge_tick when retention is active; clear it
+		// so the committed cron event does not bleed into later cron tests.
+		\wp_clear_scheduled_hook( 'brl_purge_tick' );
+		parent::tear_down();
+	}
+
 	public function test_activator_seeds_db_version_option(): void {
 		Activator::activate();
 		$this->assertSame( '0', \get_option( 'brl_db_version' ) );

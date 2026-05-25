@@ -74,6 +74,7 @@ final class PurgeTickTest extends WP_UnitTestCase {
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
 		\delete_transient( 'brl_purge_running' );
+		\wp_clear_scheduled_hook( 'brl_purge_tick' );
 		\wp_set_current_user( 0 );
 		while ( \ob_get_level() > $this->ob_level_before ) {
 			\ob_end_clean();

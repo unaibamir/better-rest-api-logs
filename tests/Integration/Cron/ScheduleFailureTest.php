@@ -53,6 +53,12 @@ final class ScheduleFailureTest extends WP_UnitTestCase {
 		\wp_set_current_user( $this->admin_id );
 
 		Plugin::instance()->boot();
+
+		// This suite exercises the "not yet scheduled" path. Earlier tests (the
+		// activator, the purge follow-up) commit a brl_purge_tick event that
+		// bleeds across the disabled temporary-table rollback, so start from a
+		// guaranteed-unscheduled state.
+		\wp_clear_scheduled_hook( 'brl_purge_tick' );
 	}
 
 	public function tear_down(): void {
