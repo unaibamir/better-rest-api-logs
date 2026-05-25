@@ -84,7 +84,11 @@ final class TruncateChainTest extends WP_UnitTestCase {
 	// Helpers
 	// -------------------------------------------------------------------------
 
-	/** Insert a handful of log rows so row-count assertions are meaningful. */
+	/**
+	 * Insert a handful of log rows so row-count assertions are meaningful.
+	 *
+	 * @param int $count Number of rows to insert. Defaults to 5.
+	 */
 	private function seed_rows( int $count = 5 ): void {
 		$entries = [];
 		for ( $i = 0; $i < $count; $i++ ) {
@@ -112,6 +116,8 @@ final class TruncateChainTest extends WP_UnitTestCase {
 	/**
 	 * Set up a nonce in $_POST and mirror it to $_REQUEST so check_admin_referer
 	 * passes. Mirrors Lesson #4.
+	 *
+	 * @param string $action The nonce action string.
 	 */
 	private function prime_nonce( string $action ): void {
 		$nonce                = \wp_create_nonce( $action );
@@ -148,6 +154,7 @@ final class TruncateChainTest extends WP_UnitTestCase {
 		);
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- dispatching WP's admin-post routing hook, not registering a plugin hook.
 			\do_action( 'admin_post_brl_truncate_confirm' );
 		} finally {
 			\remove_filter( 'wp_redirect', '__return_false', 99 );
@@ -174,6 +181,7 @@ final class TruncateChainTest extends WP_UnitTestCase {
 		\add_filter( 'wp_redirect', '__return_false', 99 );
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- dispatching WP's admin-post routing hook, not registering a plugin hook.
 			\do_action( 'admin_post_brl_truncate_all' );
 		} finally {
 			\remove_filter( 'wp_redirect', '__return_false', 99 );
@@ -204,6 +212,7 @@ final class TruncateChainTest extends WP_UnitTestCase {
 		\add_filter( 'wp_redirect', '__return_false', 99 );
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- dispatching WP's admin-post routing hook, not registering a plugin hook.
 			\do_action( 'admin_post_brl_truncate_all' );
 		} finally {
 			\remove_filter( 'wp_redirect', '__return_false', 99 );
@@ -239,6 +248,7 @@ final class TruncateChainTest extends WP_UnitTestCase {
 		);
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- dispatching WP's admin-post routing hook, not registering a plugin hook.
 			\do_action( 'admin_post_brl_truncate_all' );
 		} finally {
 			\remove_filter( 'wp_redirect', '__return_false', 99 );

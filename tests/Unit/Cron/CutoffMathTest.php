@@ -6,10 +6,6 @@
  * Uses class_exists() + method_exists() guard — skips cleanly rather than
  * fatalling the unit suite. Skip reason names the implementing wave.
  *
- * The test injects a FixedClock subclass (defined below) to pin a known Unix
- * timestamp, then asserts the returned DATETIME string matches the expected
- * arithmetic and the correct shape for SQL comparisons.
- *
  * @package BetterRestApiLogs
  */
 
@@ -19,38 +15,6 @@ namespace BetterRestApiLogs\Tests\Unit\Cron;
 
 use BetterRestApiLogs\Support\Clock;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
-
-/**
- * Stand-alone clock stub for CutoffMathTest.
- *
- * Clock is final so we cannot subclass it. Instead, when Clock gains a
- * cutoff_datetime(int $days): string method in Wave 1, that method must
- * accept an optional $now_unix parameter (or use now_unix() as an overridable
- * seam). This stub exposes the same arithmetic so the test can assert the
- * expected value without calling the real class.
- *
- * If Wave 1 implements cutoff_datetime($days, ?int $now = null), the tests
- * below call Clock::cutoff_datetime($days, self::PINNED_TS) directly.
- *
- * @internal Only for unit tests.
- */
-final class FixedClockHelper {
-
-	/** @var int Pinned Unix timestamp. */
-	public int $pinned;
-
-	public function __construct( int $pinned ) {
-		$this->pinned = $pinned;
-	}
-
-	/**
-	 * Compute the expected cutoff string using the same formula Clock must use.
-	 * This lets CutoffMathTest assert the expected value without touching Clock.
-	 */
-	public function expected_cutoff( int $days ): string {
-		return \gmdate( 'Y-m-d H:i:s', $this->pinned - $days * DAY_IN_SECONDS );
-	}
-}
 
 /**
  * Covers the cutoff_datetime() arithmetic against a pinned clock (PURGE-01).

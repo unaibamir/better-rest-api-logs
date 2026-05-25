@@ -101,7 +101,11 @@ final class CsvWriterTest extends TestCase {
 		$this->assertStringContainsString( '"\'=', $output, 'Formula cell starting with = must be apostrophe-prefixed.' );
 	}
 
-	/** @dataProvider formula_prefix_provider */
+	/**
+	 * @dataProvider formula_prefix_provider
+	 * @param string $trigger The trigger character to test.
+	 * @param string $label   Human-readable label for failure messages.
+	 */
 	public function test_formula_prefix_all_triggers( string $trigger, string $label ): void {
 		$this->skip_until_wave1();
 		$entry  = $this->make_entry( $trigger . 'dangerous_value' );

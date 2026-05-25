@@ -22,6 +22,7 @@ use BetterRestApiLogs\Capture\IpResolver;
 use BetterRestApiLogs\Capture\Redactor;
 use BetterRestApiLogs\Capture\Truncator;
 use BetterRestApiLogs\Cron\Purge as CronPurge;
+use BetterRestApiLogs\Cron\Scheduler as CronScheduler;
 use BetterRestApiLogs\DB\BodyRepository;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\DB\Schema;
@@ -93,6 +94,29 @@ final class Plugin {
 		\add_action( 'admin_init', [ $registry, 'register_with_wp' ] );
 		\add_action( 'updated_option', [ $registry, 'invalidate_cache_on_option_change' ] );
 		\add_action( 'added_option', [ $registry, 'invalidate_cache_on_option_change' ] );
+
+		// Reconcile the purge schedule when the retention tab is saved. If the
+		// user flips retention_days to 0 (keep-forever), clear the event so no
+		// purge ever fires. Flipping from 0 to a positive value (re)schedules it.
+		// Uses updated_option rather than a Registry hook so the WP option write
+		// has already committed before we call wp_schedule_event — no $_POST assumed.
+		\add_action(
+			'updated_option',
+			static function ( string $option, $old, $new_value ): void {
+				if ( 'brl_settings_retention' !== $option ) {
+					return;
+				}
+				$days      = isset( $new_value['retention_days'] ) ? (int) $new_value['retention_days'] : 0;
+				$scheduler = new CronScheduler();
+				if ( $days > 0 ) {
+					$scheduler->schedule();
+				} else {
+					$scheduler->unschedule();
+				}
+			},
+			10,
+			3
+		);
 
 		// Schema diagnostics — admin notice (D-23) and Site Health (D-22).
 		\add_action( 'admin_notices', [ Schema::class, 'maybe_render_broken_notice' ] );
@@ -226,6 +250,12 @@ final class Plugin {
 		// The admin-notice and Site Health hooks expose schedule failures (D-07)
 		// via the same pattern as Logger\Breaker above.
 		// -----------------------------------------------------------------------
+		$this->container->bind(
+			CronScheduler::class,
+			static fn ( Container $c ) => new CronScheduler(
+				$c->get( Clock::class )
+			)
+		);
 		$this->container->bind(
 			CronPurge::class,
 			static fn ( Container $c ) => new CronPurge(

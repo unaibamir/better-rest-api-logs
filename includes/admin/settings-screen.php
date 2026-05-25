@@ -311,7 +311,6 @@ p.submit{display:flex;gap:8px;align-items:center;margin-top:16px;}
 	public static function handle_truncate_all(): void {
 		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
 			\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
-			return; // Defensive return — wp_die normally exits; return guards test seams where wp_die is mocked.
 		}
 
 		\check_admin_referer( 'brl_truncate_all' );

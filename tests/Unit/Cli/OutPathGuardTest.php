@@ -42,7 +42,11 @@ final class OutPathGuardTest extends TestCase {
 		return \BetterRestApiLogs\Cli\Commands\ExportCommand::is_safe_out_path( $path );
 	}
 
-	/** @dataProvider unsafe_paths_provider */
+	/**
+	 * @dataProvider unsafe_paths_provider
+	 * @param string $path  The path to test.
+	 * @param string $label Human-readable label for failure messages.
+	 */
 	public function test_traversal_paths_are_rejected( string $path, string $label ): void {
 		$this->skip_until_wave1();
 		$this->assertFalse( $this->call_guard( $path ), "Path '{$label}' must be rejected." );
@@ -60,7 +64,11 @@ final class OutPathGuardTest extends TestCase {
 		];
 	}
 
-	/** @dataProvider safe_paths_provider */
+	/**
+	 * @dataProvider safe_paths_provider
+	 * @param string $path  The path to test.
+	 * @param string $label Human-readable label for failure messages.
+	 */
 	public function test_safe_paths_are_accepted( string $path, string $label ): void {
 		$this->skip_until_wave1();
 		$this->assertTrue( $this->call_guard( $path ), "Path '{$label}' must be accepted." );

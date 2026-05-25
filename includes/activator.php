@@ -5,6 +5,7 @@ namespace BetterRestApiLogs;
 
 defined( 'ABSPATH' ) || exit;
 
+use BetterRestApiLogs\Cron\Scheduler as CronScheduler;
 use BetterRestApiLogs\DB\Schema;
 use BetterRestApiLogs\Settings\Defaults;
 
@@ -50,6 +51,27 @@ final class Activator {
 		// every activation. dbDelta is idempotent so the double-run is safe.
 		Schema::install();
 
-		// (Phase 5 lands the wp_schedule_event call here.)
+		// Schedule the retention purge event only when retention is active.
+		// Skipped entirely when retention_days = 0 (keep-forever) per D-02.
+		// wp_schedule_event return is captured; false writes the schedule_error
+		// marker so the admin notice + Site Health entry fire on the next page
+		// load without needing a real cron tick first (D-07).
+		//
+		// Plugin::boot() has not run at activation time, so the container-managed
+		// Registry instance is unavailable. Read the retention option directly;
+		// Defaults::for_tab() supplies the fallback so a fresh install (where the
+		// option may not exist yet) still gets the default 30-day value.
+		$retention_raw = \get_option( 'brl_settings_retention', [] );
+		$retention_raw = \is_array( $retention_raw ) ? $retention_raw : [];
+		$default_days  = Defaults::for_tab( 'retention' )['retention_days'] ?? 30;
+		$days          = isset( $retention_raw['retention_days'] )
+			? (int) $retention_raw['retention_days']
+			: (int) $default_days;
+		if ( $days > 0 ) {
+			// schedule() returns false when wp_schedule_event fails and internally
+			// writes purge_state.schedule_error so the admin notice surfaces on the
+			// next page load without any additional work here (D-07).
+			( new CronScheduler() )->schedule();
+		}
 	}
 }

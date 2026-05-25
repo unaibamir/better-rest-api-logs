@@ -221,7 +221,7 @@ final class BulkActionHandler {
 		// wp_unslash + sanitize_text_field at the from_array boundary (QueryArgs
 		// already validates each field; sanitize_text_field strips tags + trims).
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified at top.
-		$raw_args = isset( $_POST ) ? (array) $_POST : [];
+		$raw_args = (array) $_POST;
 		$clean    = [];
 		foreach ( $raw_args as $k => $v ) {
 			$clean[ \sanitize_key( $k ) ] = \is_array( $v )
@@ -282,7 +282,6 @@ final class BulkActionHandler {
 		$sink = \fopen( 'php://output', 'wb' );
 		if ( false === $sink ) {
 			\wp_die( \esc_html__( 'Could not open output stream.', 'better-rest-api-logs' ), '', [ 'response' => 500 ] );
-			return;
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- streaming to php://output.
