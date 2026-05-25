@@ -73,6 +73,15 @@ if ( 'unit' === $brl_suite ) {
 	}
 	// phpcs:enable WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
 	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+
+	// WP time constants — the integration suite gets them from WP core; the unit
+	// suite needs them for Clock::cutoff_datetime() and the CutoffMathTest helper.
+	// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
+	defined( 'MINUTE_IN_SECONDS' ) || define( 'MINUTE_IN_SECONDS', 60 );
+	defined( 'HOUR_IN_SECONDS' ) || define( 'HOUR_IN_SECONDS', 3600 );
+	defined( 'DAY_IN_SECONDS' ) || define( 'DAY_IN_SECONDS', 86400 );
+	defined( 'WEEK_IN_SECONDS' ) || define( 'WEEK_IN_SECONDS', 604800 );
+	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
 	return;
 }
 

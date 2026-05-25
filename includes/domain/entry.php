@@ -94,6 +94,7 @@ final class Entry {
 	 */
 	public function to_array(): array {
 		return [
+			'id'                      => $this->id,
 			'created_at'              => $this->created_at,
 			'created_at_micros'       => $this->created_at_micros,
 			'method'                  => $this->method,
