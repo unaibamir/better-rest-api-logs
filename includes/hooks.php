@@ -373,6 +373,89 @@ defined( 'ABSPATH' ) || exit;
  *
  * ──────────────────────────────────────────────────────────────────────────────
  *
+ * Action: brl_purge_completed
+ *
+ * Fires at the end of each purge tick after the batch delete commits.
+ * Use it to update a dashboard widget, send an alert when a large number of
+ * rows are deleted, or chain custom clean-up work that depends on the purge.
+ * Not fired when the tick bails early on the transient lock or on a
+ * keep-forever site (retention_days = 0).
+ *
+ * @since 1.0.0
+ *
+ * @param int  $deleted      Number of log rows deleted in this batch.
+ * @param bool $more_pending True when the batch was full and a follow-up tick
+ *                           has been re-enqueued to drain the remaining rows.
+ *
+ * @example
+ *   add_action(
+ *       'brl_purge_completed',
+ *       static function ( $deleted, $more_pending ) {
+ *           if ( $deleted > 500 ) {
+ *               // Large purge — surface a Slack alert.
+ *               my_plugin_notify_slack( "Purged {$deleted} REST log rows." );
+ *           }
+ *       },
+ *       10,
+ *       2
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Filter: brl_export_filename
+ *
+ * Override the generated download filename before headers are sent. Receives
+ * the default name (e.g. `brl-export-2026-05-26.csv`) and the requested
+ * format so you can adjust the name by format or add a site-specific prefix.
+ * Return a non-string to keep the default.
+ *
+ * @since 1.0.0
+ *
+ * @param string $name   Default filename including extension.
+ * @param string $format Export format: 'csv' or 'ndjson'.
+ *
+ * @example
+ *   add_filter(
+ *       'brl_export_filename',
+ *       static function ( $name, $format ) {
+ *           // Prefix every download with the site slug.
+ *           $slug = sanitize_title( get_bloginfo( 'name' ) );
+ *           return "{$slug}-{$name}";
+ *       },
+ *       10,
+ *       2
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Filter: brl_export_query_args
+ *
+ * Mutate the resolved QueryArgs object before the export cursor walk begins.
+ * Fires from all three export surfaces (admin bulk action, REST one-shot URL,
+ * and WP-CLI). Use $surface to apply surface-specific restrictions, or
+ * override the effective filter set regardless of what the caller requested.
+ *
+ * @since 1.0.0
+ *
+ * @param \BetterRestApiLogs\DB\Query\QueryArgs $args    Validated filter set for this export.
+ * @param string                                $surface One of 'admin' | 'rest' | 'cli'.
+ *
+ * @example
+ *   add_filter(
+ *       'brl_export_query_args',
+ *       static function ( $args, $surface ) {
+ *           // REST exports may only see the current user's own requests.
+ *           if ( 'rest' === $surface ) {
+ *               $args->user_id = get_current_user_id();
+ *           }
+ *           return $args;
+ *       },
+ *       10,
+ *       2
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
  * Filter: brl_admin_required_capability
  *
  * Swaps the default `manage_options` cap for a custom role across every cap

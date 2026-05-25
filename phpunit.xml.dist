@@ -39,6 +39,13 @@
             <directory suffix=".php">includes/support</directory>
             <directory suffix=".php">includes/settings</directory>
             <file>includes/db/database.php</file>
+            <!--
+                Phase 5 coverage scope: pure-PHP export writers are unit-testable;
+                WP-coupled cron and streaming classes are integration-only and
+                excluded below so they don't dilute the unit coverage gate.
+            -->
+            <directory suffix=".php">includes/export</directory>
+            <directory suffix=".php">includes/cron</directory>
         </include>
         <exclude>
             <file>includes/db/log-repository.php</file>
@@ -47,6 +54,10 @@
             <file>includes/db/schema.php</file>
             <file>includes/settings/repository.php</file>
             <directory>includes/db/query</directory>
+            <!-- WP-coupled cron + streaming classes; covered by the integration suite. -->
+            <file>includes/cron/purge.php</file>
+            <file>includes/cron/scheduler.php</file>
+            <file>includes/export/streamer.php</file>
         </exclude>
     </coverage>
 
