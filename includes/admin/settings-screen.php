@@ -179,6 +179,8 @@ final class SettingsScreen {
 	 */
 	public static function handle_truncate_confirm(): void {
 		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
+			// wp_die() ends the request for unauthorized users; this interstitial
+			// is read-only and submits to the capability-gated truncate handler.
 			\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
 		}
 
@@ -309,10 +311,25 @@ p.submit{display:flex;gap:8px;align-items:center;margin-top:16px;}
 	 * @return void
 	 */
 	public static function handle_truncate_all(): void {
-		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
-			\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
+		if ( \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
+			self::run_truncate_all();
+			return;
 		}
 
+		// Unauthorized requests end here. wp_die() exits under a real request;
+		// keeping it as the terminal statement means the destructive truncate
+		// (gated above) cannot run without the capability even if a
+		// wp_die_handler filter is short-circuited under test.
+		\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
+	}
+
+	/**
+	 * Empty both log tables. Reached only through the capability gate in
+	 * handle_truncate_all().
+	 *
+	 * @return void
+	 */
+	private static function run_truncate_all(): void {
 		\check_admin_referer( 'brl_truncate_all' );
 
 		$settings_url = \admin_url( 'options-general.php?page=better-rest-api-logs-settings&tab=advanced' );
