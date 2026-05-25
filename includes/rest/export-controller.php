@@ -225,62 +225,66 @@ final class ExportController {
 	/**
 	 * Declared args for POST /export.
 	 *
-	 * Mirrors the list_args() shape from Routes — sanitize at the WP REST
-	 * boundary before values reach QueryArgs::from_array(). The format param
-	 * is handled by sanitize_format() after passing through sanitize_text_field.
+	 * Integer filter params are declared with 'type' => 'integer' so the WP
+	 * REST layer rejects non-integer input at the schema boundary before the
+	 * values reach QueryArgs::from_array(). String-only fields keep
+	 * sanitize_text_field for consistent trimming and tag-stripping.
 	 *
 	 * @return array<string,array<string,mixed>>
 	 */
 	private static function mint_args(): array {
-		$sanitize = 'sanitize_text_field';
+		$sanitize_str = 'sanitize_text_field';
 		return [
 			'format'           => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
 			'method'           => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
+			// status is an integer (HTTP 100-599); reject floats/strings at the boundary.
 			'status'           => [
-				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
 			],
 			'status_class'     => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
 			'route_prefix'     => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
+			// user_id is a non-negative integer; absint enforces that.
 			'user_id'          => [
-				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
 			],
 			'ip'               => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
+			// Microsecond timestamps are large integers (up to ~1.7e15 on 64-bit PHP).
 			'date_from_micros' => [
-				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
 			],
 			'date_to_micros'   => [
-				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
 			],
 			'free_text'        => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
 			'order_by'         => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
 			'order_dir'        => [
 				'type'              => 'string',
-				'sanitize_callback' => $sanitize,
+				'sanitize_callback' => $sanitize_str,
 			],
 		];
 	}
