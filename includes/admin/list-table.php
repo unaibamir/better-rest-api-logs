@@ -102,18 +102,30 @@ final class ListTable extends \WP_List_Table {
 	/**
 	 * Bulk actions available on the list table.
 	 *
+	 * Export bulk actions route to admin-post.php?action=brl_export via the
+	 * handle() dispatch so the streaming download can complete before shutdown.
+	 *
 	 * @return array<string,string>
 	 */
 	public function get_bulk_actions(): array {
-		return [ 'brl_delete' => \esc_html__( 'Delete selected', 'better-rest-api-logs' ) ];
+		return [
+			'brl_delete'        => \esc_html__( 'Delete selected', 'better-rest-api-logs' ),
+			'brl_export_csv'    => \esc_html__( 'Export selected (CSV)', 'better-rest-api-logs' ),
+			'brl_export_ndjson' => \esc_html__( 'Export selected (NDJSON)', 'better-rest-api-logs' ),
+		];
 	}
 
 	/**
-	 * Inject the filter controls into the top tablenav row.
+	 * Inject the filter controls and the "Export current view" control into the
+	 * top tablenav row.
 	 *
 	 * WP_List_Table::display_tablenav() emits this method's output right after
 	 * the bulk-actions <select> + Apply button, so the date / method / status /
 	 * route_prefix inputs sit on the same row.
+	 *
+	 * The export control is its own mini-form posting to admin-post.php so the
+	 * active QueryArgs filter set flows through as hidden inputs — EXP-04 is a
+	 * free consequence rather than extra serialization logic.
 	 *
 	 * @param string $which 'top' or 'bottom'.
 	 */
@@ -122,6 +134,76 @@ final class ListTable extends \WP_List_Table {
 			return;
 		}
 		$this->filters_view->render_inline( $this->current_args, $this->oldest_newest );
+		$this->render_export_current_view();
+	}
+
+	/**
+	 * Render the "Export current view" control appended to the top tablenav row.
+	 *
+	 * Posts to admin-post.php (action=brl_export) with the active QueryArgs
+	 * serialised as hidden inputs so the export honours the active filter exactly.
+	 * The button is disabled — with accessible title + screen-reader text — when
+	 * zero rows match the active filters (UI-SPEC §4, A11Y-03).
+	 *
+	 * @return void
+	 */
+	private function render_export_current_view(): void {
+		$total    = $this->get_pagination_arg( 'total_items' );
+		$disabled = ( (int) $total <= 0 ) ? ' disabled' : '';
+		$nonce    = \wp_create_nonce( 'brl_export' );
+
+		$action_url = \admin_url( 'admin-post.php' );
+
+		echo '<span class="brl-export-current">';
+
+		// Visually hidden label for the format selector (A11Y-03).
+		\printf(
+			'<label for="brl-export-format" class="screen-reader-text">%s</label>',
+			\esc_html__( 'Export format', 'better-rest-api-logs' )
+		);
+
+		\printf( '<form method="post" action="%s" style="display:inline;">', \esc_url( $action_url ) );
+
+		echo '<input type="hidden" name="action" value="brl_export" />';
+		\printf( '<input type="hidden" name="_wpnonce" value="%s" />', \esc_attr( $nonce ) );
+
+		// Replay active filter state so the export honours the current view (EXP-04).
+		if ( null !== $this->current_args ) {
+			foreach ( $this->current_args->to_query_var_array() as $key => $value ) {
+				\printf(
+					'<input type="hidden" name="%s" value="%s" />',
+					\esc_attr( (string) $key ),
+					\esc_attr( (string) $value )
+				);
+			}
+		}
+
+		// Format selector — NDJSON first (recommended default, formula-safe by construction).
+		echo '<select id="brl-export-format" name="format">';
+		\printf( '<option value="ndjson">%s</option>', \esc_html__( 'NDJSON', 'better-rest-api-logs' ) );
+		\printf( '<option value="csv">%s</option>', \esc_html__( 'CSV', 'better-rest-api-logs' ) );
+		echo '</select>';
+
+		if ( '' !== $disabled ) {
+			\printf(
+				'<button type="submit" class="button button-primary"%s title="%s">%s</button>',
+				\esc_attr( $disabled ),
+				\esc_attr__( 'No rows match the current filters.', 'better-rest-api-logs' ),
+				\esc_html__( 'Export current view', 'better-rest-api-logs' )
+			);
+			\printf(
+				'<span class="screen-reader-text">%s</span>',
+				\esc_html__( 'No rows to export.', 'better-rest-api-logs' )
+			);
+		} else {
+			\printf(
+				'<button type="submit" class="button button-primary">%s</button>',
+				\esc_html__( 'Export current view', 'better-rest-api-logs' )
+			);
+		}
+
+		echo '</form>';
+		echo '</span>';
 	}
 
 	/**

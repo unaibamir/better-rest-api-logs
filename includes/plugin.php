@@ -29,6 +29,7 @@ use BetterRestApiLogs\Logger;
 use BetterRestApiLogs\Logger\Breaker;
 use BetterRestApiLogs\Logger\Flusher;
 use BetterRestApiLogs\Logger\Queue;
+use BetterRestApiLogs\Export\Streamer;
 use BetterRestApiLogs\Rest;
 use BetterRestApiLogs\Rest\ExportController;
 use BetterRestApiLogs\Rest\ListController;
@@ -301,6 +302,14 @@ final class Plugin {
 		);
 
 		$this->container->bind(
+			Streamer::class,
+			static fn ( Container $c ) => new Streamer(
+				$c->get( LogRepository::class ),
+				$c->get( BodyRepository::class )
+			)
+		);
+
+		$this->container->bind(
 			BulkActionHandler::class,
 			static fn ( Container $c ) => new BulkActionHandler(
 				$c->get( LogRepository::class )
@@ -347,6 +356,10 @@ final class Plugin {
 				$container->get( BulkActionHandler::class )->handle_single_delete();
 			}
 		);
+
+		// Export streaming handler — streams a CSV/NDJSON download then exits so
+		// the Flusher does not truncate the response body (T-05-06-05).
+		\add_action( 'admin_post_brl_export', [ BulkActionHandler::class, 'handle_export' ] );
 
 		// -----------------------------------------------------------------------
 		// Phase 4 — REST surface.

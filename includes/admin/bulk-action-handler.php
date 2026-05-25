@@ -5,7 +5,13 @@ namespace BetterRestApiLogs\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use BetterRestApiLogs\DB\BodyRepository;
 use BetterRestApiLogs\DB\LogRepository;
+use BetterRestApiLogs\DB\Query\QueryArgs;
+use BetterRestApiLogs\Export\CsvWriter;
+use BetterRestApiLogs\Export\NdjsonWriter;
+use BetterRestApiLogs\Export\Streamer;
+use BetterRestApiLogs\Plugin;
 
 /**
  * Admin-post handlers for bulk-delete and single-row-delete.
@@ -80,6 +86,14 @@ final class BulkActionHandler {
 
 		$base = $this->referer_url();
 
+		// Route export bulk actions to the streaming export path before the delete path.
+		// Format is encoded in the action slug (brl_export_csv / brl_export_ndjson).
+		if ( \in_array( $action, [ 'brl_export_csv', 'brl_export_ndjson' ], true ) ) {
+			$format = ( 'brl_export_csv' === $action ) ? 'csv' : 'ndjson';
+			self::stream_export_for_ids( $ids, $format );
+			return; // stream_export_for_ids exits; return is the test-seam path.
+		}
+
 		// Treat 'brl_delete', 'delete', and empty action (when log_ids are given) as delete.
 		$is_delete_action = \in_array( $action, [ 'brl_delete', 'delete', '' ], true );
 
@@ -151,6 +165,161 @@ final class BulkActionHandler {
 		} else {
 			$this->redirect_back( \add_query_arg( 'error', 'delete_failed', $base ) );
 		}
+	}
+
+	/**
+	 * Handle admin_post_brl_export — streams a download to the browser.
+	 *
+	 * Security order mirrors handle(): nonce first, capability second (T-05-06-05).
+	 * Resolves QueryArgs from POST: either the serialised active filter set ("Export
+	 * current view" path) or a list of selected log_ids ("Export selected" path).
+	 *
+	 * Calls exit after streaming so the Flusher::on_shutdown does not truncate the
+	 * response body (T-05-06-05). In integration tests the wp_redirect filter and
+	 * the exit gate are short-circuited by the test harness.
+	 *
+	 * @return void
+	 */
+	public static function handle_export(): void {
+		// SECURITY ORDER: nonce first — check_admin_referer calls wp_die on failure.
+		\check_admin_referer( 'brl_export' );
+
+		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
+			\wp_die(
+				\esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above via check_admin_referer.
+		$raw_format = isset( $_POST['format'] )
+			? \sanitize_key( \wp_unslash( (string) $_POST['format'] ) )
+			: 'ndjson';
+		$format     = ( 'csv' === $raw_format ) ? 'csv' : 'ndjson';
+
+		// Distinguish "Export selected" (log_ids[] present) from "Export current view".
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each element absint'd below.
+		$raw_ids = isset( $_POST['log_ids'] ) ? (array) \wp_unslash( $_POST['log_ids'] ) : [];
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$ids = \array_values(
+			\array_filter(
+				\array_map( 'absint', $raw_ids ),
+				static function ( int $i ): bool {
+					return $i > 0;
+				}
+			)
+		);
+
+		if ( [] !== $ids ) {
+			self::stream_export_for_ids( $ids, $format );
+			return; // Reached only in test seams where exit() is intercepted.
+		}
+
+		// "Export current view" — rebuild QueryArgs from the posted filter vars.
+		// wp_unslash + sanitize_text_field at the from_array boundary (QueryArgs
+		// already validates each field; sanitize_text_field strips tags + trims).
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified at top.
+		$raw_args = isset( $_POST ) ? (array) $_POST : [];
+		$clean    = [];
+		foreach ( $raw_args as $k => $v ) {
+			$clean[ \sanitize_key( $k ) ] = \is_array( $v )
+				? $v
+				: \sanitize_text_field( \wp_unslash( (string) $v ) );
+		}
+
+		try {
+			$args = QueryArgs::from_array( $clean );
+		} catch ( \InvalidArgumentException $_unused ) {
+			$args = new QueryArgs();
+		}
+
+		$timestamp = \gmdate( 'Y-m-d' );
+		$filename  = "rest-api-logs-{$timestamp}.{$format}";
+
+		$streamer = Plugin::instance()->container()->get( Streamer::class );
+		$streamer->send_download_headers( $format, $filename );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://output is not a filesystem path; WP_Filesystem has no equivalent.
+		$sink = \fopen( 'php://output', 'wb' );
+		if ( false === $sink ) {
+			\wp_die( \esc_html__( 'Could not open output stream.', 'better-rest-api-logs' ), '', [ 'response' => 500 ] );
+		}
+
+		$streamer->stream( $args, $format, $sink, true );
+
+		// Exit before shutdown so Flusher::on_shutdown does not truncate the stream
+		// (T-05-06-05). Integration tests intercept exit via the wp_redirect filter
+		// and the test harness's exit-override mechanism.
+		exit;
+	}
+
+	/**
+	 * Stream an export for a specific set of log ids (the "Export selected" path).
+	 *
+	 * Fetches each selected row via LogRepository::find() and writes it through
+	 * the appropriate format writer. Bounded by the number of checkboxes the
+	 * admin can select on a single page (max 500 per Screen Options clamp).
+	 * Sends download headers, streams, and exits.
+	 *
+	 * @param int[]  $ids    Validated positive integers.
+	 * @param string $format 'csv' or 'ndjson'.
+	 * @return void
+	 */
+	private static function stream_export_for_ids( array $ids, string $format ): void {
+		$timestamp = \gmdate( 'Y-m-d' );
+		$filename  = "rest-api-logs-selected-{$timestamp}.{$format}";
+
+		$streamer = Plugin::instance()->container()->get( Streamer::class );
+		$streamer->send_download_headers( $format, $filename );
+
+		$repo   = Plugin::instance()->container()->get( LogRepository::class );
+		$bodies = new BodyRepository();
+		$writer = 'csv' === $format ? new CsvWriter() : new NdjsonWriter();
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://output is not a filesystem path.
+		$sink = \fopen( 'php://output', 'wb' );
+		if ( false === $sink ) {
+			\wp_die( \esc_html__( 'Could not open output stream.', 'better-rest-api-logs' ), '', [ 'response' => 500 ] );
+			return;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- streaming to php://output.
+		\fwrite( $sink, $writer->preamble() );
+
+		// Fetch rows by ID. Bounded by the page's row count (max 500).
+		$rows = [];
+		foreach ( $ids as $id ) {
+			$entry = $repo->find( $id );
+			if ( null !== $entry ) {
+				$rows[] = $entry;
+			}
+		}
+
+		// Resolve spilled bodies for NDJSON (D-13) in a single batch query.
+		if ( 'ndjson' === $format && [] !== $rows ) {
+			$spilled_ids = [];
+			foreach ( $rows as $entry ) {
+				if ( $entry->bodies_spilled ) {
+					$spilled_ids[] = $entry->id;
+				}
+			}
+			if ( [] !== $spilled_ids ) {
+				$body_map = $bodies->find_by_log_ids( $spilled_ids );
+				foreach ( $rows as $entry ) {
+					if ( $entry->bodies_spilled && isset( $body_map[ $entry->id ] ) ) {
+						$entry->request_body  = $body_map[ $entry->id ]['request_body'];
+						$entry->response_body = $body_map[ $entry->id ]['response_body'];
+					}
+				}
+			}
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- streaming to php://output.
+		\fwrite( $sink, $writer->rows( $rows ) );
+		\flush();
+		exit;
 	}
 
 	/**

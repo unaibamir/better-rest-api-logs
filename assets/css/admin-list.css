@@ -132,3 +132,20 @@
 /* Row actions follow WP core defaults — hidden until the row is hovered or
    the View/Delete link receives keyboard focus. The previous override that
    forced them visible across every row added a lot of visual noise. */
+
+/* ── Export current view control (tablenav top row) ── */
+
+.brl-admin .tablenav.top .brl-export-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: 12px;
+
+  & select,
+  & .button {
+    height: 30px;
+    line-height: 28px;
+    margin: 0;
+    padding-block: 0;
+  }
+}
