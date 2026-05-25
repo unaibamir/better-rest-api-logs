@@ -183,11 +183,9 @@ final class PurgeTickTest extends WP_UnitTestCase {
 		\ob_end_clean();
 
 		$remaining = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::logs_table() );
-		// After one bounded tick: (11 - batch_size) or (11 - remaining_old) remain.
-		// At minimum the 3 recent rows survive.
-		$this->assertGreaterThanOrEqual( 3, $remaining, 'Recent rows must not be purged.' );
-		// At most $batch_size rows were deleted this tick.
-		$this->assertGreaterThanOrEqual( 11 - $batch_size, $remaining, 'Bounded batch must not exceed batch_size.' );
+		// The in-tick loop drains every row past the cutoff within the time budget,
+		// so only the 3 recent (within-retention) rows survive.
+		$this->assertSame( 3, $remaining, 'Recent rows survive; all expired rows are purged within the tick budget.' );
 	}
 
 	/**
