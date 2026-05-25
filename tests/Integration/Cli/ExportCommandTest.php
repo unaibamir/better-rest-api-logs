@@ -94,9 +94,13 @@ final class ExportCommandTest extends WP_UnitTestCase {
 		$res->status_class = 2;
 		$res->content_type = 'application/json';
 
-		$entry = Entry::from_snapshots( $req, $res, [
-			'created_at' => \gmdate( 'Y-m-d H:i:s' ),
-		] );
+		$entry = Entry::from_snapshots(
+			$req,
+			$res,
+			[
+				'created_at' => \gmdate( 'Y-m-d H:i:s' ),
+			]
+		);
 		( new LogRepository() )->insert_batch( [ $entry ] );
 	}
 
@@ -111,7 +115,13 @@ final class ExportCommandTest extends WP_UnitTestCase {
 		$this->seed_entry();
 		$command = new \BetterRestApiLogs\Cli\Commands\ExportCommand();
 		\ob_start();
-		$command->run( [], [ 'out' => self::TMP_CSV, 'format' => 'csv' ] );
+		$command->run(
+			[],
+			[
+				'out'    => self::TMP_CSV,
+				'format' => 'csv',
+			]
+		);
 		\ob_end_clean();
 
 		$this->assertFileExists( self::TMP_CSV, 'Export command must create the output file.' );
@@ -128,13 +138,19 @@ final class ExportCommandTest extends WP_UnitTestCase {
 		$this->markTestIncomplete( 'Cli\\Commands\\ExportCommand not implemented yet — Wave 1' );
 
 		$this->seed_entry();
-		$command    = new \BetterRestApiLogs\Cli\Commands\ExportCommand();
-		$traversal  = '../escape.csv';
-		$absolute   = \dirname( self::TMP_CSV ) . '/' . $traversal;
+		$command   = new \BetterRestApiLogs\Cli\Commands\ExportCommand();
+		$traversal = '../escape.csv';
+		$absolute  = \dirname( self::TMP_CSV ) . '/' . $traversal;
 
 		try {
 			\ob_start();
-			$command->run( [], [ 'out' => $traversal, 'format' => 'csv' ] );
+			$command->run(
+				[],
+				[
+					'out'    => $traversal,
+					'format' => 'csv',
+				]
+			);
 			\ob_end_clean();
 			$this->fail( 'ExportCommand must throw for a traversal --out path.' );
 		} catch ( \Exception $e ) {

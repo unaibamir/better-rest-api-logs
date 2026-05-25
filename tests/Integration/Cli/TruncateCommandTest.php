@@ -81,9 +81,13 @@ final class TruncateCommandTest extends WP_UnitTestCase {
 			$res->status_class = 2;
 			$res->content_type = 'application/json';
 
-			$entries[] = Entry::from_snapshots( $req, $res, [
-				'created_at' => \gmdate( 'Y-m-d H:i:s' ),
-			] );
+			$entries[] = Entry::from_snapshots(
+				$req,
+				$res,
+				[
+					'created_at' => \gmdate( 'Y-m-d H:i:s' ),
+				]
+			);
 		}
 		( new LogRepository() )->insert_batch( $entries );
 	}

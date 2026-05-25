@@ -21,6 +21,7 @@ use BetterRestApiLogs\Capture\Filter;
 use BetterRestApiLogs\Capture\IpResolver;
 use BetterRestApiLogs\Capture\Redactor;
 use BetterRestApiLogs\Capture\Truncator;
+use BetterRestApiLogs\Cron\Purge as CronPurge;
 use BetterRestApiLogs\DB\BodyRepository;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\DB\Schema;
@@ -215,6 +216,25 @@ final class Plugin {
 		// Breaker admin-surface hooks (T-03-41: these pages are authenticated-only).
 		\add_action( 'admin_notices', [ $breaker, 'maybe_render_armed_notice' ] );
 		\add_filter( 'site_status_tests', [ $breaker, 'register_site_health_test' ] );
+
+		// -----------------------------------------------------------------------
+		// Phase 5 — Cron purge surface.
+		//
+		// Purge::tick() is registered as the brl_purge_tick action callback.
+		// The admin-notice and Site Health hooks expose schedule failures (D-07)
+		// via the same pattern as Logger\Breaker above.
+		// -----------------------------------------------------------------------
+		$this->container->bind(
+			CronPurge::class,
+			static fn ( Container $c ) => new CronPurge(
+				$c->get( SettingsRegistry::class ),
+				$c->get( Clock::class )
+			)
+		);
+		$cron_purge = $this->container->get( CronPurge::class );
+		\add_action( 'brl_purge_tick', [ $cron_purge, 'tick' ] );
+		\add_action( 'admin_notices', [ $cron_purge, 'maybe_render_schedule_notice' ] );
+		\add_filter( 'site_status_tests', [ $cron_purge, 'register_site_health_test' ] );
 
 		// -----------------------------------------------------------------------
 		// Phase 4 — Admin UI (D-55).

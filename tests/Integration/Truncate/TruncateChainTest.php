@@ -98,9 +98,13 @@ final class TruncateChainTest extends WP_UnitTestCase {
 			$res->status_class = 2;
 			$res->content_type = 'application/json';
 
-			$entries[] = Entry::from_snapshots( $req, $res, [
-				'created_at' => \gmdate( 'Y-m-d H:i:s' ),
-			] );
+			$entries[] = Entry::from_snapshots(
+				$req,
+				$res,
+				[
+					'created_at' => \gmdate( 'Y-m-d H:i:s' ),
+				]
+			);
 		}
 		( new LogRepository() )->insert_batch( $entries );
 	}
@@ -110,7 +114,7 @@ final class TruncateChainTest extends WP_UnitTestCase {
 	 * passes. Mirrors Lesson #4.
 	 */
 	private function prime_nonce( string $action ): void {
-		$nonce           = \wp_create_nonce( $action );
+		$nonce                = \wp_create_nonce( $action );
 		$_POST['_wpnonce']    = $nonce;
 		$_REQUEST['_wpnonce'] = $nonce;
 	}
@@ -136,11 +140,14 @@ final class TruncateChainTest extends WP_UnitTestCase {
 		\add_filter( 'wp_redirect', '__return_false', 99 );
 
 		$die_message = '';
-		\add_filter( 'wp_die_handler', static function () use ( &$die_message ) {
-			return static function ( $message ) use ( &$die_message ) {
-				$die_message = (string) $message;
-			};
-		} );
+		\add_filter(
+			'wp_die_handler',
+			static function () use ( &$die_message ) {
+				return static function ( $message ) use ( &$die_message ) {
+					$die_message = (string) $message;
+				};
+			}
+		);
 
 		try {
 			\do_action( 'admin_post_brl_truncate_confirm' );
@@ -191,10 +198,13 @@ final class TruncateChainTest extends WP_UnitTestCase {
 		$this->markTestIncomplete( 'admin_post_brl_truncate_all handler not implemented yet — Wave 1' );
 
 		// Seed a stale stats_snapshot so we can confirm it gets cleared.
-		Registry::set_internal( 'stats_snapshot', [
-			'computed_at'      => \time(),
-			'by_status_class'  => [ '2' => 100 ],
-		] );
+		Registry::set_internal(
+			'stats_snapshot',
+			[
+				'computed_at'     => \time(),
+				'by_status_class' => [ '2' => 100 ],
+			]
+		);
 
 		$this->prime_nonce( 'brl_truncate_all' );
 		\add_filter( 'wp_redirect', '__return_false', 99 );
@@ -227,11 +237,14 @@ final class TruncateChainTest extends WP_UnitTestCase {
 		\add_filter( 'wp_redirect', '__return_false', 99 );
 
 		$caught_die = false;
-		\add_filter( 'wp_die_handler', static function () use ( &$caught_die ) {
-			return static function () use ( &$caught_die ) {
-				$caught_die = true;
-			};
-		} );
+		\add_filter(
+			'wp_die_handler',
+			static function () use ( &$caught_die ) {
+				return static function () use ( &$caught_die ) {
+					$caught_die = true;
+				};
+			}
+		);
 
 		try {
 			\do_action( 'admin_post_brl_truncate_all' );

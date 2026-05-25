@@ -93,9 +93,13 @@ final class ExportTokenTest extends WP_UnitTestCase {
 		$res->status_class = 2;
 		$res->content_type = 'application/json';
 
-		$entry = Entry::from_snapshots( $req, $res, [
-			'created_at' => \gmdate( 'Y-m-d H:i:s' ),
-		] );
+		$entry = Entry::from_snapshots(
+			$req,
+			$res,
+			[
+				'created_at' => \gmdate( 'Y-m-d H:i:s' ),
+			]
+		);
 
 		$repo = new LogRepository();
 		$ids  = $repo->insert_batch( [ $entry ] );
@@ -139,8 +143,8 @@ final class ExportTokenTest extends WP_UnitTestCase {
 		$mint_res = \rest_do_request( $mint_req );
 
 		$this->assertSame( 201, $mint_res->get_status() );
-		$data     = $mint_res->get_data();
-		$token    = \basename( \parse_url( (string) $data['download_url'], PHP_URL_PATH ) );
+		$data  = $mint_res->get_data();
+		$token = \basename( \parse_url( (string) $data['download_url'], PHP_URL_PATH ) );
 
 		// Verify the transient was created.
 		$this->assertNotFalse(

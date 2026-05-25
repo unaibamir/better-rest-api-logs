@@ -51,12 +51,12 @@ final class OutPathGuardTest extends TestCase {
 	/** @return array<string,array{string,string}> */
 	public function unsafe_paths_provider(): array {
 		return [
-			'relative dotdot'          => [ '../x', '../x' ],
-			'nested dotdot'            => [ 'a/../b', 'a/../b' ],
-			'bare dotdot'              => [ '..', '..' ],
-			'windows-style dotdot'     => [ '..\\win', '..\\win' ],
-			'leading-slash traversal'  => [ '/etc/../..', '/etc/../..' ],
-			'absolute with traversal'  => [ '/var/www/../../../etc/passwd', '/var/www/../../../etc/passwd' ],
+			'relative dotdot'         => [ '../x', '../x' ],
+			'nested dotdot'           => [ 'a/../b', 'a/../b' ],
+			'bare dotdot'             => [ '..', '..' ],
+			'windows-style dotdot'    => [ '..\\win', '..\\win' ],
+			'leading-slash traversal' => [ '/etc/../..', '/etc/../..' ],
+			'absolute with traversal' => [ '/var/www/../../../etc/passwd', '/var/www/../../../etc/passwd' ],
 		];
 	}
 
@@ -69,10 +69,10 @@ final class OutPathGuardTest extends TestCase {
 	/** @return array<string,array{string,string}> */
 	public function safe_paths_provider(): array {
 		return [
-			'flat csv filename'          => [ 'out.csv', 'out.csv' ],
-			'subdirectory ndjson'        => [ 'sub/out.ndjson', 'sub/out.ndjson' ],
-			'relative with single dot'   => [ './export.csv', './export.csv' ],
-			'deep safe subdirectory'     => [ 'exports/2026/brl-export.csv', 'exports/2026/brl-export.csv' ],
+			'flat csv filename'        => [ 'out.csv', 'out.csv' ],
+			'subdirectory ndjson'      => [ 'sub/out.ndjson', 'sub/out.ndjson' ],
+			'relative with single dot' => [ './export.csv', './export.csv' ],
+			'deep safe subdirectory'   => [ 'exports/2026/brl-export.csv', 'exports/2026/brl-export.csv' ],
 		];
 	}
 }

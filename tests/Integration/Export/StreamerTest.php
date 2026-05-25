@@ -99,9 +99,13 @@ final class StreamerTest extends WP_UnitTestCase {
 		$res->status_class = 2;
 		$res->content_type = 'application/json';
 
-		$entry                 = Entry::from_snapshots( $req, $res, [
-			'created_at' => \gmdate( 'Y-m-d H:i:s' ),
-		] );
+		$entry                 = Entry::from_snapshots(
+			$req,
+			$res,
+			[
+				'created_at' => \gmdate( 'Y-m-d H:i:s' ),
+			]
+		);
 		$entry->bodies_spilled = $spill;
 
 		$repo = new LogRepository();
@@ -152,7 +156,7 @@ final class StreamerTest extends WP_UnitTestCase {
 		$this->insert_entry( 'POST', '/wp/v2/posts' );
 
 		// Filter to GET only.
-		$args = QueryArgs::from_array( [ 'method' => 'GET' ] );
+		$args   = QueryArgs::from_array( [ 'method' => 'GET' ] );
 		$output = $this->capture_stream( $args, 'ndjson' );
 
 		// Each NDJSON line is one JSON object. Count how many lines exist.
@@ -183,9 +187,9 @@ final class StreamerTest extends WP_UnitTestCase {
 		}
 
 		$queries_before = $wpdb->num_queries;
-		$args   = QueryArgs::from_array( [] );
-		$output = $this->capture_stream( $args, 'ndjson' );
-		$queries_after = $wpdb->num_queries;
+		$args           = QueryArgs::from_array( [] );
+		$output         = $this->capture_stream( $args, 'ndjson' );
+		$queries_after  = $wpdb->num_queries;
 
 		// Streamer must not execute one query per row for body resolution.
 		// With batched loading and 5 rows in one batch, the body lookup
@@ -220,7 +224,7 @@ final class StreamerTest extends WP_UnitTestCase {
 		$mem_before = \memory_get_peak_usage( true );
 		$args       = QueryArgs::from_array( [] );
 		$this->capture_stream( $args, 'csv' );
-		$mem_after  = \memory_get_peak_usage( true );
+		$mem_after = \memory_get_peak_usage( true );
 
 		$delta_mb = ( $mem_after - $mem_before ) / ( 1024 * 1024 );
 		$this->assertLessThan(

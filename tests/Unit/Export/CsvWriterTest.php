@@ -30,19 +30,19 @@ final class CsvWriterTest extends TestCase {
 	}
 
 	private function make_entry( string $route = '/wp/v2/posts', string $method = 'GET', int $status = 200 ): Entry {
-		$e                       = new Entry();
-		$e->id                   = 1;
-		$e->created_at           = '2026-01-15 10:30:00';
-		$e->created_at_micros    = 1705315800000000;
-		$e->method               = $method;
-		$e->route                = $route;
-		$e->status               = $status;
-		$e->status_class         = (int) \floor( $status / 100 );
-		$e->duration_ms          = 42;
-		$e->user_id              = 7;
-		$e->ip_resolved          = '127.0.0.1';
-		$e->request_body_bytes   = 128;
-		$e->response_body_bytes  = 512;
+		$e                      = new Entry();
+		$e->id                  = 1;
+		$e->created_at          = '2026-01-15 10:30:00';
+		$e->created_at_micros   = 1705315800000000;
+		$e->method              = $method;
+		$e->route               = $route;
+		$e->status              = $status;
+		$e->status_class        = (int) \floor( $status / 100 );
+		$e->duration_ms         = 42;
+		$e->user_id             = 7;
+		$e->ip_resolved         = '127.0.0.1';
+		$e->request_body_bytes  = 128;
+		$e->response_body_bytes = 512;
 		return $e;
 	}
 
@@ -81,9 +81,9 @@ final class CsvWriterTest extends TestCase {
 	public function test_embedded_double_quote_is_doubled(): void {
 		$this->skip_until_wave1();
 		// Inject a route that contains a double-quote character.
-		$entry        = $this->make_entry( '/path/with"quote' );
-		$writer       = new \BetterRestApiLogs\Export\CsvWriter();
-		$output       = $writer->rows( [ $entry ] );
+		$entry  = $this->make_entry( '/path/with"quote' );
+		$writer = new \BetterRestApiLogs\Export\CsvWriter();
+		$output = $writer->rows( [ $entry ] );
 		// RFC 4180: embedded " must be escaped as "".
 		$this->assertStringContainsString( '""', $output );
 	}
@@ -94,9 +94,9 @@ final class CsvWriterTest extends TestCase {
 	 */
 	public function test_formula_prefix_equals_sign(): void {
 		$this->skip_until_wave1();
-		$entry        = $this->make_entry( '=cmd|\'/C calc\'!A0' );
-		$writer       = new \BetterRestApiLogs\Export\CsvWriter();
-		$output       = $writer->rows( [ $entry ] );
+		$entry  = $this->make_entry( '=cmd|\'/C calc\'!A0' );
+		$writer = new \BetterRestApiLogs\Export\CsvWriter();
+		$output = $writer->rows( [ $entry ] );
 		// The cell must begin with "'=" (quote, apostrophe, equals) inside the wrapping quotes.
 		$this->assertStringContainsString( '"\'=', $output, 'Formula cell starting with = must be apostrophe-prefixed.' );
 	}

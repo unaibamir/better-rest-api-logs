@@ -100,12 +100,12 @@ final class NdjsonWriterTest extends TestCase {
 
 	public function test_multiple_entries_produce_multiple_lines(): void {
 		$this->skip_until_wave1();
-		$writer = new \BetterRestApiLogs\Export\NdjsonWriter();
-		$entry1 = $this->make_entry();
-		$entry2 = clone $entry1;
+		$writer     = new \BetterRestApiLogs\Export\NdjsonWriter();
+		$entry1     = $this->make_entry();
+		$entry2     = clone $entry1;
 		$entry2->id = 99;
-		$output = $writer->rows( [ $entry1, $entry2 ] );
-		$lines  = \array_filter( \explode( "\n", \rtrim( $output, "\n" ) ) );
+		$output     = $writer->rows( [ $entry1, $entry2 ] );
+		$lines      = \array_filter( \explode( "\n", \rtrim( $output, "\n" ) ) );
 		$this->assertCount( 2, $lines, 'Two entries must produce two lines.' );
 	}
 }

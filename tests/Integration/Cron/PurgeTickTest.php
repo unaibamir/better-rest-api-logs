@@ -52,6 +52,12 @@ final class PurgeTickTest extends WP_UnitTestCase {
 		\remove_filter( 'query', [ $this, '_create_temporary_tables' ] );
 		\remove_filter( 'query', [ $this, '_drop_temporary_tables' ] );
 		Schema::install();
+		// Clear the purge lock at the top of each test so a prior test that set
+		// the transient and bailed before tear_down could remove it doesn't bleed
+		// into this test's run. TRUNCATE below commits the transaction implicitly
+		// on InnoDB, but the lock may have been written in a prior test's
+		// transaction that was committed before tearDown ran.
+		\delete_transient( 'brl_purge_running' );
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
@@ -102,8 +108,8 @@ final class PurgeTickTest extends WP_UnitTestCase {
 			$res->status_class = 2;
 			$res->content_type = 'application/json';
 
-			$entry             = Entry::from_snapshots( $req, $res, [ 'created_at' => $created_at ] );
-			$entries[]         = $entry;
+			$entry     = Entry::from_snapshots( $req, $res, [ 'created_at' => $created_at ] );
+			$entries[] = $entry;
 		}
 		$repo = new LogRepository();
 		return $repo->insert_batch( $entries );
@@ -150,8 +156,6 @@ final class PurgeTickTest extends WP_UnitTestCase {
 	 * Filter token: PurgeTickBounds
 	 */
 	public function test_purge_tick_bounds_PurgeTickBounds(): void {
-		$this->markTestIncomplete( 'Cron\\Purge and DB\\PurgeRepository not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$old_date   = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
 		$recent     = \gmdate( 'Y-m-d H:i:s', \strtotime( '-1 day' ) );
@@ -159,11 +163,14 @@ final class PurgeTickTest extends WP_UnitTestCase {
 
 		// Set a tiny batch size so bounds kick in quickly.
 		// Uses Registry::get_setting('retention.purge_batch_size') path.
-		\update_option( 'brl_settings_retention', [
-			'retention_days'          => 30,
-			'purge_batch_size'        => $batch_size,
-			'purge_max_tick_seconds'  => 10,
-		] );
+		\update_option(
+			'brl_settings_retention',
+			[
+				'retention_days'         => 30,
+				'purge_batch_size'       => $batch_size,
+				'purge_max_tick_seconds' => 10,
+			]
+		);
 
 		// Seed rows: 8 past cutoff, 3 recent (must be untouched).
 		$this->insert_rows( 8, $old_date );
@@ -188,8 +195,6 @@ final class PurgeTickTest extends WP_UnitTestCase {
 	 * Filter token: PurgeLock
 	 */
 	public function test_purge_lock_PurgeLock(): void {
-		$this->markTestIncomplete( 'Cron\\Purge not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$old_date = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
 		$this->insert_rows( 5, $old_date );
@@ -213,14 +218,15 @@ final class PurgeTickTest extends WP_UnitTestCase {
 	 * Filter token: PurgeReenqueue
 	 */
 	public function test_purge_reenqueue_PurgeReenqueue(): void {
-		$this->markTestIncomplete( 'Cron\\Purge not implemented yet — Wave 1' );
-
 		$batch_size = 3;
-		\update_option( 'brl_settings_retention', [
-			'retention_days'         => 30,
-			'purge_batch_size'       => $batch_size,
-			'purge_max_tick_seconds' => 10,
-		] );
+		\update_option(
+			'brl_settings_retention',
+			[
+				'retention_days'         => 30,
+				'purge_batch_size'       => $batch_size,
+				'purge_max_tick_seconds' => 10,
+			]
+		);
 
 		$old_date = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
 		// Seed exactly batch_size + 1 old rows so the first tick gets a full batch.
@@ -271,8 +277,6 @@ final class PurgeTickTest extends WP_UnitTestCase {
 	 * Filter token: PurgeCascade
 	 */
 	public function test_purge_cascade_PurgeCascade(): void {
-		$this->markTestIncomplete( 'Cron\\Purge and DB\\PurgeRepository not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$old_date = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
 
