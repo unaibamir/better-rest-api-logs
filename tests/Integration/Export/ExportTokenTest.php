@@ -216,6 +216,36 @@ final class ExportTokenTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * EXP-05/REST-06: a different admin user consuming another admin's token gets 403.
+	 *
+	 * The token stores the minting user's ID. A different authenticated admin must
+	 * not be able to consume it — the 403 must fire before any streaming starts.
+	 *
+	 * Filter token: ExportTokenUserMismatch
+	 */
+	public function test_consume_by_different_user_returns_403_ExportTokenUserMismatch(): void {
+		$this->seed_entry();
+
+		// Mint as admin.
+		$mint_req = new \WP_REST_Request( 'POST', '/' . self::NAMESPACE . '/export' );
+		$mint_req->set_param( 'format', 'ndjson' );
+		$mint_res = \rest_do_request( $mint_req );
+
+		$this->assertSame( 201, $mint_res->get_status() );
+		$data  = $mint_res->get_data();
+		$token = $this->token_from_url( (string) $data['download_url'] );
+
+		// Switch to a second admin user who did not mint the token.
+		$second_admin = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		\wp_set_current_user( $second_admin );
+
+		$consume_req = new \WP_REST_Request( 'GET', '/' . self::NAMESPACE . '/export/' . $token );
+		$consume_res = \rest_do_request( $consume_req );
+
+		$this->assertSame( 403, $consume_res->get_status(), 'A different admin must receive 403 when consuming another user\'s token.' );
+	}
+
+	/**
 	 * EXP-05/REST-06: subscriber must receive 401 or 403 from the mint endpoint.
 	 *
 	 * Filter token: ExportToken

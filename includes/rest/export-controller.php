@@ -22,8 +22,8 @@ use BetterRestApiLogs\Export\Streamer;
  *
  * Security surface (T-05-05-01..07):
  *  - Token is wp_generate_password(32, false) — CSPRNG, alphanumeric, 62^32 space.
- *  - delete_transient happens before any streaming so the token is single-use
- *    even when the download starts but the client disconnects.
+ *  - claim_token() reads the payload then deletes the DB row atomically so
+ *    concurrent requests cannot both receive the same payload.
  *  - Both routes declare permission_callback checking manage_options (via the
  *    brl_admin_required_capability filter) — never __return_true.
  *  - Error copy is generic — the token is never echoed back in 410/403 bodies.
@@ -127,11 +127,15 @@ final class ExportController {
 		$token = (string) $request->get_param( 'token' );
 		$key   = 'brl_export_' . $token;
 
-		$data = \get_transient( $key );
+		// Atomic claim: read the payload then delete the transient, checking the
+		// return value. delete_transient() returns false when the row is already
+		// gone — a concurrent request won the race. We return false in that case
+		// so the second request gets a 410 rather than a second stream.
+		$data = $this->claim_token( $key );
 
 		if ( false === $data ) {
-			// Token is expired or already used. Generic copy — never echo the token
-			// back in the response body (T-05-05-07).
+			// Token is expired or already claimed. Generic copy — never echo the
+			// token back in the response body (T-05-05-07).
 			return new \WP_Error(
 				'brl_export_token_invalid',
 				\__( 'Download link expired or already used.', 'better-rest-api-logs' ),
@@ -139,10 +143,19 @@ final class ExportController {
 			);
 		}
 
-		// One-shot: delete before streaming so a dropped connection cannot replay
-		// the download (D-09, T-05-05-01). Even if streaming fails afterwards the
-		// token is burned.
-		\delete_transient( $key );
+		// Shape guard — malformed or tampered transient payloads must not reach
+		// the streaming code. Required keys: query_args (array), user_id (int), format (string).
+		if (
+			! \is_array( $data )
+			|| ! isset( $data['query_args'], $data['user_id'], $data['format'] )
+			|| ! \is_array( $data['query_args'] )
+		) {
+			return new \WP_Error(
+				'brl_export_token_invalid',
+				\__( 'Download link expired or already used.', 'better-rest-api-logs' ),
+				[ 'status' => 410 ]
+			);
+		}
 
 		// Verify the consumer is the same user who minted the token (D-10,
 		// T-05-05-03). An admin sharing the URL with another admin is intentional
@@ -169,6 +182,15 @@ final class ExportController {
 					return $served;
 				}
 
+				// Clear any WP-set headers before sending the file. status_header()
+				// writes the correct HTTP/1.x 200 line; nocache_headers() prevents
+				// proxies from caching the download; header_remove('Content-Type')
+				// clears WP's 'application/json' default before send_download_headers()
+				// sets the correct content type for the format.
+				\status_header( 200 );
+				\nocache_headers();
+				\header_remove( 'Content-Type' );
+
 				$streamer->send_download_headers( $format, $filename );
 
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://output is a streaming handle, not a filesystem path; WP_Filesystem has no equivalent.
@@ -180,13 +202,52 @@ final class ExportController {
 					\fclose( $sink );
 				}
 
-				return true;
+				// Exit before WP's shutdown cycle so Flusher::on_shutdown does not
+				// truncate the streaming response body.
+				exit;
 			},
 			10,
 			1
 		);
 
 		return new \WP_REST_Response( null, 200 );
+	}
+
+	/**
+	 * Atomically claim a one-shot export token.
+	 *
+	 * Reads the payload with get_transient(), then attempts to delete the
+	 * transient. delete_transient() returns false when the option row no longer
+	 * exists — meaning a concurrent request already claimed it. Checking the
+	 * return value closes the race window: only the request that successfully
+	 * deletes the row "wins" the token, even on non-object-cache sites where
+	 * get_transient + delete_transient is not a single DB operation.
+	 *
+	 * On non-object-cache sites this translates to two sequential queries
+	 * (DELETE _transient + DELETE _transient_timeout) with a short window.
+	 * That window is acceptable — export tokens are 5-minute single-use URLs
+	 * accessed by a single logged-in admin, not a high-concurrency endpoint.
+	 *
+	 * Returns the payload array on success, or false when the token does not
+	 * exist or has already been claimed.
+	 *
+	 * @param  string $key Full transient key including the 'brl_export_' prefix.
+	 * @return array<string,mixed>|false
+	 */
+	private function claim_token( string $key ) {
+		$data = \get_transient( $key );
+
+		if ( false === $data ) {
+			return false;
+		}
+
+		// delete_transient() returns false when the row is already gone (another
+		// request claimed it). Treat that as a failed claim.
+		if ( ! \delete_transient( $key ) ) {
+			return false;
+		}
+
+		return $data;
 	}
 
 	/**
