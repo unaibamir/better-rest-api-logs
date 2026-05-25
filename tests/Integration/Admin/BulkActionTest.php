@@ -203,6 +203,60 @@ final class BulkActionTest extends WP_UnitTestCase {
 		$this->assertSame( 'admin', $fired[0][1] );
 	}
 
+	/**
+	 * Early export: handle_early_export() is a no-op for non-export actions.
+	 *
+	 * When the GET action is not brl_export_csv/brl_export_ndjson, the method
+	 * must return without touching the nonce or streaming anything, so the normal
+	 * page render can proceed.
+	 *
+	 * Filter token: EarlyExport
+	 */
+	public function test_handle_early_export_ignores_non_export_actions_EarlyExport(): void {
+		Plugin::instance()->boot();
+		\wp_set_current_user( $this->admin_id );
+
+		$_GET     = [ 'action' => 'brl_delete' ];
+		$_REQUEST = [];
+
+		// Must return without throwing or streaming anything.
+		BulkActionHandler::handle_early_export();
+
+		// Reset superglobals.
+		$_GET     = [];
+		$_REQUEST = [];
+
+		// If we reach this line the method returned cleanly — no exit, no wp_die.
+		$this->assertTrue( true, 'handle_early_export must return for non-export actions.' );
+	}
+
+	/**
+	 * Early export: a subscriber must be denied even through the early path.
+	 *
+	 * Verifies the cap check inside handle_early_export() fires before any
+	 * streaming begins, so an unprivileged user cannot download the export by
+	 * hitting the load-{hook} handler directly.
+	 *
+	 * Filter token: EarlyExport
+	 */
+	public function test_handle_early_export_denies_subscriber_EarlyExport(): void {
+		Plugin::instance()->boot();
+		\wp_set_current_user( $this->subscriber_id );
+
+		$nonce = \wp_create_nonce( 'brl_bulk' );
+
+		$_GET = [
+			'action'   => 'brl_export_csv',
+			'log_ids'  => [],
+			'_wpnonce' => $nonce,
+		];
+
+		$_REQUEST['_wpnonce'] = $nonce;
+
+		$this->expectException( \WPDieException::class );
+		BulkActionHandler::handle_early_export();
+	}
+
 	public function test_bulk_delete_cascades_to_spilled_body_rows(): void {
 		global $wpdb;
 		Plugin::instance()->boot();

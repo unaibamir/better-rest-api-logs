@@ -6,6 +6,7 @@ namespace BetterRestApiLogs;
 defined( 'ABSPATH' ) || exit;
 
 use BetterRestApiLogs\Admin\Assets;
+use BetterRestApiLogs\Admin\BulkActionHandler;
 use BetterRestApiLogs\Admin\DetailScreen;
 use BetterRestApiLogs\Admin\ListScreen;
 use BetterRestApiLogs\Admin\ListTable;
@@ -77,10 +78,12 @@ final class Admin {
 			[ $this->list, 'render_page' ]
 		);
 
-		// Wire Screen Options "Per page" on the list page. The set-screen-option
-		// filter persists the value into user_meta.
+		// Wire Screen Options "Per page" and the early export interceptor on the
+		// list page. Both must run on load-{hook}, before admin-header.php sends
+		// any HTML or sets Content-Type: text/html.
 		if ( false !== $list_hook ) {
 			\add_action( 'load-' . $list_hook, [ self::class, 'register_screen_options' ] );
+			\add_action( 'load-' . $list_hook, [ BulkActionHandler::class, 'handle_early_export' ] );
 		}
 		\add_filter( 'set-screen-option', [ self::class, 'save_per_page_screen_option' ], 10, 3 );
 		\add_filter( 'set_screen_option_' . ListTable::PER_PAGE_OPTION, [ self::class, 'save_per_page_screen_option' ], 10, 3 );

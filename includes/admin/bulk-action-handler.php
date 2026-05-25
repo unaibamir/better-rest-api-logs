@@ -169,6 +169,70 @@ final class BulkActionHandler {
 	}
 
 	/**
+	 * Early export intercept — called on load-{list_hook}, before admin-header.php
+	 * outputs any HTML or sets Content-Type: text/html.
+	 *
+	 * Detects a GET bulk-action export (action or action2 = brl_export_csv /
+	 * brl_export_ndjson) and streams the file then exits. Non-export actions
+	 * are ignored so the normal page render continues.
+	 *
+	 * Security order: nonce first (check_admin_referer), capability second.
+	 * GET values are mirrored into $_REQUEST for check_admin_referer() and
+	 * into $_POST for stream_export_for_ids().
+	 *
+	 * @return void
+	 */
+	public static function handle_early_export(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- nonce verified below via check_admin_referer once we confirm this is an export action.
+		$top    = isset( $_GET['action'] ) ? \sanitize_key( \wp_unslash( (string) $_GET['action'] ) ) : '';
+		$bottom = isset( $_GET['action2'] ) ? \sanitize_key( \wp_unslash( (string) $_GET['action2'] ) ) : '';
+		$action = '' !== $top && '-1' !== $top ? $top : $bottom;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		if ( ! \in_array( $action, [ 'brl_export_csv', 'brl_export_ndjson' ], true ) ) {
+			return; // Not an export action — let the page render proceed.
+		}
+
+		// Mirror the nonce from GET into $_REQUEST so check_admin_referer() finds it.
+		if ( isset( $_GET['_wpnonce'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- value is only moved; actual verification happens in check_admin_referer() below.
+			$nonce                = \sanitize_text_field( \wp_unslash( (string) $_GET['_wpnonce'] ) );
+			$_REQUEST['_wpnonce'] = $nonce;
+			$_POST['_wpnonce']    = $nonce;
+		}
+
+		\check_admin_referer( 'brl_bulk', '_wpnonce' );
+
+		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
+			\wp_die(
+				\esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
+
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above; each element is absint'd below.
+		$ids_raw = isset( $_GET['log_ids'] ) && \is_array( $_GET['log_ids'] )
+			? \wp_unslash( $_GET['log_ids'] )
+			: [];
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		$ids = \array_values(
+			\array_filter(
+				\array_map( 'absint', (array) $ids_raw ),
+				static function ( int $i ): bool {
+					return $i > 0;
+				}
+			)
+		);
+
+		$format = ( 'brl_export_csv' === $action ) ? 'csv' : 'ndjson';
+
+		self::stream_export_for_ids( $ids, $format );
+		// stream_export_for_ids exits; the line below is only reached in test seams.
+	}
+
+	/**
 	 * Handle admin_post_brl_export — streams a download to the browser.
 	 *
 	 * Security order mirrors handle(): nonce first, capability second (T-05-06-05).
