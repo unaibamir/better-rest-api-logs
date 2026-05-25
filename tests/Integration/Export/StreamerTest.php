@@ -146,8 +146,6 @@ final class StreamerTest extends WP_UnitTestCase {
 	 * Filter token: ExportFilter / Streamer
 	 */
 	public function test_stream_honors_queryargs_filter_ExportFilter(): void {
-		$this->markTestIncomplete( 'Export\\Streamer not implemented yet — Wave 1' );
-
 		// Insert: 3 GET rows + 2 POST rows.
 		$this->insert_entry( 'GET', '/wp/v2/posts' );
 		$this->insert_entry( 'GET', '/wp/v2/posts' );
@@ -177,8 +175,6 @@ final class StreamerTest extends WP_UnitTestCase {
 	 * Filter token: Streamer
 	 */
 	public function test_stream_batches_spilled_body_resolution_Streamer(): void {
-		$this->markTestIncomplete( 'Export\\Streamer not implemented yet — Wave 1' );
-
 		global $wpdb;
 
 		// Insert 5 spilled rows — each requires body resolution.
@@ -214,8 +210,6 @@ final class StreamerTest extends WP_UnitTestCase {
 	 * Filter token: StreamerMemory
 	 */
 	public function test_stream_memory_bounded_StreamerMemory(): void {
-		$this->markTestIncomplete( 'Export\\Streamer not implemented yet — Wave 1' );
-
 		// Seed 200 rows — enough to exercise multi-batch behaviour in CI.
 		for ( $i = 0; $i < 200; $i++ ) {
 			$this->insert_entry( 'GET', '/wp/v2/items/' . $i );
