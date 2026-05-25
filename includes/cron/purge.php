@@ -69,7 +69,9 @@ final class Purge {
 	 *  1. Bail immediately when the transient lock is held (parallel invocation).
 	 *  2. Set the lock (5-min TTL) + ignore_user_abort(true).
 	 *  3. Return early when retention_days <= 0 (keep-forever, D-02).
-	 *  4. Drain: delete_older_than batches until the time or row bound is hit.
+	 *  4. Drain: delete_older_than in a bounded loop until the time or row
+	 *     budget is exhausted; the $now_unix seam on Clock::cutoff_datetime()
+	 *     keeps the cutoff deterministic in tests without subclassing.
 	 *  5. Write purge_state (last_run_at, last_deleted, schedule_error:false).
 	 *  6. Fire brl_purge_completed.
 	 *  7. Enqueue follow-up tick when the last batch was full.
