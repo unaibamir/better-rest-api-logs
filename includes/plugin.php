@@ -98,10 +98,10 @@ final class Plugin {
 		// Reconcile the purge schedule when the retention tab is saved. If the
 		// user flips retention_days to 0 (keep-forever), clear the event so no
 		// purge ever fires. Flipping from 0 to a positive value (re)schedules it.
-		// Hooks both updated_option (subsequent saves) and added_option (very first
-		// save, when the row doesn't exist yet) so the schedule wires up on initial
-		// plugin setup without requiring a second options.php round-trip.
-		// added_option fires with ($option, $value) — 2 args.
+		// Only updated_option is hooked: the activator seeds brl_settings_retention
+		// at activation, so every later user save is an update, never an add.
+		// Hooking added_option would also fire mid-seeding and create brl_internal
+		// before seed_all_tabs() can mark it non-autoloaded (Pitfall 4).
 		$reconcile_schedule = static function ( $option, $new_value ): void {
 			if ( 'brl_settings_retention' !== $option ) {
 				return;
@@ -125,15 +125,6 @@ final class Plugin {
 			},
 			10,
 			3
-		);
-		// added_option passes ($option, $value) — 2 args.
-		\add_action(
-			'added_option',
-			static function ( $option, $new_value ) use ( $reconcile_schedule ): void {
-				$reconcile_schedule( $option, $new_value );
-			},
-			10,
-			2
 		);
 
 		// Schema diagnostics — admin notice (D-23) and Site Health (D-22).
