@@ -335,6 +335,7 @@ final class Plugin {
 		// container binding needed; WP calls the methods directly.
 		\add_action( 'admin_menu', [ SettingsScreen::class, 'register_menu' ], 10 );
 		\add_action( 'admin_init', [ SettingsScreen::class, 'register_fields' ], 10 );
+		\add_action( 'admin_post_brl_truncate_confirm', [ SettingsScreen::class, 'handle_truncate_confirm' ] );
 		\add_action( 'admin_post_brl_truncate_all', [ SettingsScreen::class, 'handle_truncate_all' ] );
 
 		// Bulk delete is dispatched inline from ListScreen::render() now that the

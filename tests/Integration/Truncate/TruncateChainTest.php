@@ -130,8 +130,6 @@ final class TruncateChainTest extends WP_UnitTestCase {
 	 * Filter token: Truncate
 	 */
 	public function test_truncate_confirm_renders_interstitial_without_mutation_Truncate(): void {
-		$this->markTestIncomplete( 'admin_post_brl_truncate_confirm handler not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$this->seed_rows( 5 );
 		$before = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::logs_table() );
@@ -169,8 +167,6 @@ final class TruncateChainTest extends WP_UnitTestCase {
 	 * Filter token: Truncate
 	 */
 	public function test_truncate_all_empties_both_tables_Truncate(): void {
-		$this->markTestIncomplete( 'admin_post_brl_truncate_all handler not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$this->seed_rows( 5 );
 
@@ -195,8 +191,6 @@ final class TruncateChainTest extends WP_UnitTestCase {
 	 * Filter token: Truncate
 	 */
 	public function test_truncate_all_clears_stats_snapshot_Truncate(): void {
-		$this->markTestIncomplete( 'admin_post_brl_truncate_all handler not implemented yet — Wave 1' );
-
 		// Seed a stale stats_snapshot so we can confirm it gets cleared.
 		Registry::set_internal(
 			'stats_snapshot',
@@ -225,8 +219,6 @@ final class TruncateChainTest extends WP_UnitTestCase {
 	 * Filter token: Truncate
 	 */
 	public function test_truncate_all_denied_for_subscriber_Truncate(): void {
-		$this->markTestIncomplete( 'admin_post_brl_truncate_all handler not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$this->seed_rows( 3 );
 		\wp_set_current_user( $this->subscriber_id );

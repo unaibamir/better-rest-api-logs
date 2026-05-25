@@ -38,4 +38,21 @@
 	& .submit {
 		padding-block-start: 8px;
 	}
+
+	/* Destructive-red treatment for the truncate panel button. Reuses #b32d2e
+	   which is already the project's destructive color (--method-delete, 4xx pills,
+	   .brl-detail-delete). The filled hover/focus state makes the action unmistakable. */
+	& .brl-truncate-panel {
+		& .brl-button-danger {
+			color: #b32d2e;
+			border-color: #b32d2e;
+
+			&:hover,
+			&:focus {
+				color: #fff;
+				background: #b32d2e;
+				border-color: #b32d2e;
+			}
+		}
+	}
 }
