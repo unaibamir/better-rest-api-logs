@@ -76,8 +76,6 @@ final class ScheduleFailureTest extends WP_UnitTestCase {
 	 * Filter token: ScheduleFailure
 	 */
 	public function test_schedule_failure_returns_false_ScheduleFailure(): void {
-		$this->markTestIncomplete( 'Cron\\Scheduler not implemented yet — Wave 1' );
-
 		\add_filter( 'pre_schedule_event', '__return_false' );
 		try {
 			$result = ( new \BetterRestApiLogs\Cron\Scheduler() )->schedule();
@@ -94,8 +92,6 @@ final class ScheduleFailureTest extends WP_UnitTestCase {
 	 * Filter token: ScheduleFailure
 	 */
 	public function test_schedule_failure_writes_error_marker_ScheduleFailure(): void {
-		$this->markTestIncomplete( 'Cron\\Scheduler not implemented yet — Wave 1' );
-
 		// Clear any prior marker.
 		Registry::set_internal( 'purge_state', [] );
 
@@ -119,13 +115,16 @@ final class ScheduleFailureTest extends WP_UnitTestCase {
 	 * Filter token: ScheduleFailure
 	 */
 	public function test_schedule_failure_renders_admin_notice_ScheduleFailure(): void {
-		$this->markTestIncomplete( 'Cron\\Scheduler not implemented yet — Wave 1' );
-
 		// Seed the error marker directly so the notice path is exercised
 		// without triggering the scheduling path.
 		Registry::set_internal( 'purge_state', [ 'schedule_error' => true ] );
 
+		// is_admin() returns true only when a screen is set; this mirrors the
+		// pattern in SchemaBrokenTest (established codebase convention).
+		\set_current_screen( 'dashboard' );
+
 		\ob_start();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- firing a WP core hook, not registering one.
 		\do_action( 'admin_notices' );
 		$output = \ob_get_clean();
 
@@ -141,12 +140,11 @@ final class ScheduleFailureTest extends WP_UnitTestCase {
 	 * Filter token: ScheduleFailure
 	 */
 	public function test_schedule_failure_registers_site_health_test_ScheduleFailure(): void {
-		$this->markTestIncomplete( 'Cron\\Scheduler not implemented yet — Wave 1' );
-
 		// Seed error marker.
 		Registry::set_internal( 'purge_state', [ 'schedule_error' => true ] );
 
 		// Collect site status tests registered via the filter.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- firing a WP core filter, not registering one.
 		$tests = \apply_filters( 'site_status_tests', [] );
 
 		// At least one 'direct' test with a 'brl' key must be registered.
