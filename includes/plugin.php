@@ -98,24 +98,42 @@ final class Plugin {
 		// Reconcile the purge schedule when the retention tab is saved. If the
 		// user flips retention_days to 0 (keep-forever), clear the event so no
 		// purge ever fires. Flipping from 0 to a positive value (re)schedules it.
-		// Uses updated_option rather than a Registry hook so the WP option write
-		// has already committed before we call wp_schedule_event — no $_POST assumed.
+		// Hooks both updated_option (subsequent saves) and added_option (very first
+		// save, when the row doesn't exist yet) so the schedule wires up on initial
+		// plugin setup without requiring a second options.php round-trip.
+		// added_option fires with ($option, $value) — 2 args.
+		$reconcile_schedule = static function ( $option, $new_value ): void {
+			if ( 'brl_settings_retention' !== $option ) {
+				return;
+			}
+			if ( ! \is_array( $new_value ) ) {
+				return;
+			}
+			$days      = isset( $new_value['retention_days'] ) ? (int) $new_value['retention_days'] : 0;
+			$scheduler = new CronScheduler();
+			if ( $days > 0 ) {
+				$scheduler->schedule();
+			} else {
+				$scheduler->unschedule();
+			}
+		};
+		// updated_option passes ($option, $old_value, $new_value) — 3 args.
 		\add_action(
 			'updated_option',
-			static function ( string $option, $old, $new_value ): void {
-				if ( 'brl_settings_retention' !== $option ) {
-					return;
-				}
-				$days      = isset( $new_value['retention_days'] ) ? (int) $new_value['retention_days'] : 0;
-				$scheduler = new CronScheduler();
-				if ( $days > 0 ) {
-					$scheduler->schedule();
-				} else {
-					$scheduler->unschedule();
-				}
+			static function ( $option, $old, $new_value ) use ( $reconcile_schedule ): void {
+				$reconcile_schedule( $option, $new_value );
 			},
 			10,
 			3
+		);
+		// added_option passes ($option, $value) — 2 args.
+		\add_action(
+			'added_option',
+			static function ( $option, $new_value ) use ( $reconcile_schedule ): void {
+				$reconcile_schedule( $option, $new_value );
+			},
+			10,
+			2
 		);
 
 		// Schema diagnostics — admin notice (D-23) and Site Health (D-22).
