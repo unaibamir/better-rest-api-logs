@@ -108,6 +108,11 @@ final class Purge {
 			if ( $batch_size <= 0 ) {
 				$batch_size = 1000;
 			}
+			// Ceiling: an oversized batch would build an IN() list that strains
+			// MySQL's max_allowed_packet and the query planner (PURGE-06).
+			if ( $batch_size > 5000 ) {
+				$batch_size = 5000;
+			}
 			if ( $max_secs <= 0 ) {
 				$max_secs = 10;
 			}
@@ -115,17 +120,21 @@ final class Purge {
 			$cutoff = $this->clock->cutoff_datetime( $retention_days );
 			$start  = \microtime( true );
 
-			// D-03/D-05: each tick deletes up to one batch, bounded by both the
-			// row limit (batch_size) and the wall-clock limit (max_tick_seconds).
-			// When the batch comes back full, more_pending triggers a follow-up
-			// single event rather than spinning in the same tick — the chain of
-			// ticks is the load-bearing drain mechanism (D-01).
-			// The time check guards against unexpectedly slow DELETE queries on
-			// large tables, capping total wall time at max_tick_seconds.
-			if ( ( \microtime( true ) - $start ) < $max_secs ) {
-				$deleted_total = $this->repo->delete_older_than( $cutoff, $batch_size );
-				$more_pending  = ( $deleted_total === $batch_size );
-			}
+			// D-03/D-05: drain in a bounded loop — keep deleting full batches
+			// until either (a) a batch comes back less than full (no more rows)
+			// or (b) the tick's wall-clock budget runs out. This makes
+			// purge_max_tick_seconds load-bearing: without the loop, a single
+			// batch per tick means the drain rate is capped at
+			// batch_size × cron_frequency rather than batch_size × ticks_per_tick.
+			// When the loop exits on the time budget, more_pending triggers an
+			// immediate follow-up tick to continue draining (D-05).
+			$last_deleted = 0;
+			do {
+				$last_deleted   = $this->repo->delete_older_than( $cutoff, $batch_size );
+				$deleted_total += $last_deleted;
+			} while ( $last_deleted === $batch_size && ( \microtime( true ) - $start ) < $max_secs );
+
+			$more_pending = ( $last_deleted === $batch_size );
 		} finally {
 			// Always clear the lock — even on exception or early return (D-04).
 			\delete_transient( self::LOCK_KEY );

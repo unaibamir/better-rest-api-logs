@@ -272,6 +272,54 @@ final class PurgeTickTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * PURGE-05/D-05: the tick loops through multiple batches within the time
+	 * budget and schedules a follow-up only when rows remain after the budget.
+	 *
+	 * Seeds 3x batch_size old rows with a generous time budget so the loop runs
+	 * all three batches. Asserts all old rows are gone and no follow-up was
+	 * enqueued (empty last batch means nothing left to drain).
+	 *
+	 * Filter token: PurgeLoopDrain
+	 */
+	public function test_purge_tick_loops_within_budget_PurgeLoopDrain(): void {
+		global $wpdb;
+		$batch_size = 3;
+		\update_option(
+			'brl_settings_retention',
+			[
+				'retention_days'         => 30,
+				'purge_batch_size'       => $batch_size,
+				'purge_max_tick_seconds' => 30, // Generous — 3 batches of 3 rows will finish in milliseconds.
+			]
+		);
+
+		$old_date = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
+		// 3 × batch_size rows: loop must run 3 full batches + 1 empty to stop.
+		$this->insert_rows( $batch_size * 3, $old_date );
+
+		\wp_clear_scheduled_hook( 'brl_purge_tick' );
+
+		\ob_start();
+		( new \BetterRestApiLogs\Cron\Purge() )->tick();
+		\ob_end_clean();
+
+		// All old rows must be gone — the loop continued past the first batch.
+		$remaining = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::logs_table() );
+		$this->assertSame( 0, $remaining, 'Bounded loop must drain all old rows within the time budget.' );
+
+		// Last batch came back empty (0 < batch_size), so no follow-up is needed.
+		$cron_option = \_get_cron_array();
+		$followup    = false;
+		foreach ( $cron_option as $events_at_time ) {
+			if ( isset( $events_at_time['brl_purge_tick'] ) ) {
+				$followup = true;
+				break;
+			}
+		}
+		$this->assertFalse( $followup, 'No follow-up tick needed when last batch was empty.' );
+	}
+
+	/**
 	 * PURGE-07 cascade: body-spill rows are deleted with their parent batch;
 	 * no orphan body rows remain after purge.
 	 *
