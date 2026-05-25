@@ -108,19 +108,28 @@ final class CsvWriter {
 	/**
 	 * Wrap a single value in RFC-4180 double-quotes, doubling any embedded
 	 * double-quote characters. If the value begins with a formula-injection
-	 * trigger character, prefix it with a single apostrophe so spreadsheet
-	 * engines treat the cell as a literal string rather than a formula.
+	 * trigger character (including after any leading ASCII spaces), prefix it
+	 * with a single apostrophe so spreadsheet engines treat the cell as a
+	 * literal string rather than a formula.
+	 *
+	 * Checking the space-stripped value catches payloads like " =cmd" that
+	 * bypass a plain first-character check because spreadsheets trim leading
+	 * spaces before evaluating formulas. Only ASCII space (0x20) is stripped,
+	 * not tab or CR — those are formula triggers themselves and must be caught
+	 * by the trigger check, not discarded. The apostrophe is prepended to the
+	 * ORIGINAL value (not the stripped one) so the stored content is unchanged.
 	 *
 	 * @param  string $value Raw cell value.
 	 * @return string        Force-quoted, injection-safe cell.
 	 */
 	private function cell( string $value ): string {
-		// Formula-injection guard: check the first character against every known
-		// trigger. We use mb_substr/strpos on the raw value before quoting so the
-		// check operates on the actual content, not the escaped form.
+		// Formula-injection guard: strip leading ASCII spaces only (not tab/CR
+		// which are themselves trigger chars), then test against every known
+		// trigger prefix. Apostrophe is prepended to $value (original).
 		if ( '' !== $value ) {
+			$check = \ltrim( $value, ' ' );
 			foreach ( self::FORMULA_PREFIXES as $prefix ) {
-				if ( \strpos( $value, $prefix ) === 0 ) {
+				if ( \strpos( $check, $prefix ) === 0 ) {
 					$value = "'" . $value;
 					break;
 				}

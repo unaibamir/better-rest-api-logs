@@ -89,6 +89,20 @@ final class CsvWriterTest extends TestCase {
 	}
 
 	/**
+	 * Formula-injection test: a cell value with leading whitespace + trigger
+	 * must still be prefixed. Spreadsheets trim whitespace before evaluating
+	 * formulas, so " =cmd" is as dangerous as "=cmd".
+	 */
+	public function test_formula_prefix_leading_space(): void {
+		$this->skip_until_wave1();
+		$entry  = $this->make_entry( ' =cmd|\'/C calc\'!A0' );
+		$writer = new \BetterRestApiLogs\Export\CsvWriter();
+		$output = $writer->rows( [ $entry ] );
+		// The cell must be apostrophe-prefixed even though the raw value has a leading space.
+		$this->assertStringContainsString( '"\'', $output, 'Cell with leading space before formula trigger must be apostrophe-prefixed.' );
+	}
+
+	/**
 	 * Formula-injection test: a cell value beginning with = must be prefixed with '.
 	 * Fixture: =cmd|'/C calc'!A0 — a real-world CSV injection payload.
 	 */

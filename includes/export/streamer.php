@@ -131,10 +131,16 @@ final class Streamer {
 		 */
 		$filename = (string) \apply_filters( 'brl_export_filename', $filename, $format );
 
+		// Sanitize the (potentially filtered) filename so a third-party filter
+		// cannot inject CR/LF header-splitting characters. sanitize_file_name()
+		// strips path separators and control chars; addslashes() only escapes
+		// backslash and quote but leaves CR/LF intact.
+		$filename = \sanitize_file_name( $filename );
+
 		$content_type = 'csv' === $format ? 'text/csv' : 'application/x-ndjson';
 
 		\header( 'Content-Type: ' . $content_type . '; charset=utf-8' );
-		\header( 'Content-Disposition: attachment; filename="' . \addslashes( $filename ) . '"' );
+		\header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 		\header( 'X-Accel-Buffering: no' );
 		\header( 'Cache-Control: no-cache, no-store, must-revalidate' );
 	}
