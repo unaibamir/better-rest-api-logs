@@ -68,10 +68,15 @@ final class ExportTokenTest extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
-		global $wpdb;
+		global $wpdb, $wp_rest_server;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
 		\wp_set_current_user( 0 );
+		// Reset the global REST server so the next test's rest_api_init fires
+		// fresh. Without this, tests that add routes inside add_action('rest_api_init')
+		// in their body would get 404 because the server was already populated here.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- $wp_rest_server is a WP core global; we're resetting it, not defining a new plugin-owned global.
+		$wp_rest_server = null;
 		while ( \ob_get_level() > $this->ob_level_before ) {
 			\ob_end_clean();
 		}
@@ -79,6 +84,32 @@ final class ExportTokenTest extends WP_UnitTestCase {
 			\ob_start();
 		}
 		parent::tear_down();
+	}
+
+	/**
+	 * Extract the one-shot token from a download URL.
+	 *
+	 * Handles both pretty-permalink URLs (.../export/TOKEN) and the
+	 * ?rest_route=.../export/TOKEN form produced by the WP test suite's
+	 * default empty permalink structure.
+	 *
+	 * @param  string $url The download_url value from the mint response.
+	 * @return string      The alphanumeric token.
+	 */
+	private function token_from_url( string $url ): string {
+		// Pretty-permalink path: last segment is the token.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- wp_parse_url() delegates to parse_url() for PHP 7.4+; both are consistent on the specific PHP_URL_PATH/QUERY components we use here.
+		$path = (string) \parse_url( $url, PHP_URL_PATH );
+		if ( '' !== $path && 'index.php' !== \basename( $path ) ) {
+			return \basename( $path );
+		}
+
+		// Non-pretty: ?rest_route=/namespace/export/TOKEN.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- same rationale as above.
+		$query = (string) \parse_url( $url, PHP_URL_QUERY );
+		\parse_str( $query, $params );
+		$route = (string) ( $params['rest_route'] ?? '' );
+		return \basename( $route );
 	}
 
 	/** Insert a log entry so filter-based exports have rows to stream. */
@@ -112,8 +143,6 @@ final class ExportTokenTest extends WP_UnitTestCase {
 	 * Filter token: ExportToken
 	 */
 	public function test_mint_returns_201_with_download_url_ExportToken(): void {
-		$this->markTestIncomplete( 'Rest\\ExportController not implemented yet — Wave 1' );
-
 		$this->seed_entry();
 		$request = new \WP_REST_Request( 'POST', '/' . self::NAMESPACE . '/export' );
 		$request->set_param( 'format', 'ndjson' );
@@ -133,8 +162,6 @@ final class ExportTokenTest extends WP_UnitTestCase {
 	 * Filter token: ExportToken
 	 */
 	public function test_consume_once_deletes_transient_ExportToken(): void {
-		$this->markTestIncomplete( 'Rest\\ExportController not implemented yet — Wave 1' );
-
 		$this->seed_entry();
 
 		// Mint a token first.
@@ -144,7 +171,7 @@ final class ExportTokenTest extends WP_UnitTestCase {
 
 		$this->assertSame( 201, $mint_res->get_status() );
 		$data  = $mint_res->get_data();
-		$token = \basename( \parse_url( (string) $data['download_url'], PHP_URL_PATH ) );
+		$token = $this->token_from_url( (string) $data['download_url'] );
 
 		// Verify the transient was created.
 		$this->assertNotFalse(
@@ -171,8 +198,6 @@ final class ExportTokenTest extends WP_UnitTestCase {
 	 * Filter token: ExportToken
 	 */
 	public function test_reused_token_returns_410_ExportToken(): void {
-		$this->markTestIncomplete( 'Rest\\ExportController not implemented yet — Wave 1' );
-
 		$this->seed_entry();
 
 		// Mint.
@@ -180,7 +205,7 @@ final class ExportTokenTest extends WP_UnitTestCase {
 		$mint_req->set_param( 'format', 'csv' );
 		$mint_res = \rest_do_request( $mint_req );
 		$data     = $mint_res->get_data();
-		$token    = \basename( \parse_url( (string) $data['download_url'], PHP_URL_PATH ) );
+		$token    = $this->token_from_url( (string) $data['download_url'] );
 
 		// Consume once (burns the transient).
 		\rest_do_request( new \WP_REST_Request( 'GET', '/' . self::NAMESPACE . '/export/' . $token ) );
@@ -196,8 +221,6 @@ final class ExportTokenTest extends WP_UnitTestCase {
 	 * Filter token: ExportToken
 	 */
 	public function test_mint_denied_for_subscriber_ExportToken(): void {
-		$this->markTestIncomplete( 'Rest\\ExportController not implemented yet — Wave 1' );
-
 		\wp_set_current_user( $this->subscriber_id );
 		$request = new \WP_REST_Request( 'POST', '/' . self::NAMESPACE . '/export' );
 		$request->set_param( 'format', 'ndjson' );

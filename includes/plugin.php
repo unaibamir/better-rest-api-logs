@@ -30,6 +30,7 @@ use BetterRestApiLogs\Logger\Breaker;
 use BetterRestApiLogs\Logger\Flusher;
 use BetterRestApiLogs\Logger\Queue;
 use BetterRestApiLogs\Rest;
+use BetterRestApiLogs\Rest\ExportController;
 use BetterRestApiLogs\Rest\ListController;
 use BetterRestApiLogs\Rest\Routes;
 use BetterRestApiLogs\Rest\SingleController;
@@ -388,6 +389,18 @@ final class Plugin {
 
 		$rest = $this->container->get( Rest::class );
 		\add_action( 'rest_api_init', [ $rest, 'register_routes' ], 10 );
+
+		// Export routes — POST /export (mint) and GET /export/{token} (consume).
+		// Registered as a separate controller because the consume endpoint uses
+		// rest_pre_serve_request to stream raw bytes rather than returning a
+		// WP_REST_Response that WP would serialize to JSON.
+		$this->container->bind(
+			ExportController::class,
+			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Container $c is the standard binding closure signature; ExportController builds its own Streamer internally.
+			static fn ( Container $c ) => new ExportController()
+		);
+		$export_controller = $this->container->get( ExportController::class );
+		\add_action( 'rest_api_init', [ $export_controller, 'register_routes' ], 10 );
 
 		// WP-CLI surface — only register when running under WP_CLI so the admin
 		// stack does not pay the cost. The five `wp better-logs` verbs handle

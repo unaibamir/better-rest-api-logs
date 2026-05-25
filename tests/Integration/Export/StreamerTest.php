@@ -127,11 +127,13 @@ final class StreamerTest extends WP_UnitTestCase {
 	 * @return string The captured output.
 	 */
 	private function capture_stream( QueryArgs $args, string $format ): string {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://temp is an in-memory stream, not a filesystem path; WP_Filesystem has no equivalent for memory streams.
 		$sink = \fopen( 'php://temp', 'w+b' );
 		$this->assertNotFalse( $sink );
 		( new \BetterRestApiLogs\Export\Streamer() )->stream( $args, $format, $sink );
 		\rewind( $sink );
 		$output = (string) \stream_get_contents( $sink );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- companion close for the php://temp handle opened above.
 		\fclose( $sink );
 		return $output;
 	}
