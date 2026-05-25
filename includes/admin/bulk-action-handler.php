@@ -248,7 +248,7 @@ final class BulkActionHandler {
 			\wp_die( \esc_html__( 'Could not open output stream.', 'better-rest-api-logs' ), '', [ 'response' => 500 ] );
 		}
 
-		$streamer->stream( $args, $format, $sink, true );
+		$streamer->stream( $args, $format, $sink, true, 'admin' );
 
 		// Exit before shutdown so Flusher::on_shutdown does not truncate the stream
 		// (T-05-06-05). Integration tests intercept exit via the wp_redirect filter

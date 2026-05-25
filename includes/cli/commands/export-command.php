@@ -149,7 +149,7 @@ final class ExportCommand extends \WP_CLI_Command {
 
 		/** @var resource $sink */
 		$streamer = Plugin::instance()->container()->get( Streamer::class );
-		$streamer->stream( $query_args, $format, $sink, false );
+		$streamer->stream( $query_args, $format, $sink, false, 'cli' );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle opened by fopen() above; WP_Filesystem has no equivalent.
 		\fclose( $sink );

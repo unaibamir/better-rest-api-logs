@@ -172,6 +172,51 @@ final class StreamerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Filter brl_export_query_args: attached callback mutates the exported row set,
+	 * and the $surface argument reaches the filter callback.
+	 *
+	 * Seeds 3 GET rows + 2 POST rows. Attaches a filter that (a) records the
+	 * received $surface and (b) forces method=POST. Asserts: only 2 POST rows
+	 * appear in output, and $surface equals 'admin' (the default).
+	 *
+	 * Filter token: ExportQueryArgsFilter
+	 */
+	public function test_stream_fires_brl_export_query_args_filter_ExportQueryArgsFilter(): void {
+		$this->insert_entry( 'GET', '/wp/v2/posts' );
+		$this->insert_entry( 'GET', '/wp/v2/posts' );
+		$this->insert_entry( 'GET', '/wp/v2/posts' );
+		$this->insert_entry( 'POST', '/wp/v2/posts' );
+		$this->insert_entry( 'POST', '/wp/v2/posts' );
+
+		$captured_surface = null;
+
+		$filter = static function ( QueryArgs $args, $surface ) use ( &$captured_surface ): QueryArgs {
+			$captured_surface = $surface;
+			$args->method     = 'POST';
+			return $args;
+		};
+
+		\add_filter( 'brl_export_query_args', $filter, 10, 2 );
+
+		$args   = QueryArgs::from_array( [] );
+		$output = $this->capture_stream( $args, 'ndjson' );
+
+		\remove_filter( 'brl_export_query_args', $filter, 10 );
+
+		// Only the 2 POST rows must appear — the filter restricted the query.
+		$lines = \array_filter( \explode( "\n", \trim( $output ) ) );
+		$this->assertCount( 2, $lines, 'brl_export_query_args filter must restrict the exported row set.' );
+
+		foreach ( $lines as $line ) {
+			$record = \json_decode( $line, true );
+			$this->assertIsArray( $record );
+			$this->assertSame( 'POST', $record['method'], 'Every exported row must match the filter-overridden method.' );
+		}
+
+		$this->assertSame( 'admin', $captured_surface, '$surface must be passed to the brl_export_query_args filter.' );
+	}
+
+	/**
 	 * EXP-03: Streamer resolves spilled bodies via a batched BodyRepository
 	 * lookup — no per-row N+1 query. Assert via $wpdb->num_queries delta.
 	 *

@@ -56,6 +56,11 @@ final class Streamer {
 	 * NDJSON resolves spilled-body rows once per batch via a single
 	 * BodyRepository::find_by_log_ids() call so there is no N+1 query per row.
 	 *
+	 * The brl_export_query_args filter fires after $args is received and before
+	 * the first batch query, so extensions can restrict or modify the exported
+	 * data set per surface (e.g. limit REST exports to the current user's own
+	 * requests). When no filter is attached behaviour is identical to before.
+	 *
 	 * @param QueryArgs $args    Filter + sort arguments — the exact QueryArgs
 	 *                           the caller built from the active UI filter set,
 	 *                           so EXP-04 (filter-honoring) is a free consequence.
@@ -63,10 +68,27 @@ final class Streamer {
 	 * @param resource  $sink    Writable file handle (php://output, php://temp, etc.).
 	 * @param bool      $is_http True when called from an HTTP request (calls flush()
 	 *                           after each batch); false for CLI (suppresses flush()).
+	 * @param string    $surface Surface identifier passed to brl_export_query_args:
+	 *                           'admin' | 'rest' | 'cli'. Defaults to 'admin'.
 	 */
-	public function stream( QueryArgs $args, string $format, $sink, bool $is_http = true ): void {
+	public function stream( QueryArgs $args, string $format, $sink, bool $is_http = true, string $surface = 'admin' ): void {
 		// Keep running even when the client disconnects mid-download.
 		\ignore_user_abort( true );
+
+		/**
+		 * Mutate the QueryArgs before the export cursor walk begins.
+		 *
+		 * Fires once at the start of stream(), after the caller has built and
+		 * validated $args but before the first batch query runs. Use $surface
+		 * to distinguish admin bulk action ('admin'), the REST one-shot URL
+		 * ('rest'), and WP-CLI ('cli').
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param QueryArgs $args    Validated filter set.
+		 * @param string    $surface 'admin' | 'rest' | 'cli'.
+		 */
+		$args = \apply_filters( 'brl_export_query_args', $args, $surface );
 
 		$writer = 'csv' === $format ? new CsvWriter() : new NdjsonWriter();
 

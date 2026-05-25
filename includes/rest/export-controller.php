@@ -175,7 +175,7 @@ final class ExportController {
 				$sink = \fopen( 'php://output', 'wb' );
 				if ( false !== $sink ) {
 					$args = QueryArgs::from_array( (array) $data['query_args'] );
-					$streamer->stream( $args, $format, $sink, true );
+					$streamer->stream( $args, $format, $sink, true, 'rest' );
 					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- streaming handle opened above; must be closed after streaming completes.
 					\fclose( $sink );
 				}
