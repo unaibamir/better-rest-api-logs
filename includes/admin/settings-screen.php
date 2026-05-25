@@ -142,7 +142,7 @@ final class SettingsScreen {
 
 		$label = \sprintf(
 			/* translators: %s: formatted number of rows currently stored. */
-			\_n( 'Delete %s entry\u{2026}', 'Delete all %s entries\u{2026}', $count, 'better-rest-api-logs' ),
+			\_n( 'Delete %s entry…', 'Delete all %s entries…', $count, 'better-rest-api-logs' ),
 			\number_format_i18n( $count )
 		);
 
@@ -685,7 +685,7 @@ p.submit{display:flex;gap:8px;align-items:center;margin-top:16px;}
 		if ( 'retention' === $slug ) {
 			switch ( $key ) {
 				case 'retention_days':
-					return __( 'Days. Set to 0 to keep forever. The cron purge job runs hourly.', 'better-rest-api-logs' );
+					return __( 'Days. Set to 0 to keep forever. The cron purge job runs twice daily.', 'better-rest-api-logs' );
 				case 'purge_batch_size':
 					return __( 'Rows removed per cron tick. Lower values are gentler on large tables.', 'better-rest-api-logs' );
 				case 'purge_max_tick_seconds':
