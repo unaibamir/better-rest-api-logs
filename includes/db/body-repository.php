@@ -81,4 +81,58 @@ final class BodyRepository {
 			'response_body' => isset( $row['response_body'] ) ? (string) $row['response_body'] : null,
 		];
 	}
+
+	/**
+	 * Fetch spilled body payloads for a set of log entries in one query.
+	 *
+	 * Resolves bodies for an entire batch in a single WHERE log_id IN (...)
+	 * rather than one round-trip per row, keeping NDJSON export free of N+1
+	 * queries (D-13). The return map is keyed by log_id so the caller can
+	 * look up each row's payload in O(1) without another query.
+	 *
+	 * Empty input returns [] without touching the database.
+	 *
+	 * @param  array<mixed> $log_ids Parent log IDs; mixed types accepted.
+	 * @return array<int, array{request_body:string|null,response_body:string|null}>
+	 *         Map of log_id → body row. IDs with no spill row are absent.
+	 */
+	public function find_by_log_ids( array $log_ids ): array {
+		$ids = \array_values(
+			\array_filter(
+				\array_map( 'intval', $log_ids ),
+				static function ( int $i ): bool {
+					return $i > 0;
+				}
+			)
+		);
+
+		if ( [] === $ids ) {
+			return [];
+		}
+
+		global $wpdb;
+
+		$bodies_table = Database::bodies_table();
+		$ph           = \implode( ',', \array_fill( 0, \count( $ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $bodies_table from Database accessor; $ph is a static '%d' string built from intval'd IDs; integer values flow through $wpdb->prepare splat.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $bodies_table from Database::bodies_table() (STOR-04); $ph is static '%d' placeholders built from intval'd IDs.
+				"SELECT log_id, request_body, response_body FROM {$bodies_table} WHERE log_id IN ({$ph})",
+				...$ids
+			),
+			ARRAY_A
+		);
+
+		$map = [];
+		foreach ( \is_array( $rows ) ? $rows : [] as $row ) {
+			$map[ (int) $row['log_id'] ] = [
+				'request_body'  => isset( $row['request_body'] ) ? (string) $row['request_body'] : null,
+				'response_body' => isset( $row['response_body'] ) ? (string) $row['response_body'] : null,
+			];
+		}
+
+		return $map;
+	}
 }

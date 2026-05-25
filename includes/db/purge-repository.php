@@ -45,6 +45,7 @@ final class PurgeRepository {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $logs from Database accessor; $cutoff_at and $limit flow through $wpdb->prepare.
 		$raw_ids = $wpdb->get_col(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs from Database::logs_table() (STOR-04); cutoff and limit flow through %s/%d placeholders.
 				"SELECT id FROM {$logs} WHERE created_at < %s ORDER BY id ASC LIMIT %d",
 				$cutoff_at,
 				$limit
