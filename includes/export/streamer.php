@@ -8,6 +8,7 @@ defined( 'ABSPATH' ) || exit;
 use BetterRestApiLogs\DB\BodyRepository;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\DB\Query\QueryArgs;
+use BetterRestApiLogs\Support\Bytes;
 
 /**
  * Streams a cursor-batched export to an open file handle without buffering
@@ -94,8 +95,13 @@ final class Streamer {
 					$body_map = $this->bodies->find_by_log_ids( $spilled_ids );
 					foreach ( $page['rows'] as $entry ) {
 						if ( $entry->bodies_spilled && isset( $body_map[ $entry->id ] ) ) {
-							$entry->request_body  = $body_map[ $entry->id ]['request_body'];
-							$entry->response_body = $body_map[ $entry->id ]['response_body'];
+							// Decompress if gzip_bodies was enabled when the row was stored.
+							// Bytes::gunzip() passes non-gzip input through unchanged via a
+							// magic-byte check, so calling it unconditionally is safe.
+							$raw_req              = $body_map[ $entry->id ]['request_body'];
+							$raw_res              = $body_map[ $entry->id ]['response_body'];
+							$entry->request_body  = null !== $raw_req ? Bytes::gunzip( $raw_req ) : null;
+							$entry->response_body = null !== $raw_res ? Bytes::gunzip( $raw_res ) : null;
 						}
 					}
 				}

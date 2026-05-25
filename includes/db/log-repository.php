@@ -9,6 +9,7 @@ use BetterRestApiLogs\DB\Query\Paginator;
 use BetterRestApiLogs\DB\Query\QueryArgs;
 use BetterRestApiLogs\DB\Query\QueryBuilder;
 use BetterRestApiLogs\Domain\Entry;
+use BetterRestApiLogs\Support\Bytes;
 
 /**
  * Writes batches of captured REST log entries to {$wpdb->prefix}brl_logs.
@@ -209,8 +210,24 @@ final class LogRepository {
 			$body_repo = new BodyRepository();
 			$bodies    = $body_repo->find_by_log_id( $entry->id );
 			if ( null !== $bodies ) {
-				$entry->request_body  = $bodies['request_body'];
-				$entry->response_body = $bodies['response_body'];
+				// Decompress spilled bodies if gzip_bodies was enabled at capture time.
+				// Bytes::gunzip() passes non-gzip bytes through unchanged (magic-byte
+				// check), so calling it unconditionally is safe regardless of whether
+				// compression was active when the row was written.
+				$entry->request_body  = null !== $bodies['request_body']
+					? Bytes::gunzip( $bodies['request_body'] )
+					: null;
+				$entry->response_body = null !== $bodies['response_body']
+					? Bytes::gunzip( $bodies['response_body'] )
+					: null;
+			}
+		} else {
+			// Inline bodies may also be gzip-compressed when gzip_bodies is on.
+			if ( null !== $entry->request_body ) {
+				$entry->request_body = Bytes::gunzip( $entry->request_body );
+			}
+			if ( null !== $entry->response_body ) {
+				$entry->response_body = Bytes::gunzip( $entry->response_body );
 			}
 		}
 

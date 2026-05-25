@@ -31,6 +31,7 @@ use BetterRestApiLogs\Domain\Entry;
 use BetterRestApiLogs\Domain\RequestSnapshot;
 use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Plugin;
+use BetterRestApiLogs\Support\Bytes;
 use WP_UnitTestCase;
 
 /**
@@ -202,6 +203,64 @@ final class StreamerTest extends WP_UnitTestCase {
 		);
 
 		$this->assertNotEmpty( $output, 'Streamer must produce output for spilled rows.' );
+	}
+
+	/**
+	 * EXP-02/gzip: when a spilled body was stored gzip-compressed, the NDJSON
+	 * export must return the original plaintext — not raw gzip bytes.
+	 *
+	 * Seeds a spill row with Bytes::gzip()-compressed bodies, exports NDJSON,
+	 * decodes the line, and asserts the request_body and response_body fields
+	 * equal the original plaintext strings.
+	 *
+	 * Filter token: StreamerGzipDecompress
+	 */
+	public function test_stream_decompresses_gzipped_spill_body_StreamerGzipDecompress(): void {
+		$req_plaintext = '{"action":"create","payload":"hello world"}';
+		$res_plaintext = '{"id":42,"status":"ok"}';
+
+		// Seed a spill row with gzip-compressed bodies, simulating gzip_bodies=true.
+		$req               = new RequestSnapshot();
+		$req->route        = '/wp/v2/items';
+		$req->method       = 'POST';
+		$req->content_type = 'application/json';
+
+		$res               = new ResponseSnapshot();
+		$res->status       = 201;
+		$res->status_class = 2;
+		$res->content_type = 'application/json';
+
+		$entry                 = Entry::from_snapshots( $req, $res, [ 'created_at' => \gmdate( 'Y-m-d H:i:s' ) ] );
+		$entry->bodies_spilled = true;
+
+		$repo = new LogRepository();
+		$ids  = $repo->insert_batch( [ $entry ] );
+		$id   = $ids[0];
+
+		// Store gzip-compressed bodies in the spill table — as Flusher would when gzip_bodies=true.
+		$body_repo = new BodyRepository();
+		$body_repo->insert_spilled( $id, Bytes::gzip( $req_plaintext ), Bytes::gzip( $res_plaintext ) );
+
+		$args   = QueryArgs::from_array( [] );
+		$output = $this->capture_stream( $args, 'ndjson' );
+
+		$lines = \array_filter( \explode( "\n", \trim( $output ) ) );
+		$this->assertCount( 1, $lines, 'Expected exactly one NDJSON line.' );
+
+		$record = \json_decode( (string) \reset( $lines ), true );
+		$this->assertIsArray( $record, 'NDJSON line must decode to a valid JSON object.' );
+
+		// The exported body must be plaintext, not raw gzip bytes.
+		$this->assertSame(
+			$req_plaintext,
+			$record['request_body'] ?? null,
+			'request_body must be decompressed plaintext after export.'
+		);
+		$this->assertSame(
+			$res_plaintext,
+			$record['response_body'] ?? null,
+			'response_body must be decompressed plaintext after export.'
+		);
 	}
 
 	/**

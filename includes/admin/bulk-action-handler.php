@@ -12,6 +12,7 @@ use BetterRestApiLogs\Export\CsvWriter;
 use BetterRestApiLogs\Export\NdjsonWriter;
 use BetterRestApiLogs\Export\Streamer;
 use BetterRestApiLogs\Plugin;
+use BetterRestApiLogs\Support\Bytes;
 
 /**
  * Admin-post handlers for bulk-delete and single-row-delete.
@@ -308,8 +309,13 @@ final class BulkActionHandler {
 				$body_map = $bodies->find_by_log_ids( $spilled_ids );
 				foreach ( $rows as $entry ) {
 					if ( $entry->bodies_spilled && isset( $body_map[ $entry->id ] ) ) {
-						$entry->request_body  = $body_map[ $entry->id ]['request_body'];
-						$entry->response_body = $body_map[ $entry->id ]['response_body'];
+						// Decompress if gzip_bodies was enabled when the row was stored.
+						// Bytes::gunzip() passes non-gzip input through via a magic-byte
+						// check, so calling it unconditionally is safe.
+						$raw_req              = $body_map[ $entry->id ]['request_body'];
+						$raw_res              = $body_map[ $entry->id ]['response_body'];
+						$entry->request_body  = null !== $raw_req ? Bytes::gunzip( $raw_req ) : null;
+						$entry->response_body = null !== $raw_res ? Bytes::gunzip( $raw_res ) : null;
 					}
 				}
 			}
