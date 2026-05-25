@@ -73,7 +73,12 @@ final class PurgeCommandTest extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	/** Insert N rows with a given created_at. */
+	/**
+	 * Insert N rows with a given created_at.
+	 *
+	 * @param int    $count      Number of rows to insert.
+	 * @param string $created_at MySQL DATETIME string for the created_at column.
+	 */
 	private function insert_rows( int $count, string $created_at ): void {
 		$entries = [];
 		for ( $i = 0; $i < $count; $i++ ) {
@@ -98,8 +103,6 @@ final class PurgeCommandTest extends WP_UnitTestCase {
 	 * Filter token: PurgeCommand
 	 */
 	public function test_purge_dry_run_reports_count_without_deleting_PurgeCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\PurgeCommand not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$old_date = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
 		$this->insert_rows( 4, $old_date );
@@ -123,8 +126,6 @@ final class PurgeCommandTest extends WP_UnitTestCase {
 	 * Filter token: PurgeCommand
 	 */
 	public function test_purge_live_run_deletes_old_rows_PurgeCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\PurgeCommand not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$old_date = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
 		$recent   = \gmdate( 'Y-m-d H:i:s', \strtotime( '-1 day' ) );
@@ -146,8 +147,6 @@ final class PurgeCommandTest extends WP_UnitTestCase {
 	 * Filter token: PurgeCommand
 	 */
 	public function test_purge_command_denied_for_subscriber_PurgeCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\PurgeCommand not implemented yet — Wave 1' );
-
 		\wp_set_current_user( $this->subscriber_id );
 		$command = new \BetterRestApiLogs\Cli\Commands\PurgeCommand();
 

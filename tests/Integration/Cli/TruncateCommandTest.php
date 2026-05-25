@@ -67,7 +67,11 @@ final class TruncateCommandTest extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	/** Insert N rows for truncate-then-count assertions. */
+	/**
+	 * Insert N rows for truncate-then-count assertions.
+	 *
+	 * @param int $count Number of rows to insert.
+	 */
 	private function insert_rows( int $count = 5 ): void {
 		$entries = [];
 		for ( $i = 0; $i < $count; $i++ ) {
@@ -98,8 +102,6 @@ final class TruncateCommandTest extends WP_UnitTestCase {
 	 * Filter token: TruncateCommand
 	 */
 	public function test_truncate_yes_empties_both_tables_TruncateCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\TruncateCommand not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$this->insert_rows( 5 );
 
@@ -121,8 +123,6 @@ final class TruncateCommandTest extends WP_UnitTestCase {
 	 * Filter token: TruncateCommand
 	 */
 	public function test_truncate_without_yes_prompts_TruncateCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\TruncateCommand not implemented yet — Wave 1' );
-
 		// The WP_CLI stub's confirm() is a no-op in tests. Running the command
 		// without --yes must invoke confirm() (which the stub absorbs) and still
 		// complete. We assert no exception escapes and the table is empty after

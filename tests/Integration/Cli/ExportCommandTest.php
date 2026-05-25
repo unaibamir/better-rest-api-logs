@@ -61,6 +61,7 @@ final class ExportCommandTest extends WP_UnitTestCase {
 
 		// Remove any stale temp file from a previous run.
 		if ( \file_exists( self::TMP_CSV ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test teardown of a local /tmp file; wp_delete_file() is not suited for absolute paths outside ABSPATH.
 			\unlink( self::TMP_CSV );
 		}
 	}
@@ -71,6 +72,7 @@ final class ExportCommandTest extends WP_UnitTestCase {
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
 		\wp_set_current_user( 0 );
 		if ( \file_exists( self::TMP_CSV ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test teardown of a local /tmp file; wp_delete_file() is not suited for absolute paths outside ABSPATH.
 			\unlink( self::TMP_CSV );
 		}
 		while ( \ob_get_level() > $this->ob_level_before ) {
@@ -110,8 +112,6 @@ final class ExportCommandTest extends WP_UnitTestCase {
 	 * Filter token: ExportCommand
 	 */
 	public function test_export_csv_file_starts_with_bom_ExportCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\ExportCommand not implemented yet — Wave 1' );
-
 		$this->seed_entry();
 		$command = new \BetterRestApiLogs\Cli\Commands\ExportCommand();
 		\ob_start();
@@ -125,6 +125,7 @@ final class ExportCommandTest extends WP_UnitTestCase {
 		\ob_end_clean();
 
 		$this->assertFileExists( self::TMP_CSV, 'Export command must create the output file.' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local /tmp test fixture; wp_remote_get() is for remote URLs only.
 		$head = \file_get_contents( self::TMP_CSV, false, null, 0, 3 );
 		$this->assertSame( "\xEF\xBB\xBF", $head, 'CSV file must start with the UTF-8 BOM.' );
 	}
@@ -135,8 +136,6 @@ final class ExportCommandTest extends WP_UnitTestCase {
 	 * Filter token: ExportCommand / OutPathGuard
 	 */
 	public function test_traversal_out_path_throws_exit_exception_before_write_ExportCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\ExportCommand not implemented yet — Wave 1' );
-
 		$this->seed_entry();
 		$command   = new \BetterRestApiLogs\Cli\Commands\ExportCommand();
 		$traversal = '../escape.csv';
@@ -154,11 +153,12 @@ final class ExportCommandTest extends WP_UnitTestCase {
 			\ob_end_clean();
 			$this->fail( 'ExportCommand must throw for a traversal --out path.' );
 		} catch ( \Exception $e ) {
-			// ExitException or any exception signals the guard fired.
-			$this->assertStringNotContainsString(
+			// ExitException thrown by WP_CLI::error() signals the guard fired
+			// before any file handle was opened. Assert the error references the path.
+			$this->assertStringContainsString(
 				$traversal,
-				\realpath( \getcwd() ) . '/' . $traversal,
-				'Path guard must reject traversal before writing.'
+				$e->getMessage(),
+				'Path guard error must mention the rejected path.'
 			);
 		}
 
@@ -172,8 +172,6 @@ final class ExportCommandTest extends WP_UnitTestCase {
 	 * Filter token: ExportCommand
 	 */
 	public function test_export_without_out_streams_to_stdout_ExportCommand(): void {
-		$this->markTestIncomplete( 'Cli\\Commands\\ExportCommand not implemented yet — Wave 1' );
-
 		$this->seed_entry();
 		$command = new \BetterRestApiLogs\Cli\Commands\ExportCommand();
 

@@ -82,6 +82,13 @@ if ( 'unit' === $brl_suite ) {
 	defined( 'DAY_IN_SECONDS' ) || define( 'DAY_IN_SECONDS', 86400 );
 	defined( 'WEEK_IN_SECONDS' ) || define( 'WEEK_IN_SECONDS', 604800 );
 	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
+
+	// CLI command classes extend \WP_CLI_Command. The unit suite does not boot
+	// WP-CLI, so load the same stub that the integration suite and PHPStan use.
+	// Without it, class_exists() triggers autoload, which fails on the missing
+	// parent — the OutPathGuardTest skip guard would fatal instead of skipping.
+	require_once dirname( __DIR__ ) . '/stubs/wp-cli.stub.php';
+
 	return;
 }
 
