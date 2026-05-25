@@ -249,8 +249,6 @@ final class PurgeTickTest extends WP_UnitTestCase {
 	 * Filter token: PurgeAffectedRows
 	 */
 	public function test_purge_affected_rows_PurgeAffectedRows(): void {
-		$this->markTestIncomplete( 'DB\\PurgeRepository not implemented yet — Wave 1' );
-
 		global $wpdb;
 		$old_date = \gmdate( 'Y-m-d H:i:s', \strtotime( '-60 days' ) );
 		$ids      = $this->insert_rows( 4, $old_date );
