@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# PRIV-04 gate: capture and logger code must make zero outbound network calls.
+# PRIV-04 gate: the plugin must make zero outbound network calls, ever.
 #
-# Grep-scans includes/capture/ and includes/logger/ for any PHP function that
-# opens a socket or HTTP connection. Exits 1 on any hit; 0 when clean.
+# Grep-scans the whole includes/ tree for any PHP function that opens a socket
+# or HTTP connection. Exits 1 on any hit; 0 when clean.
 #
 # Invoked by:
 #   - composer check:no-external-calls   (CI: SCAN_MODE=full)
@@ -54,14 +54,14 @@ if [ -z "$FILES" ]; then
     exit 0
 fi
 
-# Narrow the scan to the two directories PRIV-04 protects.
-# Phase 4 admin UI may legitimately call wp_remote_get for Site Health checks,
-# so we do NOT scan the whole repo — only the hot-path capture/logger code.
-SCAN_TARGETS="includes/capture includes/logger"
-FILES=$(echo "$FILES" | grep -E "^\./?(includes/capture|includes/logger)/" || true)
+# Scan the whole includes/ tree. The "zero external calls, ever" promise covers
+# the entire plugin, not just the hot path — an exfiltration call added to admin,
+# rest, migration, cron, or export must fail CI too. The plugin ships no Site
+# Health code, so there is no legitimate wp_remote_* call to carve out.
+FILES=$(echo "$FILES" | grep -E "^\./?includes/" || true)
 
 if [ -z "$FILES" ]; then
-    echo "no-external-calls: clean (${MODE} mode — no files in scan targets yet)."
+    echo "no-external-calls: clean (${MODE} mode — no includes/ files in scope)."
     exit 0
 fi
 
@@ -76,11 +76,11 @@ HITS=$(echo "$FILES" \
     || true)
 
 if [ -n "$HITS" ]; then
-    echo "PRIV-04 violation — outbound network call in capture/logger path:"
+    echo "PRIV-04 violation — outbound network call under includes/:"
     echo "$HITS"
     echo
     echo "Captured data must never leave the site (PROJECT.md hard constraint / D-23)."
-    echo "Remove the call or move it outside includes/capture/ and includes/logger/."
+    echo "The plugin makes zero external calls, ever — remove the call."
     exit 1
 fi
 
