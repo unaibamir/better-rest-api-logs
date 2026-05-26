@@ -30,6 +30,9 @@ final class NdjsonWriterTest extends TestCase {
 	}
 
 	private function make_entry(): Entry {
+		// Stored as packed inet_pton bytes, the way capture writes it.
+		$packed = \inet_pton( '10.0.0.1' );
+
 		$e                      = new Entry();
 		$e->id                  = 42;
 		$e->created_at          = '2026-01-15 10:30:00';
@@ -40,8 +43,6 @@ final class NdjsonWriterTest extends TestCase {
 		$e->status_class        = 2;
 		$e->duration_ms         = 88;
 		$e->user_id             = 3;
-		// Stored as packed inet_pton bytes, the way capture writes it.
-		$packed                 = \inet_pton( '10.0.0.1' );
 		$e->ip_resolved         = false !== $packed ? $packed : null;
 		$e->request_body_bytes  = 256;
 		$e->response_body_bytes = 1024;

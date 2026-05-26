@@ -70,10 +70,10 @@ msgstr ""
 msgid "Copied!"
 msgstr ""
 
-#: includes/admin/bulk-action-handler.php:64
-#: includes/admin/bulk-action-handler.php:155
-#: includes/admin/bulk-action-handler.php:208
-#: includes/admin/bulk-action-handler.php:254
+#: includes/admin/bulk-action-handler.php:71
+#: includes/admin/bulk-action-handler.php:162
+#: includes/admin/bulk-action-handler.php:215
+#: includes/admin/bulk-action-handler.php:261
 #: includes/admin/detail-screen.php:53
 #: includes/admin/list-screen.php:85
 #: includes/admin/settings-screen.php:198
@@ -83,9 +83,13 @@ msgstr ""
 msgid "Insufficient permissions."
 msgstr ""
 
-#: includes/admin/bulk-action-handler.php:312
-#: includes/admin/bulk-action-handler.php:349
+#: includes/admin/bulk-action-handler.php:319
+#: includes/admin/bulk-action-handler.php:370
 msgid "Could not open output stream."
+msgstr ""
+
+#: includes/admin/bulk-action-handler.php:349
+msgid "Cannot start a download after the page has begun rendering."
 msgstr ""
 
 #: includes/admin/detail-screen.php:63
@@ -102,7 +106,7 @@ msgstr ""
 
 #. translators: %d: log entry id
 #: includes/admin/detail-screen.php:120
-#: includes/admin/list-table.php:364
+#: includes/admin/list-table.php:370
 #, php-format
 msgid "Delete log #%d? This cannot be undone."
 msgstr ""
@@ -206,13 +210,13 @@ msgid "Body was stored as empty."
 msgstr ""
 
 #: includes/admin/detail-screen.php:417
-#: includes/admin/list-table.php:448
+#: includes/admin/list-table.php:454
 msgid "(guest)"
 msgstr ""
 
 #. translators: %d: user ID
 #: includes/admin/detail-screen.php:423
-#: includes/admin/list-table.php:456
+#: includes/admin/list-table.php:462
 #, php-format
 msgid "User #%d"
 msgstr ""
@@ -273,79 +277,79 @@ msgstr ""
 msgid "Export selected (NDJSON)"
 msgstr ""
 
-#: includes/admin/list-table.php:162
+#: includes/admin/list-table.php:168
 msgid "Export format"
 msgstr ""
 
-#: includes/admin/list-table.php:183
+#: includes/admin/list-table.php:189
 msgid "NDJSON"
 msgstr ""
 
-#: includes/admin/list-table.php:184
+#: includes/admin/list-table.php:190
 msgid "CSV"
 msgstr ""
 
-#: includes/admin/list-table.php:191
+#: includes/admin/list-table.php:197
 msgid "No rows match the current filters."
 msgstr ""
 
-#: includes/admin/list-table.php:192
-#: includes/admin/list-table.php:201
+#: includes/admin/list-table.php:198
+#: includes/admin/list-table.php:207
 msgid "Export current view"
 msgstr ""
 
-#: includes/admin/list-table.php:196
+#: includes/admin/list-table.php:202
 msgid "No rows to export."
 msgstr ""
 
 #. translators: %d: log entry ID
-#: includes/admin/list-table.php:281
+#: includes/admin/list-table.php:287
 #, php-format
 msgid "Select log entry #%d"
 msgstr ""
 
-#: includes/admin/list-table.php:379
+#: includes/admin/list-table.php:385
 msgid "View"
 msgstr ""
 
-#: includes/admin/list-table.php:385
+#: includes/admin/list-table.php:391
 msgid "Delete"
 msgstr ""
 
-#: includes/admin/list-table.php:515
+#: includes/admin/list-table.php:521
 msgid "Informational"
 msgstr ""
 
-#: includes/admin/list-table.php:519
+#: includes/admin/list-table.php:525
 msgid "Success"
 msgstr ""
 
-#: includes/admin/list-table.php:523
+#: includes/admin/list-table.php:529
 msgid "Redirect"
 msgstr ""
 
-#: includes/admin/list-table.php:527
+#: includes/admin/list-table.php:533
 msgid "Client error"
 msgstr ""
 
-#: includes/admin/list-table.php:531
+#: includes/admin/list-table.php:537
 msgid "Server error"
 msgstr ""
 
-#: includes/admin/list-table.php:535
+#: includes/admin/list-table.php:541
 #: includes/admin/settings-screen.php:708
 msgid "Unknown"
 msgstr ""
 
-#: includes/admin/list-table.php:578
+#: includes/admin/list-table.php:584
 msgid "No logs match these filters."
 msgstr ""
 
-#: includes/admin/list-table.php:581
+#: includes/admin/list-table.php:587
 msgid "Try widening the date range, picking a less specific route prefix, or"
 msgstr ""
 
-#: includes/admin/list-table.php:583
+#: includes/admin/list-table.php:589
 msgid "reset filters"
 msgstr ""
 

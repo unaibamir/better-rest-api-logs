@@ -252,7 +252,9 @@ final class FlusherTest extends WP_UnitTestCase {
 						'callback'            => static function () {
 							return new \WP_REST_Response( [ 'ok' => true ], 200 );
 						},
-						'permission_callback' => '__return_true',
+						'permission_callback' => static function () {
+							return true;
+						},
 					]
 				);
 			}

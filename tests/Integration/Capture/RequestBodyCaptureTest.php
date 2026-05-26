@@ -62,7 +62,9 @@ final class RequestBodyCaptureTest extends WP_UnitTestCase {
 						'callback'            => static function ( \WP_REST_Request $request ) {
 							return new \WP_REST_Response( [ 'received' => $request->get_json_params() ], 200 );
 						},
-						'permission_callback' => '__return_true',
+						'permission_callback' => static function () {
+							return true;
+						},
 					]
 				);
 			}
