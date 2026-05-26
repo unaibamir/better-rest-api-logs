@@ -143,7 +143,7 @@ final class SettingsScreenTest extends WP_UnitTestCase {
 		unset( $_GET['page'], $_GET['tab'] );
 
 		$this->assertMatchesRegularExpression(
-			'/<input type="hidden" name="brl_settings_capture\\[enabled\\]" value="0"[^>]*>\\s*<label><input type="checkbox" name="brl_settings_capture\\[enabled\\]"/',
+			'/<input type="hidden" name="brl_settings_capture\\[enabled\\]" value="0"[^>]*>\\s*<label><input type="checkbox" id="[^"]*" name="brl_settings_capture\\[enabled\\]"/',
 			$html,
 			'Each checkbox must be preceded by a hidden zero input with the same name so unchecked state survives the POST.'
 		);
