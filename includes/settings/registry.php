@@ -335,7 +335,7 @@ final class Registry {
 	 * @param  mixed $input Form-post payload (expected array; defensive against scalars).
 	 * @return array<string,mixed>
 	 */
-	private function sanitize_capture( $input ): array {
+	public function sanitize_capture( $input ): array {
 		$defaults = Defaults::for_tab( 'capture' );
 		if ( ! \is_array( $input ) ) {
 			return $defaults;
@@ -362,7 +362,7 @@ final class Registry {
 	 * @param  mixed $input Form-post payload.
 	 * @return array<string,mixed>
 	 */
-	private function sanitize_privacy( $input ): array {
+	public function sanitize_privacy( $input ): array {
 		$defaults = Defaults::for_tab( 'privacy' );
 		if ( ! \is_array( $input ) ) {
 			return $defaults;
@@ -381,7 +381,7 @@ final class Registry {
 	 * @param  mixed $input Form-post payload.
 	 * @return array<string,mixed>
 	 */
-	private function sanitize_retention( $input ): array {
+	public function sanitize_retention( $input ): array {
 		$defaults = Defaults::for_tab( 'retention' );
 		if ( ! \is_array( $input ) ) {
 			return $defaults;
@@ -399,7 +399,7 @@ final class Registry {
 	 * @param  mixed $input Form-post payload.
 	 * @return array<string,mixed>
 	 */
-	private function sanitize_network( $input ): array {
+	public function sanitize_network( $input ): array {
 		$defaults = Defaults::for_tab( 'network' );
 		if ( ! \is_array( $input ) ) {
 			return $defaults;
@@ -416,7 +416,7 @@ final class Registry {
 	 * @param  mixed $input Form-post payload.
 	 * @return array<string,mixed>
 	 */
-	private function sanitize_advanced( $input ): array {
+	public function sanitize_advanced( $input ): array {
 		$defaults = Defaults::for_tab( 'advanced' );
 		if ( ! \is_array( $input ) ) {
 			return $defaults;
