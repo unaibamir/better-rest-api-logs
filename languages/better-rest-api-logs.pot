@@ -1,0 +1,929 @@
+# Copyright (C) 2026 Unaib Amir
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Better REST API Logs 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/better-rest-api-logs\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: better-rest-api-logs\n"
+
+#. Plugin Name of the plugin
+#: better-rest-api-logs.php
+msgid "Better REST API Logs"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: better-rest-api-logs.php
+msgid "https://github.com/unaibamir/better-rest-api-logs"
+msgstr ""
+
+#. Description of the plugin
+#: better-rest-api-logs.php
+msgid "Reliable, accurate, queryable REST API request/response logs for WordPress — without the wp_posts bloat."
+msgstr ""
+
+#. Author of the plugin
+#: better-rest-api-logs.php
+msgid "Unaib Amir"
+msgstr ""
+
+#. Author URI of the plugin
+#: better-rest-api-logs.php
+msgid "https://unaibamir.com"
+msgstr ""
+
+#: better-rest-api-logs.php:51
+#: build/better-rest-api-logs/better-rest-api-logs.php:51
+msgid "Better REST API Logs cannot start: the Composer autoloader is missing. If you installed from git, run `composer install`. If you installed from the WordPress.org zip, please report this as a bug."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin.php:72
+#: build/better-rest-api-logs/includes/admin.php:73
+#: build/better-rest-api-logs/includes/admin/list-screen.php:105
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:38
+#: includes/admin.php:74
+#: includes/admin.php:75
+#: includes/admin/list-screen.php:96
+#: includes/admin/settings-screen.php:40
+msgid "REST API Logs"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin.php:83
+#: includes/admin.php:95
+#: includes/admin.php:131
+msgid "Log entry"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/bulk-action-handler.php:57
+#: build/better-rest-api-logs/includes/admin/bulk-action-handler.php:137
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:63
+#: build/better-rest-api-logs/includes/admin/list-screen.php:83
+#: includes/admin/bulk-action-handler.php:64
+#: includes/admin/bulk-action-handler.php:155
+#: includes/admin/bulk-action-handler.php:208
+#: includes/admin/bulk-action-handler.php:254
+#: includes/admin/detail-screen.php:53
+#: includes/admin/list-screen.php:85
+#: includes/admin/settings-screen.php:184
+#: includes/admin/settings-screen.php:323
+msgid "Insufficient permissions."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:73
+#: includes/admin/detail-screen.php:63
+msgid "Log entry not found"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:74
+#: includes/admin/detail-screen.php:64
+msgid "It may have been deleted or purged."
+msgstr ""
+
+#. translators: %d: log entry ID
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:85
+#: includes/admin.php:128
+#: includes/admin/detail-screen.php:102
+#, php-format
+msgid "REST API Log #%d"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:90
+msgid "\\u{2190} Back to logs"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:113
+#: includes/admin/detail-screen.php:166
+msgid "Request"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:114
+#: includes/admin/detail-screen.php:184
+msgid "Response"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:122
+#: build/better-rest-api-logs/includes/admin/filters-view.php:46
+#: build/better-rest-api-logs/includes/admin/list-table.php:73
+#: includes/admin/detail-screen.php:137
+#: includes/admin/filters-view.php:72
+#: includes/admin/list-table.php:76
+msgid "Method"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:127
+#: build/better-rest-api-logs/includes/admin/list-table.php:75
+#: includes/admin/detail-screen.php:136
+#: includes/admin/list-table.php:75
+msgid "Route"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:132
+msgid "Prefix"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:138
+#: build/better-rest-api-logs/includes/admin/list-table.php:74
+#: includes/admin/detail-screen.php:138
+#: includes/admin/list-table.php:77
+msgid "Status"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:143
+#: build/better-rest-api-logs/includes/admin/list-table.php:76
+#: includes/admin/detail-screen.php:141
+#: includes/admin/list-table.php:79
+msgid "Duration"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:156
+#: includes/admin/detail-screen.php:214
+msgid "Headers"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:178
+#: includes/admin/detail-screen.php:310
+msgid "Body"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/detail-screen.php:180
+#: includes/admin/detail-screen.php:216
+#: includes/admin/detail-screen.php:261
+#: includes/admin/detail-screen.php:312
+msgid "Copy"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:47
+#: includes/admin/filters-view.php:76
+msgid "Any method"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:60
+msgid "Status code"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:64
+msgid "e.g. 200, 404"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:70
+#: includes/admin/filters-view.php:91
+msgid "Status class"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:83
+#: includes/admin/filters-view.php:110
+msgid "Route prefix"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:87
+msgid "e.g. /wp/v2/"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:93
+msgid "User ID"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:97
+msgid "Numeric ID"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:103
+msgid "IP address"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:107
+msgid "IPv4 or IPv6"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:113
+#: includes/admin/filters-view.php:48
+msgid "From"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:123
+#: includes/admin/filters-view.php:60
+msgid "To"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:133
+msgid "Search route"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:137
+msgid "Substring match on /route"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:142
+msgid "Apply filters"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/filters-view.php:151
+msgid "Reset filters"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:72
+#: includes/admin/detail-screen.php:139
+#: includes/admin/list-table.php:82
+msgid "Time"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:77
+#: includes/admin/detail-screen.php:150
+#: includes/admin/list-table.php:81
+msgid "User"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:78
+#: includes/admin/detail-screen.php:151
+#: includes/admin/list-table.php:78
+msgid "IP"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:101
+#: includes/admin/list-table.php:112
+msgid "Delete selected"
+msgstr ""
+
+#. translators: %d: log entry id
+#: build/better-rest-api-logs/includes/admin/list-table.php:215
+#: includes/admin/detail-screen.php:120
+#: includes/admin/list-table.php:359
+#, php-format
+msgid "Delete log #%d? This cannot be undone."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:224
+#: includes/admin/list-table.php:374
+msgid "View"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:230
+#: includes/admin/list-table.php:380
+msgid "Delete"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:254
+#: includes/admin/list-table.php:510
+msgid "Informational"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:257
+#: includes/admin/list-table.php:513
+msgid "Success"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:260
+#: includes/admin/list-table.php:516
+msgid "Redirect"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:263
+#: includes/admin/list-table.php:519
+msgid "Client error"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:266
+#: includes/admin/list-table.php:522
+msgid "Server error"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:269
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:180
+#: includes/admin/list-table.php:525
+#: includes/admin/settings-screen.php:453
+msgid "Unknown"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:305
+msgid "Older entries"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:314
+msgid "Newest entries"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:329
+#: includes/admin/list-table.php:566
+msgid "No logs match these filters."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:332
+#: includes/admin/list-table.php:569
+msgid "Try widening the date range, picking a less specific route prefix, or"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/list-table.php:334
+#: includes/admin/list-table.php:571
+msgid "reset filters"
+msgstr ""
+
+#. translators: %d: number of deleted log entries.
+#: build/better-rest-api-logs/includes/admin/notices.php:37
+#: includes/admin/notices.php:37
+#, php-format
+msgid "Deleted %d log entry."
+msgid_plural "Deleted %d log entries."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: number of deleted entries, 2: total number of selected entries
+#: build/better-rest-api-logs/includes/admin/notices.php:48
+#: includes/admin/notices.php:48
+#, php-format
+msgid "Deleted %1$d of %2$d selected entries. The rest could not be removed."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/notices.php:71
+#: includes/admin/notices.php:71
+msgid "Could not delete any of the selected entries. Check the server error log for details."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/notices.php:73
+#: includes/admin/notices.php:73
+msgid "Pick at least one log entry before applying a bulk action."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/notices.php:75
+#: includes/admin/notices.php:75
+msgid "Your session expired. Reload the page and try again."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/notices.php:77
+#: includes/admin/notices.php:77
+msgid "An unknown error occurred."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:37
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:106
+#: includes/admin/settings-screen.php:39
+#: includes/admin/settings-screen.php:108
+msgid "REST API Logs Settings"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:83
+#: includes/admin/settings-screen.php:85
+msgid "Delete all log data when this plugin is uninstalled"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:151
+#: includes/admin/settings-screen.php:424
+msgid "OFF by default. When ON, uninstalling the plugin drops the log tables and removes all plugin options."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:170
+#: includes/admin/settings-screen.php:443
+msgid "Capture"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:172
+#: includes/admin/settings-screen.php:445
+msgid "Privacy"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:174
+#: includes/admin/settings-screen.php:447
+msgid "Retention"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:176
+#: includes/admin/settings-screen.php:449
+msgid "Network"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:178
+#: includes/admin/settings-screen.php:451
+msgid "Advanced"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:286
+#: includes/admin/settings-screen.php:563
+msgid "Enable capture"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:288
+#: includes/admin/settings-screen.php:565
+msgid "Route allowlist"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:290
+#: includes/admin/settings-screen.php:567
+msgid "Route denylist"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:292
+#: includes/admin/settings-screen.php:569
+msgid "HTTP methods to capture"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:294
+#: includes/admin/settings-screen.php:571
+msgid "Status classes to capture"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:296
+#: includes/admin/settings-screen.php:573
+msgid "Body size cap"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:298
+#: includes/admin/settings-screen.php:575
+msgid "Body content-type allowlist"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:300
+#: includes/admin/settings-screen.php:577
+msgid "Spill oversized bodies to a separate table"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:302
+#: includes/admin/settings-screen.php:579
+msgid "Body spill threshold"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:304
+#: includes/admin/settings-screen.php:581
+msgid "Gzip stored bodies"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:312
+#: includes/admin/settings-screen.php:589
+msgid "Extra headers to redact"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:314
+#: includes/admin/settings-screen.php:591
+msgid "Extra JSON key patterns to redact"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:316
+#: includes/admin/settings-screen.php:593
+msgid "Anonymize stored IPs"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:318
+#: includes/admin/settings-screen.php:595
+msgid "Authentication endpoints"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:326
+#: includes/admin/settings-screen.php:603
+msgid "Keep logs for"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:328
+#: includes/admin/settings-screen.php:605
+msgid "Purge batch size"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:330
+#: includes/admin/settings-screen.php:607
+msgid "Max purge duration per tick"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:338
+#: includes/admin/settings-screen.php:615
+msgid "Trusted proxies"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:340
+#: includes/admin/settings-screen.php:617
+msgid "Cloudflare IP ranges"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:342
+#: includes/admin/settings-screen.php:619
+msgid "Capture only requests from these IPs"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:344
+#: includes/admin/settings-screen.php:621
+msgid "Never capture requests from these IPs"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:352
+#: includes/admin/settings-screen.php:629
+msgid "Truncate confirmation phrase"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:373
+#: includes/admin/settings-screen.php:650
+msgid "When OFF, no REST requests are logged. Existing rows are not touched."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:375
+#: includes/admin/settings-screen.php:652
+msgid "One pattern per line. Globs supported, e.g. /wc/v3/*. Leave blank to allow everything."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:377
+#: includes/admin/settings-screen.php:654
+msgid "One pattern per line. Deny patterns win over allow patterns."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:379
+#: includes/admin/settings-screen.php:656
+msgid "Leave blank to capture all methods."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:381
+#: includes/admin/settings-screen.php:658
+msgid "Pick the response classes you want to log. Leave blank to capture all."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:383
+#: includes/admin/settings-screen.php:660
+msgid "Bodies larger than this are truncated. The original byte size is recorded honestly."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:385
+#: includes/admin/settings-screen.php:662
+msgid "One content-type per line. Leave blank to capture all content types."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:387
+#: includes/admin/settings-screen.php:664
+msgid "Keeps the main logs table small. Body lookup adds one extra query on the detail view."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:389
+#: includes/admin/settings-screen.php:666
+msgid "Bodies larger than this threshold spill to the secondary table when spill is enabled."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:391
+#: includes/admin/settings-screen.php:668
+msgid "Trades CPU for storage. OFF by default in v1."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:398
+#: includes/admin/settings-screen.php:675
+msgid "One header name per line. Authorization, Cookie, Set-Cookie, X-Api-Key, and Proxy-Authorization are always redacted."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:400
+#: includes/admin/settings-screen.php:677
+msgid "One regex per line. password, secret, token, key, credit, card, cvv, and ssn are always redacted."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:402
+#: includes/admin/settings-screen.php:679
+msgid "Mask the last octet of IPv4 and the last 80 bits of IPv6 before storage."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:404
+#: includes/admin/settings-screen.php:681
+msgid "One route per line. Bodies for these routes are never captured."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:411
+msgid "Days. Set to 0 to keep forever. The cron purge job runs hourly."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:413
+#: includes/admin/settings-screen.php:690
+msgid "Rows removed per cron tick. Lower values are gentler on large tables."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:415
+#: includes/admin/settings-screen.php:692
+msgid "Maximum seconds the purge job runs per cron tick before yielding."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:422
+#: includes/admin/settings-screen.php:699
+msgid "One CIDR per line. Leave blank if the site sits directly on the internet."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:424
+#: includes/admin/settings-screen.php:701
+msgid "Only when REMOTE_ADDR is in a Cloudflare range. The plugin ships a static list of Cloudflare CIDRs."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:426
+#: includes/admin/settings-screen.php:703
+msgid "One CIDR per line. Leave blank to capture from any IP."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:428
+#: includes/admin/settings-screen.php:705
+msgid "One CIDR per line. Deny patterns win over allow patterns."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/admin/settings-screen.php:435
+msgid "Custom confirmation phrase for the truncate action. Leave blank to use the default."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/db/schema.php:143
+#: includes/db/schema.php:143
+msgid "Better REST API Logs database tables"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/db/schema.php:158
+#: includes/db/schema.php:158
+msgid "Better REST API Logs database tables exist and are healthy."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/db/schema.php:161
+#: build/better-rest-api-logs/includes/db/schema.php:174
+#: includes/db/schema.php:161
+#: includes/db/schema.php:174
+msgid "Plugins"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/db/schema.php:164
+#: includes/db/schema.php:164
+msgid "Both brl_logs and brl_logs_bodies are present."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/db/schema.php:171
+#: includes/db/schema.php:171
+msgid "Better REST API Logs cannot find its database tables."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/db/schema.php:177
+#: includes/db/schema.php:177
+msgid "Logging is paused until the tables are created. Try deactivating and reactivating the plugin to repair the schema."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/db/schema.php:199
+#: includes/db/schema.php:199
+msgid "Better REST API Logs: log tables are missing or malformed. Logging is paused. Please deactivate and reactivate the plugin to repair the schema."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/logger/breaker.php:135
+#: includes/logger/breaker.php:135
+msgid "Better REST API Logs: request capture is paused — recent insert failures armed the circuit breaker. Logging will resume automatically."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/logger/breaker.php:151
+#: includes/logger/breaker.php:151
+msgid "REST API capture status"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/logger/breaker.php:167
+#: includes/logger/breaker.php:167
+msgid "REST API request capture is active"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/logger/breaker.php:170
+#: build/better-rest-api-logs/includes/logger/breaker.php:185
+#: includes/cron/purge.php:243
+#: includes/logger/breaker.php:170
+#: includes/logger/breaker.php:185
+msgid "Performance"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/logger/breaker.php:173
+#: includes/logger/breaker.php:173
+msgid "REST API requests are being captured and stored normally."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/logger/breaker.php:182
+#: includes/logger/breaker.php:182
+msgid "REST API request capture is paused"
+msgstr ""
+
+#: build/better-rest-api-logs/includes/logger/breaker.php:188
+#: includes/logger/breaker.php:188
+msgid "Recent insert failures armed the circuit breaker. Capture will auto-resume when storage recovers."
+msgstr ""
+
+#: build/better-rest-api-logs/includes/rest/list-controller.php:46
+#: build/better-rest-api-logs/includes/rest/list-controller.php:59
+#: includes/rest/list-controller.php:46
+#: includes/rest/list-controller.php:59
+msgid "Malformed pagination cursor."
+msgstr ""
+
+#. translators: %d: log entry id.
+#: build/better-rest-api-logs/includes/rest/single-controller.php:39
+#: build/better-rest-api-logs/includes/rest/single-controller.php:67
+#: includes/rest/single-controller.php:39
+#: includes/rest/single-controller.php:67
+#, php-format
+msgid "Log entry %d does not exist."
+msgstr ""
+
+#: includes/admin.php:150
+msgid "Logs per page"
+msgstr ""
+
+#: includes/admin/assets.php:139
+msgid "Copied!"
+msgstr ""
+
+#: includes/admin/bulk-action-handler.php:312
+#: includes/admin/bulk-action-handler.php:349
+msgid "Could not open output stream."
+msgstr ""
+
+#: includes/admin/detail-screen.php:111
+msgid "← Back to logs"
+msgstr ""
+
+#: includes/admin/detail-screen.php:124
+msgid "Delete this entry"
+msgstr ""
+
+#: includes/admin/detail-screen.php:132
+msgid "Overview"
+msgstr ""
+
+#. translators: %d: duration in milliseconds
+#: includes/admin/detail-screen.php:144
+#, php-format
+msgid "%d ms"
+msgstr ""
+
+#: includes/admin/detail-screen.php:148
+msgid "Request size"
+msgstr ""
+
+#: includes/admin/detail-screen.php:149
+msgid "Response size"
+msgstr ""
+
+#: includes/admin/detail-screen.php:224
+#: includes/admin/detail-screen.php:269
+msgid "JSON"
+msgstr ""
+
+#: includes/admin/detail-screen.php:228
+#: includes/admin/detail-screen.php:273
+msgid "Key / Value"
+msgstr ""
+
+#: includes/admin/detail-screen.php:259
+msgid "Query parameters"
+msgstr ""
+
+#: includes/admin/detail-screen.php:318
+msgid "Body was stored as empty."
+msgstr ""
+
+#: includes/admin/detail-screen.php:417
+#: includes/admin/list-table.php:443
+msgid "(guest)"
+msgstr ""
+
+#. translators: %d: user ID
+#: includes/admin/detail-screen.php:423
+#: includes/admin/list-table.php:451
+#, php-format
+msgid "User #%d"
+msgstr ""
+
+#: includes/admin/filters-view.php:53
+msgid "From date"
+msgstr ""
+
+#: includes/admin/filters-view.php:65
+msgid "To date"
+msgstr ""
+
+#: includes/admin/filters-view.php:95
+msgid "Any class"
+msgstr ""
+
+#: includes/admin/filters-view.php:115
+msgid "e.g. /wp/v2/* or */users/*"
+msgstr ""
+
+#: includes/admin/filters-view.php:119
+msgid "Filter"
+msgstr ""
+
+#: includes/admin/list-table.php:80
+msgid "Response Size"
+msgstr ""
+
+#: includes/admin/list-table.php:113
+msgid "Export selected (CSV)"
+msgstr ""
+
+#: includes/admin/list-table.php:114
+msgid "Export selected (NDJSON)"
+msgstr ""
+
+#: includes/admin/list-table.php:162
+msgid "Export format"
+msgstr ""
+
+#: includes/admin/list-table.php:183
+msgid "NDJSON"
+msgstr ""
+
+#: includes/admin/list-table.php:184
+msgid "CSV"
+msgstr ""
+
+#: includes/admin/list-table.php:191
+msgid "No rows match the current filters."
+msgstr ""
+
+#: includes/admin/list-table.php:192
+#: includes/admin/list-table.php:201
+msgid "Export current view"
+msgstr ""
+
+#: includes/admin/list-table.php:196
+msgid "No rows to export."
+msgstr ""
+
+#. translators: %s: formatted number of rows currently stored.
+#: includes/admin/settings-screen.php:145
+#, php-format
+msgid "Delete %s entry…"
+msgid_plural "Delete all %s entries…"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/settings-screen.php:151
+msgid "Truncate all logs"
+msgstr ""
+
+#: includes/admin/settings-screen.php:154
+msgid "Removes every captured request from the database in one shot. The autoincrement counter resets so the next captured row starts at 1. This action cannot be undone."
+msgstr ""
+
+#. translators: %s: formatted number of captured requests that will be deleted.
+#: includes/admin/settings-screen.php:202
+#, php-format
+msgid "This will permanently delete %s captured request and reset the log counter to zero. This cannot be undone."
+msgid_plural "This will permanently delete all %s captured requests and reset the log counter to zero. This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: the phrase the user configured as a confirmation guard.
+#: includes/admin/settings-screen.php:226
+#, php-format
+msgid "Type %s to confirm:"
+msgstr ""
+
+#: includes/admin/settings-screen.php:235
+msgid "Cancel"
+msgstr ""
+
+#: includes/admin/settings-screen.php:236
+msgid "Delete all logs"
+msgstr ""
+
+#: includes/admin/settings-screen.php:246
+msgid "Delete all REST API logs?"
+msgstr ""
+
+#. translators: %d: number of log rows removed by the truncate action.
+#: includes/admin/settings-screen.php:278
+#, php-format
+msgid "Removed %d log entry."
+msgid_plural "Removed %d log entries."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/settings-screen.php:287
+msgid "Confirmation phrase did not match. No rows were removed."
+msgstr ""
+
+#: includes/admin/settings-screen.php:293
+msgid "There were no log entries to remove."
+msgstr ""
+
+#: includes/admin/settings-screen.php:688
+msgid "Days. Set to 0 to keep forever. The cron purge job runs twice daily."
+msgstr ""
+
+#: includes/admin/settings-screen.php:712
+msgid "Optional. When set, the \"Purge all entries now\" button below requires this exact phrase to be typed before it runs. Leave blank to fall back to a plain browser confirm dialog."
+msgstr ""
+
+#: includes/cron/purge.php:201
+msgid "Better REST API Logs (brl): the retention purge event could not be scheduled. Log retention will not run until the event is registered. Deactivating and reactivating the plugin may resolve this."
+msgstr ""
+
+#: includes/cron/purge.php:224
+msgid "Log retention purge schedule status"
+msgstr ""
+
+#: includes/cron/purge.php:240
+msgid "Log retention purge is not scheduled"
+msgstr ""
+
+#: includes/cron/purge.php:246
+msgid "The scheduled purge event for log retention could not be registered. Old log rows will not be automatically removed. Deactivating and reactivating the plugin may resolve this."
+msgstr ""
+
+#: includes/rest/export-controller.php:141
+#: includes/rest/export-controller.php:155
+msgid "Download link expired or already used."
+msgstr ""
+
+#: includes/rest/export-controller.php:166
+msgid "You are not authorized to use this download link."
+msgstr ""
