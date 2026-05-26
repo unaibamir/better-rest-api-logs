@@ -51,18 +51,26 @@ final class RequestBodyCaptureTest extends WP_UnitTestCase {
 
 	private function boot_plugin(): void {
 		Plugin::instance()->boot();
-		\rest_get_server();
-		\register_rest_route(
-			'brl-test/v1',
-			'/echo',
-			[
-				'methods'             => 'POST',
-				'callback'            => static function ( \WP_REST_Request $request ) {
-					return new \WP_REST_Response( [ 'received' => $request->get_json_params() ], 200 );
-				},
-				'permission_callback' => '__return_true',
-			]
+		\add_action(
+			'rest_api_init',
+			static function () {
+				\register_rest_route(
+					'brl-test/v1',
+					'/echo',
+					[
+						'methods'             => 'POST',
+						'callback'            => static function ( \WP_REST_Request $request ) {
+							return new \WP_REST_Response( [ 'received' => $request->get_json_params() ], 200 );
+						},
+						'permission_callback' => '__return_true',
+					]
+				);
+			}
 		);
+		// Re-fire init so the route registers on the already-booted REST server
+		// without tripping WP's "register on rest_api_init" doing-it-wrong notice.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		\do_action( 'rest_api_init', \rest_get_server() );
 	}
 
 	/**
