@@ -8,6 +8,8 @@ defined( 'ABSPATH' ) || exit;
 use BetterRestApiLogs\DB\BodyRepository;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\DB\Query\QueryArgs;
+use BetterRestApiLogs\Settings\Registry as SettingsRegistry;
+use BetterRestApiLogs\Settings\Repository as SettingsRepository;
 use BetterRestApiLogs\Support\Bytes;
 
 /**
@@ -35,14 +37,17 @@ final class Streamer {
 
 	private LogRepository $repo;
 	private BodyRepository $bodies;
+	private SettingsRegistry $registry;
 
 	/**
-	 * @param LogRepository|null  $repo   Defaults to a new real instance.
-	 * @param BodyRepository|null $bodies Defaults to a new real instance.
+	 * @param LogRepository|null    $repo     Defaults to a new real instance.
+	 * @param BodyRepository|null   $bodies   Defaults to a new real instance.
+	 * @param SettingsRegistry|null $registry Settings source for the anonymize-IP flag.
 	 */
-	public function __construct( ?LogRepository $repo = null, ?BodyRepository $bodies = null ) {
-		$this->repo   = $repo ?? new LogRepository();
-		$this->bodies = $bodies ?? new BodyRepository();
+	public function __construct( ?LogRepository $repo = null, ?BodyRepository $bodies = null, ?SettingsRegistry $registry = null ) {
+		$this->repo     = $repo ?? new LogRepository();
+		$this->bodies   = $bodies ?? new BodyRepository();
+		$this->registry = $registry ?? new SettingsRegistry( new SettingsRepository() );
 	}
 
 	/**
@@ -90,7 +95,8 @@ final class Streamer {
 		 */
 		$args = \apply_filters( 'brl_export_query_args', $args, $surface );
 
-		$writer = 'csv' === $format ? new CsvWriter() : new NdjsonWriter();
+		$anonymize_ip = (bool) $this->registry->get_setting( 'privacy.anonymize_ip', false );
+		$writer       = 'csv' === $format ? new CsvWriter() : new NdjsonWriter( $anonymize_ip );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- $sink is php://output or php://temp (streaming handles, not local filesystem paths); WP_Filesystem has no equivalent for in-memory or stdout handles.
 		\fwrite( $sink, $writer->preamble() );

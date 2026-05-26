@@ -65,6 +65,7 @@ final class StreamerTest extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		global $wpdb;
+		\delete_option( 'brl_settings_privacy' );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::bodies_table() );
 		\wp_set_current_user( 0 );
@@ -348,6 +349,58 @@ final class StreamerTest extends WP_UnitTestCase {
 		$this->assertIsArray( $record, 'NDJSON line must decode to valid JSON — gzip bytes would break it.' );
 		$this->assertSame( $req_plaintext, $record['request_body'] ?? null, 'Inline gzip request body must export as plaintext.' );
 		$this->assertSame( $res_plaintext, $record['response_body'] ?? null, 'Inline gzip response body must export as plaintext.' );
+	}
+
+	/**
+	 * Insert one entry carrying a packed IP and return its id.
+	 *
+	 * @param string $ip Dotted IPv4 (or IPv6) address.
+	 */
+	private function insert_entry_with_ip( string $ip ): int {
+		$req               = new RequestSnapshot();
+		$req->route        = '/wp/v2/posts';
+		$req->method       = 'GET';
+		$req->content_type = 'application/json';
+
+		$res               = new ResponseSnapshot();
+		$res->status       = 200;
+		$res->status_class = 2;
+		$res->content_type = 'application/json';
+
+		$packed               = \inet_pton( '::ffff:' . $ip );
+		$entry                = Entry::from_snapshots( $req, $res, [ 'created_at' => \gmdate( 'Y-m-d H:i:s' ) ] );
+		$entry->ip_resolved   = false !== $packed ? $packed : null;
+		$entry->ip_raw_remote = false !== $packed ? $packed : null;
+
+		$repo = new LogRepository();
+		$ids  = $repo->insert_batch( [ $entry ] );
+		return $ids[0];
+	}
+
+	/** NDJSON must print IPs, never the raw packed bytes that break JSON. */
+	public function test_ndjson_emits_printable_ips_not_packed_binary(): void {
+		$this->insert_entry_with_ip( '203.0.113.9' );
+
+		$args   = QueryArgs::from_array( [] );
+		$output = $this->capture_stream( $args, 'ndjson' );
+
+		$record = \json_decode( \trim( $output ), true );
+		$this->assertIsArray( $record, 'NDJSON line must decode — packed binary would break JSON.' );
+		$this->assertSame( '203.0.113.9', $record['ip_resolved'] ?? null, 'ip_resolved must be a printable string.' );
+		$this->assertStringNotContainsString( "\x00", $output, 'No packed binary may appear in a text export.' );
+	}
+
+	/** With anonymize_ip on, the raw client IP must not be exported. */
+	public function test_ndjson_drops_raw_ip_when_anonymize_enabled(): void {
+		\update_option( 'brl_settings_privacy', [ 'anonymize_ip' => true ] );
+		$this->insert_entry_with_ip( '203.0.113.9' );
+
+		$args   = QueryArgs::from_array( [] );
+		$output = $this->capture_stream( $args, 'ndjson' );
+
+		$record = \json_decode( \trim( $output ), true );
+		$this->assertIsArray( $record );
+		$this->assertArrayNotHasKey( 'ip_raw_remote', $record, 'The unmasked client IP must not be exported when anonymizing.' );
 	}
 
 	/**

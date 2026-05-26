@@ -129,6 +129,54 @@ final class Entry {
 	}
 
 	/**
+	 * Serialise for a text export (NDJSON), keeping the output printable and the
+	 * privacy contract intact.
+	 *
+	 * The IP columns are packed inet_pton bytes — emitting them raw produces
+	 * invalid UTF-8 in a JSON export. Convert both to printable strings. The
+	 * stored ip_resolved is already anonymized when the admin enabled it, so it
+	 * is always safe to emit. ip_raw_remote is never anonymized at storage, so
+	 * it is dropped from the export when $anonymize_ip is on rather than handing
+	 * out the unmasked client address the admin asked to hide.
+	 *
+	 * @param  bool $anonymize_ip Whether IP anonymization is enabled.
+	 * @return array<string,mixed>
+	 */
+	public function to_export_array( bool $anonymize_ip = false ): array {
+		$data                = $this->to_array();
+		$data['ip_resolved'] = self::printable_ip( $this->ip_resolved );
+
+		if ( $anonymize_ip ) {
+			unset( $data['ip_raw_remote'] );
+		} else {
+			$data['ip_raw_remote'] = self::printable_ip( $this->ip_raw_remote );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Convert a packed inet_pton IP to a printable string, stripping the
+	 * IPv4-mapped ::ffff: prefix. Returns null for an empty/undecodable value.
+	 *
+	 * @param  string|null $packed 16-byte packed IP or null.
+	 * @return string|null
+	 */
+	private static function printable_ip( ?string $packed ): ?string {
+		if ( null === $packed || '' === $packed ) {
+			return null;
+		}
+		$printable = \inet_ntop( $packed );
+		if ( false === $printable || '' === $printable ) {
+			return null;
+		}
+		if ( 0 === \strncasecmp( $printable, '::ffff:', 7 ) ) {
+			$printable = \substr( $printable, 7 );
+		}
+		return $printable;
+	}
+
+	/**
 	 * Hydrate from a `brl_logs` row (or any equivalent associative array).
 	 *
 	 * @param  array<string,mixed> $row Row keyed by column name.

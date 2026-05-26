@@ -22,6 +22,18 @@ use BetterRestApiLogs\Support\Json;
  */
 final class NdjsonWriter {
 
+	/** @var bool Whether IP anonymization is enabled for this export. */
+	private bool $anonymize_ip;
+
+	/**
+	 * @param bool $anonymize_ip Honour the anonymize-IP setting in the output —
+	 *                           drops ip_raw_remote when on so the export never
+	 *                           leaks the unmasked client address.
+	 */
+	public function __construct( bool $anonymize_ip = false ) {
+		$this->anonymize_ip = $anonymize_ip;
+	}
+
 	/**
 	 * Returns empty string — NDJSON has no file preamble.
 	 */
@@ -32,8 +44,9 @@ final class NdjsonWriter {
 	/**
 	 * Serialise a list of entries to NDJSON lines.
 	 *
-	 * Each line is Json::encode($record)."\n". Callers can stream this output
-	 * directly to a file handle without buffering the full export in memory.
+	 * Each line is Json::encode($record)."\n". Entry::to_export_array converts
+	 * the packed IP columns to printable strings — emitting raw inet_pton bytes
+	 * would produce invalid UTF-8 — and honours the anonymize setting.
 	 *
 	 * @param  Entry[] $entries Log entries to serialise.
 	 * @return string           LF-terminated NDJSON lines.
@@ -41,7 +54,7 @@ final class NdjsonWriter {
 	public function rows( array $entries ): string {
 		$out = '';
 		foreach ( $entries as $entry ) {
-			$out .= Json::encode( $entry->to_array() ) . "\n";
+			$out .= Json::encode( $entry->to_export_array( $this->anonymize_ip ) ) . "\n";
 		}
 		return $out;
 	}

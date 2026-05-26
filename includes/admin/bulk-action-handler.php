@@ -12,6 +12,8 @@ use BetterRestApiLogs\Export\CsvWriter;
 use BetterRestApiLogs\Export\NdjsonWriter;
 use BetterRestApiLogs\Export\Streamer;
 use BetterRestApiLogs\Plugin;
+use BetterRestApiLogs\Settings\Registry as SettingsRegistry;
+use BetterRestApiLogs\Settings\Repository as SettingsRepository;
 use BetterRestApiLogs\Support\Bytes;
 
 /**
@@ -358,7 +360,9 @@ final class BulkActionHandler {
 
 		$repo   = Plugin::instance()->container()->get( LogRepository::class );
 		$bodies = new BodyRepository();
-		$writer = 'csv' === $format ? new CsvWriter() : new NdjsonWriter();
+
+		$anonymize_ip = (bool) ( new SettingsRegistry( new SettingsRepository() ) )->get_setting( 'privacy.anonymize_ip', false );
+		$writer       = 'csv' === $format ? new CsvWriter() : new NdjsonWriter( $anonymize_ip );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://output is not a filesystem path.
 		$sink = \fopen( 'php://output', 'wb' );

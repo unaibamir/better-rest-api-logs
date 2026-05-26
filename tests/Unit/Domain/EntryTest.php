@@ -120,4 +120,30 @@ final class EntryTest extends TestCase {
 		$this->assertTrue( $entry->bodies_spilled );
 		$this->assertSame( 'cpt-12345', $entry->migration_source_id );
 	}
+
+	/** The export projection must render packed IPs as printable strings. */
+	public function test_to_export_array_renders_printable_ips(): void {
+		$entry                = new Entry();
+		$entry->ip_resolved   = \inet_pton( '::ffff:203.0.113.9' );
+		$entry->ip_raw_remote = \inet_pton( '::ffff:203.0.113.9' );
+
+		$data = $entry->to_export_array( false );
+
+		$this->assertSame( '203.0.113.9', $data['ip_resolved'], 'ip_resolved must be a printable string.' );
+		$this->assertSame( '203.0.113.9', $data['ip_raw_remote'], 'ip_raw_remote must be a printable string.' );
+		// Never emit the raw packed bytes.
+		$this->assertStringNotContainsString( "\x00", (string) $data['ip_resolved'] );
+	}
+
+	/** When anonymization is on, the raw client IP must be dropped from the export. */
+	public function test_to_export_array_drops_raw_ip_when_anonymized(): void {
+		$entry                = new Entry();
+		$entry->ip_resolved   = \inet_pton( '::ffff:203.0.113.0' );
+		$entry->ip_raw_remote = \inet_pton( '::ffff:203.0.113.9' );
+
+		$data = $entry->to_export_array( true );
+
+		$this->assertArrayNotHasKey( 'ip_raw_remote', $data, 'The unmasked client IP must not be exported when anonymizing.' );
+		$this->assertSame( '203.0.113.0', $data['ip_resolved'], 'The already-anonymized ip_resolved is still exported.' );
+	}
 }
