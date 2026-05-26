@@ -508,28 +508,35 @@ final class ListTable extends \WP_List_Table {
 		switch ( $class ) {
 			case '1xx':
 				$label = \__( 'Informational', 'better-rest-api-logs' );
+				$glyph = "\xe2\x80\xba"; // U+203A single right angle (›).
 				break;
 			case '2xx':
 				$label = \__( 'Success', 'better-rest-api-logs' );
+				$glyph = "\xe2\x9c\x93"; // U+2713 check mark (✓).
 				break;
 			case '3xx':
 				$label = \__( 'Redirect', 'better-rest-api-logs' );
+				$glyph = "\xe2\x86\xaa"; // U+21AA rightwards arrow with hook (↪).
 				break;
 			case '4xx':
 				$label = \__( 'Client error', 'better-rest-api-logs' );
+				$glyph = "\xe2\x9c\x95"; // U+2715 multiplication X (✕).
 				break;
 			case '5xx':
 				$label = \__( 'Server error', 'better-rest-api-logs' );
+				$glyph = "\xe2\x9a\xa0"; // U+26A0 warning sign (⚠).
 				break;
 			default:
 				$label = \__( 'Unknown', 'better-rest-api-logs' );
+				$glyph = "\xc2\xb7"; // U+00B7 middle dot (·).
 				break;
 		}
 
 		return \sprintf(
-			'<span class="brl-pill brl-pill--status brl-pill--status-%s" aria-label="%s">%d</span>',
+			'<span class="brl-pill brl-pill--status brl-pill--status-%s" aria-label="%s"><span class="brl-pill__glyph" aria-hidden="true">%s</span>%d</span>',
 			\esc_attr( $class ),
 			\esc_attr( \sprintf( '%d %s', $code, $label ) ),
+			$glyph,
 			$code
 		);
 	}

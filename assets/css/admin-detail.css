@@ -226,3 +226,10 @@
 .brl-admin .brl-code .hljs-number  { color: #0b5394; }
 .brl-admin .brl-code .hljs-keyword { color: #b06000; }
 .brl-admin .brl-code .hljs-attr    { color: #50575e; }
+
+/* ── Focus-visible ring (A11Y-01, D-18) ── */
+.brl-admin :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+  outline-offset: 2px;
+  box-shadow: none;
+}

@@ -56,3 +56,39 @@
 		}
 	}
 }
+
+/* ── Focus-visible ring (A11Y-01, D-18) ── */
+.brl-admin :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* ── Import tab (MIG-05, D-08) ── */
+.brl-admin {
+  & .brl-import-tab {
+    & h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+    & .brl-import-tab__desc { font-size: 13px; color: #50575e; margin: 0 0 16px; max-width: 60em; }
+    & .brl-import-tab__start { display: flex; align-items: center; gap: 8px; margin-block-end: 16px; }
+    & .brl-import-tab__status { color: #50575e; font-size: 13px; }
+  }
+
+  & .brl-import-progress {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 6px 12px;
+    margin: 0 0 16px;
+    font-size: 13px;
+
+    & dt { margin: 0; color: #50575e; font-weight: 400; }
+    & dd { margin: 0; color: #1d2327; font-variant-numeric: tabular-nums; }
+  }
+
+  & .brl-import-tab__reset {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    & .description { color: #646970; font-size: 13px; }
+  }
+}

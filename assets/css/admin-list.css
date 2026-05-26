@@ -93,7 +93,8 @@
 .brl-admin .brl-pill--method-patch   { background: #8a4500; }
 .brl-admin .brl-pill--method-delete  { background: #b32d2e; }
 .brl-admin .brl-pill--method-head    { background: #646970; }
-.brl-admin .brl-pill--method-options { background: #8c8f94; }
+.brl-admin .brl-pill--method-options { background: #646970; }
+.brl-admin .brl-pill--method-other   { background: #646970; }
 
 .brl-admin .brl-pill--status-1xx { background: #0073aa; }
 .brl-admin .brl-pill--status-2xx { background: #1e7e34; }
@@ -148,4 +149,16 @@
     margin: 0;
     padding-block: 0;
   }
+}
+
+/* ── Status-pill shape glyph (A11Y-02, D-19) ── */
+.brl-admin .brl-pill__glyph {
+  margin-inline-end: 4px;
+}
+
+/* ── Focus-visible ring (A11Y-01, D-18) ── */
+.brl-admin :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+  outline-offset: 2px;
+  box-shadow: none;
 }
