@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/unaibamir/better-rest-api-logs
  * Description:       Reliable, accurate, queryable REST API request/response logs for WordPress — without the wp_posts bloat.
  * Version:           1.0.0
- * Requires at least: 6.6
+ * Requires at least: 6.8
  * Requires PHP:      7.4
  * Author:            Unaib Amir
  * Author URI:        https://unaibamir.com
