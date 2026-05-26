@@ -4,16 +4,17 @@
 #   banlist        — full-repo ban-pattern grep
 #   lint           — PHPCS + PHPStan + check-table-naming + check-settings-isolation
 #                    (single PHP 8.3 cell)
-#   test           — single-cell PHPUnit: PHP 8.3 × latest WP (the WP-recommended
-#                    runtime). Runs unit AND integration suites against a
-#                    MariaDB 10.11 service container. Coverage gate runs here.
+#   test           — PHPUnit matrix across the supported runtime: PHP 7.4 (floor),
+#                    8.3, and 8.4 (ceiling) on latest WP, plus an 8.3 × WP 6.8
+#                    floor cell. Runs unit AND integration suites against a
+#                    MariaDB 10.11 service container. Coverage gate runs each cell.
 #   dist           — build the release zip via bin/build-release.sh
 #   plugin-check   — WordPress/plugin-check-action@v1 against the dist zip
 #
 # Note on scope:
-# Code targets PHP 7.4–8.4 and WP 6.6 → 7.0 (forward-compat). CI samples the
-# WP-recommended cell only (PHP 8.3 + current WP); broader PHP coverage is
-# verified locally via DDEV overlays before any release tag.
+# Code targets PHP 7.4–8.4 and WP 6.8 → 7.0. The matrix guards the floor and
+# ceiling of both axes so a regression on either bound fails CI rather than
+# only surfacing on a user's site.
 
 name: CI
 
@@ -72,9 +73,24 @@ jobs:
       - run: composer check:asset-enqueue
 
   test:
-    name: PHPUnit (PHP 8.3 × latest WP)
+    name: PHPUnit (PHP ${{ matrix.php-version }} × WP ${{ matrix.wp-version }})
     runs-on: ubuntu-latest
     needs: [lint]
+    strategy:
+      fail-fast: false
+      matrix:
+        # Guard the floor and ceiling of the supported runtime, not just the
+        # WP-recommended cell. PHP 7.4 (floor) + 8.4 (ceiling) and the WP 6.8
+        # floor are all proven-good; these cells keep them from regressing.
+        include:
+          - php-version: '7.4'
+            wp-version: 'latest'
+          - php-version: '8.3'
+            wp-version: 'latest'
+          - php-version: '8.4'
+            wp-version: 'latest'
+          - php-version: '8.3'
+            wp-version: '6.8'
     services:
       mysql:
         image: mariadb:10.11
@@ -93,7 +109,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php-version }}
           extensions: mbstring, intl, zip, mysql, pcov
           coverage: pcov
           tools: composer:v2
@@ -102,11 +118,16 @@ jobs:
 
       - name: Install WordPress core for integration tests
         # wp-phpunit/wp-phpunit ships only the test framework, not WP core.
-        # Download the latest WP tarball into /tmp/wp-core and point ABSPATH
+        # Download the matrix WP tarball into /tmp/wp-core and point ABSPATH
         # at it from the generated wp-tests-config.php.
         run: |
           mkdir -p /tmp/wp-core
-          curl -fsSL https://wordpress.org/latest.tar.gz -o /tmp/wp.tar.gz
+          if [ "${{ matrix.wp-version }}" = "latest" ]; then
+            WP_URL="https://wordpress.org/latest.tar.gz"
+          else
+            WP_URL="https://wordpress.org/wordpress-${{ matrix.wp-version }}.tar.gz"
+          fi
+          curl -fsSL "$WP_URL" -o /tmp/wp.tar.gz
           tar -xf /tmp/wp.tar.gz -C /tmp/wp-core --strip-components=1
           ls /tmp/wp-core/wp-settings.php
 
@@ -155,13 +176,13 @@ jobs:
 
       - run: composer test
 
-      - name: Run perf microbench (PHP 8.3 only)
-        if: matrix.php-version == '8.3'
+      - name: Run perf microbench (canonical cell only)
+        if: matrix.php-version == '8.3' && matrix.wp-version == 'latest'
         run: vendor/bin/phpunit --group perf --testsuite=integration
         continue-on-error: false
 
-      - name: Run e2e latency probe (informational, PHP 8.3 only)
-        if: matrix.php-version == '8.3'
+      - name: Run e2e latency probe (informational, canonical cell only)
+        if: matrix.php-version == '8.3' && matrix.wp-version == 'latest'
         run: vendor/bin/phpunit --group perf --filter E2eLatencyTest --testsuite=integration || true
         continue-on-error: true
 
