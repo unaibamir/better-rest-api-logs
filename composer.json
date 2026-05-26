@@ -58,7 +58,7 @@
         "test:unit": "phpunit --testsuite=unit",
         "test:integration": "phpunit --testsuite=integration",
         "test:coverage": "phpunit --coverage-html=build/coverage",
-        "pot": "wp i18n make-pot . languages/better-rest-api-logs.pot --slug=better-rest-api-logs --domain=better-rest-api-logs --exclude=tests,bin,.ddev,.planning,.githooks,.wordpress-org,docs",
+        "pot": "wp i18n make-pot . languages/better-rest-api-logs.pot --slug=better-rest-api-logs --domain=better-rest-api-logs --exclude=tests,bin,.ddev,.planning,.githooks,.wordpress-org,docs --headers='{\"POT-Creation-Date\":\"\"}'",
         "banlist": "bin/check-banlist.sh",
         "check:table-naming": "bin/check-table-naming.sh",
         "check:settings-isolation": "bin/check-settings-isolation.sh",

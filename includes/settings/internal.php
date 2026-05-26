@@ -46,7 +46,17 @@ final class Internal {
 			// oldest:string, newest:string, table_size_bytes:int}.
 			'stats_snapshot'               => [],
 			'purge_state'                  => [],
-			'migration'                    => [],
+			// 7-key MIG-07 shape. Written only via Registry::set_internal('migration', ...).
+			// status: 'idle'|'running'|'done'|'error'; all other keys are integers.
+			'migration'                    => [
+				'status'       => 'idle',
+				'source_total' => 0,
+				'processed'    => 0,
+				'imported'     => 0,
+				'skipped'      => 0,
+				'cursor'       => 0,
+				'started_at'   => 0,
+			],
 		];
 	}
 
