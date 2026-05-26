@@ -40,7 +40,9 @@ final class NdjsonWriterTest extends TestCase {
 		$e->status_class        = 2;
 		$e->duration_ms         = 88;
 		$e->user_id             = 3;
-		$e->ip_resolved         = '10.0.0.1';
+		// Stored as packed inet_pton bytes, the way capture writes it.
+		$packed                 = \inet_pton( '10.0.0.1' );
+		$e->ip_resolved         = false !== $packed ? $packed : null;
 		$e->request_body_bytes  = 256;
 		$e->response_body_bytes = 1024;
 		return $e;
@@ -91,11 +93,12 @@ final class NdjsonWriterTest extends TestCase {
 		$writer = new \BetterRestApiLogs\Export\NdjsonWriter();
 		$output = $writer->rows( [ $entry ] );
 
-		// The NdjsonWriter must produce exactly Json::encode($record)."\n".
-		// We derive the expected record from to_array() which is the DTO contract.
-		$record   = $entry->to_array();
+		// The NdjsonWriter serialises the export projection — packed IP columns
+		// rendered printable and ip_raw_remote honouring the anonymize setting —
+		// not the raw to_array() (which carries packed binary).
+		$record   = $entry->to_export_array( false );
 		$expected = Json::encode( $record ) . "\n";
-		$this->assertSame( $expected, $output, 'Line bytes must match Json::encode($record)."\\n".' );
+		$this->assertSame( $expected, $output, 'Line bytes must match Json::encode($entry->to_export_array())."\\n".' );
 	}
 
 	public function test_multiple_entries_produce_multiple_lines(): void {
