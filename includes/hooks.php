@@ -402,6 +402,30 @@ defined( 'ABSPATH' ) || exit;
  *
  * ──────────────────────────────────────────────────────────────────────────────
  *
+ * Action: brl_logs_truncated
+ *
+ * Fires after a truncate-all operation commits its DELETE — either from the
+ * Settings → Retention tab "Truncate all logs" confirmation flow or from the
+ * `wp better-logs truncate` CLI verb. Not fired when an individual log row is
+ * deleted (use brl_log_deleted for that).
+ *
+ * @since 1.0.0
+ *
+ * @param int $count Number of log rows deleted by the truncate operation.
+ *
+ * @example
+ *   add_action(
+ *       'brl_logs_truncated',
+ *       static function ( $count ) {
+ *           // Notify Slack when a large bulk truncate clears the table.
+ *           if ( $count > 1000 ) {
+ *               my_plugin_notify_slack( "Truncated {$count} REST log rows." );
+ *           }
+ *       }
+ *   );
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
  * Filter: brl_export_filename
  *
  * Override the generated download filename before headers are sent. Receives

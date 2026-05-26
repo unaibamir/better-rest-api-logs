@@ -64,6 +64,8 @@
         "check:settings-isolation": "bin/check-settings-isolation.sh",
         "check:no-external-calls": "bin/check-no-external-calls.sh",
         "check:asset-enqueue": "bash bin/check-asset-enqueue.sh",
+        "check:hooks": "bin/check-hooks-documented.sh",
+        "check:pot": "bin/check-pot.sh",
         "test:unit:coverage-check": "bin/check-coverage.sh 80",
         "coverage": "bin/check-coverage.sh 80",
         "ci": [
@@ -73,6 +75,7 @@
             "@check:table-naming",
             "@check:settings-isolation",
             "@check:no-external-calls",
+            "@check:hooks",
             "@test",
             "@test:unit:coverage-check"
         ]
