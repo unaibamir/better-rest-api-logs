@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BetterRestApiLogs\Tests\Integration;
 
 use BetterRestApiLogs\Activator;
+use BetterRestApiLogs\DB\Database;
 use BetterRestApiLogs\Deactivator;
 use WP_UnitTestCase;
 
@@ -42,6 +43,43 @@ final class ActivationTest extends WP_UnitTestCase {
 			\get_option( 'brl_settings_delete_on_uninstall' ),
 			'add_option (not update_option) means existing preference survives reactivation per D-13.'
 		);
+	}
+
+	/**
+	 * Passing $network_wide on a non-multisite install must still seed the
+	 * current site (the is_multisite() guard falls through to the single path).
+	 */
+	public function test_activator_network_wide_arg_falls_through_on_single_site(): void {
+		if ( \is_multisite() ) {
+			$this->markTestSkipped( 'Single-site fall-through path; multisite covered separately.' );
+		}
+
+		Activator::activate( true );
+
+		$this->assertSame( '0', \get_option( 'brl_db_version' ), 'Network arg must still seed the current site on single-site.' );
+	}
+
+	/**
+	 * On a real network activation, every existing sub-site must get its own
+	 * tables so capture works on each blog immediately. Runs only in a multisite
+	 * test cell.
+	 */
+	public function test_network_activation_creates_tables_on_each_site(): void {
+		if ( ! \is_multisite() ) {
+			$this->markTestSkipped( 'Requires a multisite test environment.' );
+		}
+
+		$blog_id = (int) $this->factory->blog->create();
+
+		Activator::activate( true );
+
+		\switch_to_blog( $blog_id );
+		global $wpdb;
+		$table  = Database::logs_table();
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		\restore_current_blog();
+
+		$this->assertSame( $table, $exists, 'Network activation must create the logs table on each sub-site.' );
 	}
 
 	public function test_deactivator_clears_scheduled_events(): void {

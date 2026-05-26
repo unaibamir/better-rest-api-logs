@@ -29,8 +29,10 @@ if ( ! get_option( 'brl_settings_delete_on_uninstall' ) ) {
 	return;
 }
 
-// Wrapped in an IIFE so loop variables do not leak as globals (plugin-check).
-( static function (): void {
+// Per-blog teardown. Drops the custom tables, removes every brl_* option,
+// sweeps leftover transients, and clears the scheduled purge for the CURRENT
+// blog. Called once per site on a network, once total on single-site.
+$brl_teardown_blog = static function (): void {
 	global $wpdb;
 
 	// Drop our custom tables. They may not exist if Phase 2 never ran on this install,
@@ -65,7 +67,7 @@ if ( ! get_option( 'brl_settings_delete_on_uninstall' ) ) {
 	$wpdb->query(
 		"DELETE FROM `{$wpdb->options}` WHERE option_name LIKE '\\_transient\\_brl\\_%' OR option_name LIKE '\\_transient\\_timeout\\_brl\\_%'"
 	);
-	// Site transients (multisite-aware — still single-site for v1.0).
+	// Site transients (network-wide; harmless to re-run per blog).
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- LIKE-prefix sweep.
 	$wpdb->query(
 		"DELETE FROM `{$wpdb->options}` WHERE option_name LIKE '\\_site\\_transient\\_brl\\_%' OR option_name LIKE '\\_site\\_transient\\_timeout\\_brl\\_%'"
@@ -77,4 +79,31 @@ if ( ! get_option( 'brl_settings_delete_on_uninstall' ) ) {
 
 	// LAST — clean up the opt-in flag itself per D-15.
 	delete_option( 'brl_settings_delete_on_uninstall' );
+};
+
+// Wrapped in an IIFE so loop variables do not leak as globals (plugin-check).
+( static function () use ( $brl_teardown_blog ): void {
+	// On a network, tear down every site so a network uninstall doesn't orphan
+	// each sub-site's tables. Bound the loop so a very large network can't time
+	// out the destructive process; sites past the cap keep their dormant tables,
+	// which is the safe failure mode for a delete-everything operation.
+	if ( is_multisite() ) {
+		$site_ids = get_sites(
+			[
+				'number'   => 1000,
+				'fields'   => 'ids',
+				'spam'     => 0,
+				'deleted'  => 0,
+				'archived' => 0,
+			]
+		);
+		foreach ( $site_ids as $site_id ) {
+			switch_to_blog( (int) $site_id );
+			$brl_teardown_blog();
+			restore_current_blog();
+		}
+		return;
+	}
+
+	$brl_teardown_blog();
 } )();

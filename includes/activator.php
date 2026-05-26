@@ -30,7 +30,49 @@ use BetterRestApiLogs\Settings\Defaults;
  */
 final class Activator {
 
-	public static function activate(): void {
+	/**
+	 * Cap the per-site setup loop on a network activation. Beyond this, sub-sites
+	 * are left to the per-request self-heal (Schema::maybe_install_or_upgrade on
+	 * plugins_loaded@0) so activation can't time out on a very large network.
+	 */
+	private const MAX_NETWORK_SITES = 200;
+
+	/**
+	 * Activation entry point.
+	 *
+	 * WordPress passes $network_wide = true when the plugin is network-activated.
+	 * On a network activation we seed each existing site so capture works on
+	 * every blog immediately; on a single-site activation (or per-site activation
+	 * within a network) we seed just the current blog.
+	 *
+	 * @param bool $network_wide True when network-activated.
+	 */
+	public static function activate( bool $network_wide = false ): void {
+		if ( $network_wide && \is_multisite() ) {
+			$sites = \get_sites(
+				[
+					'number'   => self::MAX_NETWORK_SITES,
+					'fields'   => 'ids',
+					'spam'     => 0,
+					'deleted'  => 0,
+					'archived' => 0,
+				]
+			);
+			foreach ( $sites as $site_id ) {
+				\switch_to_blog( (int) $site_id );
+				self::activate_single_site();
+				\restore_current_blog();
+			}
+			return;
+		}
+
+		self::activate_single_site();
+	}
+
+	/**
+	 * Seed options, install tables, and schedule the purge for one blog.
+	 */
+	private static function activate_single_site(): void {
 		// Seed the opt-in flag with the safe default (OFF). add_option (not update_option)
 		// so an existing user preference survives reactivation. Per D-13.
 		\add_option( 'brl_settings_delete_on_uninstall', '' );
