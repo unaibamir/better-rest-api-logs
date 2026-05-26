@@ -76,22 +76,42 @@ final class Redactor {
 	 */
 	public function redact_headers( array $headers, array $user_extras ): array {
 		// Flip to hash for O(1) isset() lookups; merge user extras on top.
-		$lookup = array_fill_keys( self::DEFAULT_HEADER_REDACT_LIST, true );
+		// Canonicalise every key so the hyphenated default list matches the
+		// underscored form WP_REST_Request::get_headers() actually delivers.
+		$lookup = array();
+		foreach ( self::DEFAULT_HEADER_REDACT_LIST as $name ) {
+			$lookup[ self::canonical_header_key( $name ) ] = true;
+		}
 		foreach ( $user_extras as $name ) {
 			if ( is_string( $name ) ) {
-				$lookup[ strtolower( $name ) ] = true;
+				$lookup[ self::canonical_header_key( $name ) ] = true;
 			}
 		}
 
 		$out = array();
 		foreach ( $headers as $key => $values ) {
-			if ( isset( $lookup[ strtolower( $key ) ] ) ) {
+			if ( isset( $lookup[ self::canonical_header_key( (string) $key ) ] ) ) {
 				$out[ $key ] = array( self::REDACTED_SENTINEL );
 			} else {
 				$out[ $key ] = $values;
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Canonicalise a header name for case- and separator-insensitive matching.
+	 *
+	 * WP_REST_Request::get_headers() lowercases names AND replaces `-` with `_`
+	 * (so `X-Api-Key` arrives as `x_api_key`), while the default redact list and
+	 * raw HTTP names use hyphens. Folding both sides to a single lowercase,
+	 * underscored form is what bridges the two so the lookup never misses.
+	 *
+	 * @param  string $name Raw header name in any case/separator form.
+	 * @return string       Lowercase, `-`-to-`_` canonical form.
+	 */
+	public static function canonical_header_key( string $name ): string {
+		return str_replace( '-', '_', strtolower( $name ) );
 	}
 
 	/**

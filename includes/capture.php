@@ -7,6 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 use BetterRestApiLogs\Capture\Filter;
 use BetterRestApiLogs\Capture\IpResolver; // Static methods only — no instance stored.
+use BetterRestApiLogs\Capture\Redactor;
 use BetterRestApiLogs\Domain\RequestSnapshot;
 use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Logger\Queue;
@@ -224,9 +225,20 @@ final class Capture {
 		$query_params    = \method_exists( $request, 'get_query_params' ) ? $request->get_query_params() : [];
 		$s->query_string = ! empty( $query_params ) ? \http_build_query( $query_params ) : null;
 
+		// WP_REST_Request::get_headers() lowercases names and swaps `-` for `_`,
+		// so the Content-Type header arrives as `content_type`. Canonicalise each
+		// key the same way before comparing so the lookup works whatever shape the
+		// request object hands us.
 		$s->content_type = '';
-		if ( ! empty( $s->headers['content-type'][0] ) ) {
-			$s->content_type = (string) $s->headers['content-type'][0];
+		foreach ( $s->headers as $name => $value ) {
+			if ( 'content_type' === Redactor::canonical_header_key( (string) $name ) ) {
+				if ( \is_array( $value ) ) {
+					$s->content_type = (string) ( $value[0] ?? '' );
+				} else {
+					$s->content_type = (string) $value;
+				}
+				break;
+			}
 		}
 
 		$raw_body = \method_exists( $request, 'get_body' ) ? (string) $request->get_body() : '';

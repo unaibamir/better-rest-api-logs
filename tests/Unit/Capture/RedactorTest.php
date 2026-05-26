@@ -54,6 +54,44 @@ final class RedactorTest extends TestCase {
 		$this->assertSame( [ '[redacted]' ], $result['proxy-authorization'] );
 	}
 
+	/**
+	 * WP_REST_Request::get_headers() delivers underscored keys (x_api_key,
+	 * set_cookie, proxy_authorization). The default list is hyphenated, so a
+	 * plain strtolower lookup misses these and leaks secrets in cleartext.
+	 */
+	public function test_underscored_header_keys_still_redact(): void {
+		$redactor = new Redactor();
+		$result   = $redactor->redact_headers(
+			[
+				'x_api_key'           => [ 'APIKEY_SHOULD_BE_REDACTED' ],
+				'set_cookie'          => [ 'token=xyz' ],
+				'proxy_authorization' => [ 'Basic dXNlcjpwYXNz' ],
+			],
+			[]
+		);
+
+		$this->assertSame( [ '[redacted]' ], $result['x_api_key'] );
+		$this->assertSame( [ '[redacted]' ], $result['set_cookie'] );
+		$this->assertSame( [ '[redacted]' ], $result['proxy_authorization'] );
+	}
+
+	/** User-supplied hyphenated extras must match the underscored delivered key. */
+	public function test_user_extra_header_matches_underscored_key(): void {
+		$redactor = new Redactor();
+		$result   = $redactor->redact_headers(
+			[ 'x_session_token' => [ 'hunter2' ] ],
+			[ 'x-session-token' ]
+		);
+
+		$this->assertSame( [ '[redacted]' ], $result['x_session_token'] );
+	}
+
+	public function test_canonical_header_key_folds_case_and_separators(): void {
+		$this->assertSame( 'x_api_key', Redactor::canonical_header_key( 'X-Api-Key' ) );
+		$this->assertSame( 'x_api_key', Redactor::canonical_header_key( 'x_api_key' ) );
+		$this->assertSame( 'content_type', Redactor::canonical_header_key( 'Content-Type' ) );
+	}
+
 	/** PRIV-03: user extras extend, never replace, the default list. */
 	public function test_user_extras_merge_with_defaults_no_opt_out(): void {
 		$redactor = new Redactor();
