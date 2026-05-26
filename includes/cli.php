@@ -7,6 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 use BetterRestApiLogs\Cli\Commands\DeleteCommand;
 use BetterRestApiLogs\Cli\Commands\ExportCommand;
+use BetterRestApiLogs\Cli\Commands\ImportCommand;
 use BetterRestApiLogs\Cli\Commands\ListCommand;
 use BetterRestApiLogs\Cli\Commands\PurgeCommand;
 use BetterRestApiLogs\Cli\Commands\ShowCommand;
@@ -31,5 +32,6 @@ final class Cli {
 		\WP_CLI::add_command( 'better-logs purge', PurgeCommand::class );
 		\WP_CLI::add_command( 'better-logs truncate', TruncateCommand::class );
 		\WP_CLI::add_command( 'better-logs export', ExportCommand::class );
+		\WP_CLI::add_command( 'better-logs import', ImportCommand::class );
 	}
 }
