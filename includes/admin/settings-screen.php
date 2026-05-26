@@ -646,7 +646,7 @@ if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.
 		);
 		if ( $is_running ) {
 			echo '<span class="spinner is-active"></span>';
-			\printf( '<span class="brl-import-tab__status">%s</span>', \esc_html__( 'Import in progress\xe2\x80\xa6', 'better-rest-api-logs' ) );
+			\printf( '<span class="brl-import-tab__status">%s</span>', \esc_html__( 'Import in progress…', 'better-rest-api-logs' ) );
 		}
 		echo '</form>';
 

@@ -39,7 +39,7 @@ trap 'rm -f "$TMP_POT"' EXIT
 wp i18n make-pot . "$TMP_POT" \
     --slug=better-rest-api-logs \
     --domain=better-rest-api-logs \
-    --exclude=tests,bin,.ddev,.planning,.githooks,.wordpress-org,docs,vendor,wp \
+    --exclude=tests,bin,.ddev,.planning,.githooks,.wordpress-org,docs,vendor,wp,build \
     --headers='{"POT-Creation-Date":""}' \
     --quiet 2>/dev/null || true
 
