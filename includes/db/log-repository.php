@@ -272,7 +272,23 @@ final class LogRepository {
 
 		$entries = [];
 		foreach ( $rows as $row ) {
-			$entries[] = Entry::from_array( $row );
+			$entry = Entry::from_array( $row );
+
+			// Inline bodies may be gzip-compressed when gzip_bodies is on. Mirror
+			// find() and decompress them here so every search() consumer — the
+			// list screen and the export Streamer alike — receives plaintext,
+			// not raw gzip bytes. Spilled rows carry their bodies in the secondary
+			// table; the caller resolves those, so leave them untouched here.
+			if ( ! $entry->bodies_spilled ) {
+				if ( null !== $entry->request_body ) {
+					$entry->request_body = Bytes::gunzip( $entry->request_body );
+				}
+				if ( null !== $entry->response_body ) {
+					$entry->response_body = Bytes::gunzip( $entry->response_body );
+				}
+			}
+
+			$entries[] = $entry;
 		}
 
 		if ( $has_more && [] !== $entries ) {

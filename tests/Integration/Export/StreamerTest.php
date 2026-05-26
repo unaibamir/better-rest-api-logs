@@ -309,6 +309,48 @@ final class StreamerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Inline gzip bodies must export as plaintext too. When gzip_bodies is on
+	 * and the body stays inline (below the spill threshold), the NDJSON export
+	 * must still return plaintext. The Streamer only decompressed spilled
+	 * bodies, so inline gzip bytes used to leak through the writer as garbage.
+	 */
+	public function test_stream_decompresses_inline_gzipped_body(): void {
+		// A body large enough to be gzip-compressed (>= 1024 bytes) but kept
+		// inline (no spill), exactly as Flusher stores it with gzip_bodies=true.
+		$req_plaintext = '{"payload":"' . \str_repeat( 'A', 2000 ) . '"}';
+		$res_plaintext = '{"result":"' . \str_repeat( 'B', 2000 ) . '"}';
+
+		$req               = new RequestSnapshot();
+		$req->route        = '/wp/v2/inline';
+		$req->method       = 'POST';
+		$req->content_type = 'application/json';
+
+		$res               = new ResponseSnapshot();
+		$res->status       = 200;
+		$res->status_class = 2;
+		$res->content_type = 'application/json';
+
+		$entry                 = Entry::from_snapshots( $req, $res, [ 'created_at' => \gmdate( 'Y-m-d H:i:s' ) ] );
+		$entry->bodies_spilled = false;
+		$entry->request_body   = Bytes::gzip( $req_plaintext );
+		$entry->response_body  = Bytes::gzip( $res_plaintext );
+
+		$repo = new LogRepository();
+		$repo->insert_batch( [ $entry ] );
+
+		$args   = QueryArgs::from_array( [] );
+		$output = $this->capture_stream( $args, 'ndjson' );
+
+		$lines = \array_filter( \explode( "\n", \trim( $output ) ) );
+		$this->assertCount( 1, $lines, 'Expected exactly one NDJSON line.' );
+
+		$record = \json_decode( (string) \reset( $lines ), true );
+		$this->assertIsArray( $record, 'NDJSON line must decode to valid JSON — gzip bytes would break it.' );
+		$this->assertSame( $req_plaintext, $record['request_body'] ?? null, 'Inline gzip request body must export as plaintext.' );
+		$this->assertSame( $res_plaintext, $record['response_body'] ?? null, 'Inline gzip response body must export as plaintext.' );
+	}
+
+	/**
 	 * EXP-03: peak memory delta stays under a generous 64 MB ceiling on a
 	 * modest seed, confirming the bounded cursor-batch walk doesn't buffer all
 	 * rows in PHP.
