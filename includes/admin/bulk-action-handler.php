@@ -64,7 +64,9 @@ final class BulkActionHandler {
 	 *   nothing given → ?error=nothing_selected
 	 */
 	public function handle(): void {
-		\check_admin_referer( 'brl_bulk', '_wpnonce' );
+		// The bulk dropdown lives in the WP_List_Table form, so the submitted
+		// _wpnonce is the one WP_List_Table emits: bulk-{plural}, i.e. bulk-logs.
+		\check_admin_referer( 'bulk-logs' );
 
 		if ( ! \current_user_can( \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
 			\wp_die(
@@ -208,7 +210,9 @@ final class BulkActionHandler {
 			$_POST['_wpnonce']    = $nonce;
 		}
 
-		\check_admin_referer( 'brl_bulk', '_wpnonce' );
+		// The bulk dropdown lives in the WP_List_Table form, so the submitted
+		// _wpnonce is the one WP_List_Table emits: bulk-{plural}, i.e. bulk-logs.
+		\check_admin_referer( 'bulk-logs' );
 
 		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
 			\wp_die(

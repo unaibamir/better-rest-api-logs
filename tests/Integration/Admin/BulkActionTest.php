@@ -101,7 +101,7 @@ final class BulkActionTest extends WP_UnitTestCase {
 		\wp_set_current_user( $this->subscriber_id );
 
 		$log_id = $this->insert_entry();
-		$nonce  = \wp_create_nonce( 'brl_bulk' );
+		$nonce  = \wp_create_nonce( 'bulk-logs' );
 		$_POST  = [
 			'action'   => 'delete',
 			'log_ids'  => [ $log_id ],
@@ -141,7 +141,7 @@ final class BulkActionTest extends WP_UnitTestCase {
 		$id2 = $this->insert_entry();
 		$id3 = $this->insert_entry();
 
-		$nonce = \wp_create_nonce( 'brl_bulk' );
+		$nonce = \wp_create_nonce( 'bulk-logs' );
 		$_POST = [
 			'action'   => 'delete',
 			'log_ids'  => [ $id1, $id2, $id3 ],
@@ -184,7 +184,7 @@ final class BulkActionTest extends WP_UnitTestCase {
 		};
 		\add_action( 'brl_log_deleted', $hook, 10, 2 );
 
-		$nonce = \wp_create_nonce( 'brl_bulk' );
+		$nonce = \wp_create_nonce( 'bulk-logs' );
 		$_POST = [
 			'action'   => 'delete',
 			'log_ids'  => [ $real_id, $missing_id ],
@@ -243,7 +243,7 @@ final class BulkActionTest extends WP_UnitTestCase {
 		Plugin::instance()->boot();
 		\wp_set_current_user( $this->subscriber_id );
 
-		$nonce = \wp_create_nonce( 'brl_bulk' );
+		$nonce = \wp_create_nonce( 'bulk-logs' );
 
 		$_GET = [
 			'action'   => 'brl_export_csv',
@@ -255,6 +255,57 @@ final class BulkActionTest extends WP_UnitTestCase {
 
 		$this->expectException( \WPDieException::class );
 		BulkActionHandler::handle_early_export();
+	}
+
+	/**
+	 * Early export: the real "Export selected" submission passes the nonce gate.
+	 *
+	 * The bulk dropdown rides the WP_List_Table form, so the browser submits the
+	 * `bulk-logs` nonce WP_List_Table emits — not the plugin's own action name.
+	 * This recreates that exact submission for an admin and proves the handler
+	 * accepts the nonce and reaches the streaming stage. Against the old
+	 * `check_admin_referer( 'brl_bulk' )` the same `bulk-logs` value failed and
+	 * the page died with "link expired" before any export ran.
+	 *
+	 * Under PHPUnit the test harness has already sent headers, so the download
+	 * guard in stream_export_for_ids() fires once we get there — wp_die with a
+	 * "Cannot start a download" message. That message (rather than the nonce
+	 * "link expired" message) is the proof the nonce was accepted.
+	 *
+	 * Filter token: EarlyExport
+	 */
+	public function test_handle_early_export_accepts_real_bulk_nonce_EarlyExport(): void {
+		Plugin::instance()->boot();
+		\wp_set_current_user( $this->admin_id );
+
+		$id1 = $this->insert_entry();
+		$id2 = $this->insert_entry();
+
+		// The exact fields the WP_List_Table bulk form submits for "Export
+		// selected (CSV)": the action, the ticked rows, and the bulk-logs nonce.
+		$nonce                = \wp_create_nonce( 'bulk-logs' );
+		$_GET                 = [
+			'action'   => 'brl_export_csv',
+			'log_ids'  => [ $id1, $id2 ],
+			'_wpnonce' => $nonce,
+		];
+		$_REQUEST['_wpnonce'] = $nonce;
+
+		try {
+			BulkActionHandler::handle_early_export();
+			$this->fail( 'Expected handle_early_export to reach the streaming guard and wp_die.' );
+		} catch ( \WPDieException $e ) {
+			$this->assertStringNotContainsString(
+				'link you followed has expired',
+				$e->getMessage(),
+				'The bulk-logs nonce must be accepted — a "link expired" message means the nonce check still rejected it.'
+			);
+			$this->assertStringContainsString(
+				'Cannot start a download',
+				$e->getMessage(),
+				'Past the nonce and capability gates the handler must reach the download stage (the headers-already-sent guard fires under PHPUnit).'
+			);
+		}
 	}
 
 	public function test_bulk_delete_cascades_to_spilled_body_rows(): void {
@@ -273,7 +324,7 @@ final class BulkActionTest extends WP_UnitTestCase {
 		);
 		$this->assertSame( 1, $body_before, 'Body spill row must exist before delete.' );
 
-		$nonce = \wp_create_nonce( 'brl_bulk' );
+		$nonce = \wp_create_nonce( 'bulk-logs' );
 		$_POST = [
 			'action'   => 'delete',
 			'log_ids'  => [ $log_id ],

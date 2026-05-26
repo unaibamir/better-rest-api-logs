@@ -99,7 +99,13 @@ final class ListScreen {
 
 		echo '<form id="brl-logs-form" method="get">';
 		echo '<input type="hidden" name="page" value="better-rest-api-logs" />';
-		\wp_nonce_field( 'brl_bulk', '_wpnonce', false, true );
+
+		// No manual bulk nonce here. WP_List_Table::display() emits its own
+		// `bulk-logs` _wpnonce inside this same form; adding a second `brl_bulk`
+		// field gave the form two inputs named _wpnonce, and on a GET submit the
+		// browser kept the last one — so the bulk handlers validated the wrong
+		// value and died with "link expired". Both bulk handlers verify the
+		// `bulk-logs` nonce the list table actually submits.
 
 		// Preserve advanced filter state from the URL across submits — REST
 		// callers or bookmarks can still pin user_id / ip / free_text even
