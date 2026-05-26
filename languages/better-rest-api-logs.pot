@@ -51,7 +51,7 @@ msgstr ""
 #: includes/admin.php:74
 #: includes/admin.php:75
 #: includes/admin/list-screen.php:96
-#: includes/admin/settings-screen.php:40
+#: includes/admin/settings-screen.php:43
 msgid "REST API Logs"
 msgstr ""
 
@@ -71,8 +71,10 @@ msgstr ""
 #: includes/admin/bulk-action-handler.php:254
 #: includes/admin/detail-screen.php:53
 #: includes/admin/list-screen.php:85
-#: includes/admin/settings-screen.php:184
-#: includes/admin/settings-screen.php:323
+#: includes/admin/settings-screen.php:198
+#: includes/admin/settings-screen.php:357
+#: includes/admin/settings-screen.php:475
+#: includes/admin/settings-screen.php:503
 msgid "Insufficient permissions."
 msgstr ""
 
@@ -275,29 +277,29 @@ msgid "Informational"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:257
-#: includes/admin/list-table.php:513
+#: includes/admin/list-table.php:514
 msgid "Success"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:260
-#: includes/admin/list-table.php:516
+#: includes/admin/list-table.php:518
 msgid "Redirect"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:263
-#: includes/admin/list-table.php:519
+#: includes/admin/list-table.php:522
 msgid "Client error"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:266
-#: includes/admin/list-table.php:522
+#: includes/admin/list-table.php:526
 msgid "Server error"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:269
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:180
-#: includes/admin/list-table.php:525
-#: includes/admin/settings-screen.php:453
+#: includes/admin/list-table.php:530
+#: includes/admin/settings-screen.php:701
 msgid "Unknown"
 msgstr ""
 
@@ -310,17 +312,17 @@ msgid "Newest entries"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:329
-#: includes/admin/list-table.php:566
+#: includes/admin/list-table.php:573
 msgid "No logs match these filters."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:332
-#: includes/admin/list-table.php:569
+#: includes/admin/list-table.php:576
 msgid "Try widening the date range, picking a less specific route prefix, or"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/list-table.php:334
-#: includes/admin/list-table.php:571
+#: includes/admin/list-table.php:578
 msgid "reset filters"
 msgstr ""
 
@@ -362,223 +364,223 @@ msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:37
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:106
-#: includes/admin/settings-screen.php:39
-#: includes/admin/settings-screen.php:108
+#: includes/admin/settings-screen.php:42
+#: includes/admin/settings-screen.php:116
 msgid "REST API Logs Settings"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:83
-#: includes/admin/settings-screen.php:85
+#: includes/admin/settings-screen.php:93
 msgid "Delete all log data when this plugin is uninstalled"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:151
-#: includes/admin/settings-screen.php:424
+#: includes/admin/settings-screen.php:458
 msgid "OFF by default. When ON, uninstalling the plugin drops the log tables and removes all plugin options."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:170
-#: includes/admin/settings-screen.php:443
+#: includes/admin/settings-screen.php:689
 msgid "Capture"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:172
-#: includes/admin/settings-screen.php:445
+#: includes/admin/settings-screen.php:691
 msgid "Privacy"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:174
-#: includes/admin/settings-screen.php:447
+#: includes/admin/settings-screen.php:693
 msgid "Retention"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:176
-#: includes/admin/settings-screen.php:449
+#: includes/admin/settings-screen.php:695
 msgid "Network"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:178
-#: includes/admin/settings-screen.php:451
+#: includes/admin/settings-screen.php:697
 msgid "Advanced"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:286
-#: includes/admin/settings-screen.php:563
+#: includes/admin/settings-screen.php:811
 msgid "Enable capture"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:288
-#: includes/admin/settings-screen.php:565
+#: includes/admin/settings-screen.php:813
 msgid "Route allowlist"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:290
-#: includes/admin/settings-screen.php:567
+#: includes/admin/settings-screen.php:815
 msgid "Route denylist"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:292
-#: includes/admin/settings-screen.php:569
+#: includes/admin/settings-screen.php:817
 msgid "HTTP methods to capture"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:294
-#: includes/admin/settings-screen.php:571
+#: includes/admin/settings-screen.php:819
 msgid "Status classes to capture"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:296
-#: includes/admin/settings-screen.php:573
+#: includes/admin/settings-screen.php:821
 msgid "Body size cap"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:298
-#: includes/admin/settings-screen.php:575
+#: includes/admin/settings-screen.php:823
 msgid "Body content-type allowlist"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:300
-#: includes/admin/settings-screen.php:577
+#: includes/admin/settings-screen.php:825
 msgid "Spill oversized bodies to a separate table"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:302
-#: includes/admin/settings-screen.php:579
+#: includes/admin/settings-screen.php:827
 msgid "Body spill threshold"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:304
-#: includes/admin/settings-screen.php:581
+#: includes/admin/settings-screen.php:829
 msgid "Gzip stored bodies"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:312
-#: includes/admin/settings-screen.php:589
+#: includes/admin/settings-screen.php:837
 msgid "Extra headers to redact"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:314
-#: includes/admin/settings-screen.php:591
+#: includes/admin/settings-screen.php:839
 msgid "Extra JSON key patterns to redact"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:316
-#: includes/admin/settings-screen.php:593
+#: includes/admin/settings-screen.php:841
 msgid "Anonymize stored IPs"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:318
-#: includes/admin/settings-screen.php:595
+#: includes/admin/settings-screen.php:843
 msgid "Authentication endpoints"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:326
-#: includes/admin/settings-screen.php:603
+#: includes/admin/settings-screen.php:851
 msgid "Keep logs for"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:328
-#: includes/admin/settings-screen.php:605
+#: includes/admin/settings-screen.php:853
 msgid "Purge batch size"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:330
-#: includes/admin/settings-screen.php:607
+#: includes/admin/settings-screen.php:855
 msgid "Max purge duration per tick"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:338
-#: includes/admin/settings-screen.php:615
+#: includes/admin/settings-screen.php:863
 msgid "Trusted proxies"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:340
-#: includes/admin/settings-screen.php:617
+#: includes/admin/settings-screen.php:865
 msgid "Cloudflare IP ranges"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:342
-#: includes/admin/settings-screen.php:619
+#: includes/admin/settings-screen.php:867
 msgid "Capture only requests from these IPs"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:344
-#: includes/admin/settings-screen.php:621
+#: includes/admin/settings-screen.php:869
 msgid "Never capture requests from these IPs"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:352
-#: includes/admin/settings-screen.php:629
+#: includes/admin/settings-screen.php:877
 msgid "Truncate confirmation phrase"
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:373
-#: includes/admin/settings-screen.php:650
+#: includes/admin/settings-screen.php:898
 msgid "When OFF, no REST requests are logged. Existing rows are not touched."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:375
-#: includes/admin/settings-screen.php:652
+#: includes/admin/settings-screen.php:900
 msgid "One pattern per line. Globs supported, e.g. /wc/v3/*. Leave blank to allow everything."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:377
-#: includes/admin/settings-screen.php:654
+#: includes/admin/settings-screen.php:902
 msgid "One pattern per line. Deny patterns win over allow patterns."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:379
-#: includes/admin/settings-screen.php:656
+#: includes/admin/settings-screen.php:904
 msgid "Leave blank to capture all methods."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:381
-#: includes/admin/settings-screen.php:658
+#: includes/admin/settings-screen.php:906
 msgid "Pick the response classes you want to log. Leave blank to capture all."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:383
-#: includes/admin/settings-screen.php:660
+#: includes/admin/settings-screen.php:908
 msgid "Bodies larger than this are truncated. The original byte size is recorded honestly."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:385
-#: includes/admin/settings-screen.php:662
+#: includes/admin/settings-screen.php:910
 msgid "One content-type per line. Leave blank to capture all content types."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:387
-#: includes/admin/settings-screen.php:664
+#: includes/admin/settings-screen.php:912
 msgid "Keeps the main logs table small. Body lookup adds one extra query on the detail view."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:389
-#: includes/admin/settings-screen.php:666
+#: includes/admin/settings-screen.php:914
 msgid "Bodies larger than this threshold spill to the secondary table when spill is enabled."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:391
-#: includes/admin/settings-screen.php:668
+#: includes/admin/settings-screen.php:916
 msgid "Trades CPU for storage. OFF by default in v1."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:398
-#: includes/admin/settings-screen.php:675
+#: includes/admin/settings-screen.php:923
 msgid "One header name per line. Authorization, Cookie, Set-Cookie, X-Api-Key, and Proxy-Authorization are always redacted."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:400
-#: includes/admin/settings-screen.php:677
+#: includes/admin/settings-screen.php:925
 msgid "One regex per line. password, secret, token, key, credit, card, cvv, and ssn are always redacted."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:402
-#: includes/admin/settings-screen.php:679
+#: includes/admin/settings-screen.php:927
 msgid "Mask the last octet of IPv4 and the last 80 bits of IPv6 before storage."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:404
-#: includes/admin/settings-screen.php:681
+#: includes/admin/settings-screen.php:929
 msgid "One route per line. Bodies for these routes are never captured."
 msgstr ""
 
@@ -587,32 +589,32 @@ msgid "Days. Set to 0 to keep forever. The cron purge job runs hourly."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:413
-#: includes/admin/settings-screen.php:690
+#: includes/admin/settings-screen.php:938
 msgid "Rows removed per cron tick. Lower values are gentler on large tables."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:415
-#: includes/admin/settings-screen.php:692
+#: includes/admin/settings-screen.php:940
 msgid "Maximum seconds the purge job runs per cron tick before yielding."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:422
-#: includes/admin/settings-screen.php:699
+#: includes/admin/settings-screen.php:947
 msgid "One CIDR per line. Leave blank if the site sits directly on the internet."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:424
-#: includes/admin/settings-screen.php:701
+#: includes/admin/settings-screen.php:949
 msgid "Only when REMOTE_ADDR is in a Cloudflare range. The plugin ships a static list of Cloudflare CIDRs."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:426
-#: includes/admin/settings-screen.php:703
+#: includes/admin/settings-screen.php:951
 msgid "One CIDR per line. Leave blank to capture from any IP."
 msgstr ""
 
 #: build/better-rest-api-logs/includes/admin/settings-screen.php:428
-#: includes/admin/settings-screen.php:705
+#: includes/admin/settings-screen.php:953
 msgid "One CIDR per line. Deny patterns win over allow patterns."
 msgstr ""
 
@@ -838,23 +840,23 @@ msgid "No rows to export."
 msgstr ""
 
 #. translators: %s: formatted number of rows currently stored.
-#: includes/admin/settings-screen.php:145
+#: includes/admin/settings-screen.php:159
 #, php-format
 msgid "Delete %s entry…"
 msgid_plural "Delete all %s entries…"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/settings-screen.php:151
+#: includes/admin/settings-screen.php:165
 msgid "Truncate all logs"
 msgstr ""
 
-#: includes/admin/settings-screen.php:154
+#: includes/admin/settings-screen.php:168
 msgid "Removes every captured request from the database in one shot. The autoincrement counter resets so the next captured row starts at 1. This action cannot be undone."
 msgstr ""
 
 #. translators: %s: formatted number of captured requests that will be deleted.
-#: includes/admin/settings-screen.php:202
+#: includes/admin/settings-screen.php:216
 #, php-format
 msgid "This will permanently delete %s captured request and reset the log counter to zero. This cannot be undone."
 msgid_plural "This will permanently delete all %s captured requests and reset the log counter to zero. This cannot be undone."
@@ -862,44 +864,117 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: the phrase the user configured as a confirmation guard.
-#: includes/admin/settings-screen.php:226
+#: includes/admin/settings-screen.php:260
 #, php-format
 msgid "Type %s to confirm:"
 msgstr ""
 
-#: includes/admin/settings-screen.php:235
+#: includes/admin/settings-screen.php:269
 msgid "Cancel"
 msgstr ""
 
-#: includes/admin/settings-screen.php:236
+#: includes/admin/settings-screen.php:270
 msgid "Delete all logs"
 msgstr ""
 
-#: includes/admin/settings-screen.php:246
+#: includes/admin/settings-screen.php:280
 msgid "Delete all REST API logs?"
 msgstr ""
 
 #. translators: %d: number of log rows removed by the truncate action.
-#: includes/admin/settings-screen.php:278
+#: includes/admin/settings-screen.php:312
 #, php-format
 msgid "Removed %d log entry."
 msgid_plural "Removed %d log entries."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/settings-screen.php:287
+#: includes/admin/settings-screen.php:321
 msgid "Confirmation phrase did not match. No rows were removed."
 msgstr ""
 
-#: includes/admin/settings-screen.php:293
+#: includes/admin/settings-screen.php:327
 msgid "There were no log entries to remove."
 msgstr ""
 
-#: includes/admin/settings-screen.php:688
+#: includes/admin/settings-screen.php:544
+#: includes/admin/settings-screen.php:610
+msgid "Import is running in the background. Reload this page to see progress."
+msgstr ""
+
+#: includes/admin/settings-screen.php:550
+msgid "Import progress reset. The next import will re-scan from the beginning (no duplicates are created)."
+msgstr ""
+
+#: includes/admin/settings-screen.php:577
+msgid "Import logs from wp-rest-api-log"
+msgstr ""
+
+#: includes/admin/settings-screen.php:580
+msgid "Copies entries captured by the old wp-rest-api-log plugin into this plugin's tables, re-applying your current redaction rules. The old plugin does not need to be active. Running it again is safe — it never creates duplicates."
+msgstr ""
+
+#. translators: 1: number of imported entries, 2: number of skipped entries.
+#: includes/admin/settings-screen.php:590
+#, php-format
+msgid "Import complete. %1$s imported, %2$s skipped."
+msgstr ""
+
+#. translators: %s: number of entries processed before the error.
+#: includes/admin/settings-screen.php:602
+#, php-format
+msgid "Import stopped after an error at entry %s. Imported entries were kept; click \"Start import\" to resume from where it stopped."
+msgstr ""
+
+#: includes/admin/settings-screen.php:615
+msgid "No wp-rest-api-log entries were found to import."
+msgstr ""
+
+#. translators: %s: number of entries available to import.
+#: includes/admin/settings-screen.php:624
+#, php-format
+msgid "%s entry is available to import."
+msgid_plural "%s entries are available to import."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/settings-screen.php:638
+msgid "Start import"
+msgstr ""
+
+#: includes/admin/settings-screen.php:642
+msgid "Import in progress\\xe2\\x80\\xa6"
+msgstr ""
+
+#: includes/admin/settings-screen.php:649
+msgid "Processed"
+msgstr ""
+
+#: includes/admin/settings-screen.php:650
+msgid "Imported"
+msgstr ""
+
+#: includes/admin/settings-screen.php:651
+msgid "Skipped"
+msgstr ""
+
+#: includes/admin/settings-screen.php:663
+msgid "Reset import progress"
+msgstr ""
+
+#: includes/admin/settings-screen.php:667
+msgid "Rewinds the progress counter only — already-imported logs are kept."
+msgstr ""
+
+#: includes/admin/settings-screen.php:699
+msgid "Import"
+msgstr ""
+
+#: includes/admin/settings-screen.php:936
 msgid "Days. Set to 0 to keep forever. The cron purge job runs twice daily."
 msgstr ""
 
-#: includes/admin/settings-screen.php:712
+#: includes/admin/settings-screen.php:960
 msgid "Optional. When set, the \"Purge all entries now\" button below requires this exact phrase to be typed before it runs. Leave blank to fall back to a plain browser confirm dialog."
 msgstr ""
 
