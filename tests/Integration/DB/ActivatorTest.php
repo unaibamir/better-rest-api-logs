@@ -24,6 +24,29 @@ final class ActivatorTest extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		$this->reset_activation_state();
+	}
+
+	public function tear_down(): void {
+		$this->reset_activation_state();
+		parent::tear_down();
+	}
+
+	/**
+	 * Drop the custom tables and remove every option Activator::activate() writes.
+	 *
+	 * Activator::activate() runs dbDelta, whose CREATE TABLE statements implicitly
+	 * COMMIT the per-test transaction WP_UnitTestCase opens. Any option written
+	 * earlier in the test (the pre-seeded brl_settings_capture in the idempotency
+	 * case) is committed with it, and _delete_all_data() never clears the options
+	 * table — so on WP 6.8 the row survives the tear_down ROLLBACK, leaks into
+	 * later classes, and disables capture (enabled=false), zeroing FlusherTest's
+	 * row count. A plain delete_option() in tear_down is itself rolled back, so it
+	 * cannot reach the committed row. Delete, then COMMIT, so the cleanup persists
+	 * the same way the activation write did. Keeps the suite order-independent on
+	 * every supported WP version.
+	 */
+	private function reset_activation_state(): void {
 		global $wpdb;
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::logs_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . Database::bodies_table() );
@@ -32,6 +55,8 @@ final class ActivatorTest extends WP_UnitTestCase {
 		foreach ( array( 'capture', 'privacy', 'retention', 'network', 'advanced' ) as $tab ) {
 			\delete_option( "brl_settings_{$tab}" );
 		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- commit the cleanup past dbDelta's implicit commit (see method docblock); no WP API exposes a commit.
+		$wpdb->query( 'COMMIT' );
 	}
 
 	public function test_activate_installs_schema(): void {
