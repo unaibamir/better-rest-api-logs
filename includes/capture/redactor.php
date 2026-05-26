@@ -122,8 +122,10 @@ final class Redactor {
 	 * occurrences are scrubbed even in malformed payloads. Re-encodes via
 	 * Support\Json (locked flags, JSON_PARTIAL_OUTPUT_ON_ERROR) per D-28.
 	 *
-	 * $extra_pattern is NOT preg_quoted here — caller responsibility (the Phase 4
-	 * settings sanitizer preg_quotes user input before passing it down).
+	 * $extra_pattern is NOT preg_quoted here — the caller must quote it against
+	 * the `/` delimiter (Flusher::redact_body uses preg_quote($p, '/')) AND the
+	 * settings boundary must reject any pattern that fails to compile, so a
+	 * malformed value can never break the delimiter or blank a body.
 	 *
 	 * @param  string $body          Raw JSON body.
 	 * @param  string $extra_pattern Additional key alternation to append (no delimiters).
@@ -255,7 +257,26 @@ final class Redactor {
 
 		$regex = '/"(?P<key>' . $keys . ')"\s*:\s*"(?:[^"\\\\]|\\\\.)*"/i';
 		$sub   = '"$1":"' . self::REDACTED_SENTINEL . '"';
-		return (string) preg_replace( $regex, $sub, $body );
+
+		// A pattern that fails to compile makes preg_replace() warn and return
+		// null. Casting that null to a string would blank the entire body —
+		// silent data loss. The settings boundary already rejects uncompilable
+		// patterns, so this is the backstop for any path that still reaches
+		// here: silence the probe warning, and on null leave the body untouched
+		// rather than destroy it. Failing closed here means keeping the input,
+		// never blanking it.
+		$swallow = static function (): bool {
+			return true;
+		};
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- the compile failure is the condition we guard against; restored immediately.
+		set_error_handler( $swallow );
+		$result = preg_replace( $regex, $sub, $body );
+		restore_error_handler();
+
+		if ( null === $result ) {
+			return $body;
+		}
+		return $result;
 	}
 
 	/**

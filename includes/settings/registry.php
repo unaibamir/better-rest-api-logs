@@ -369,7 +369,7 @@ final class Registry {
 		}
 		return [
 			'redact_extra_headers'     => self::clean_string_list( $input['redact_extra_headers'] ?? [] ),
-			'redact_json_key_patterns' => self::clean_string_list( $input['redact_json_key_patterns'] ?? [] ),
+			'redact_json_key_patterns' => self::clean_redact_patterns( $input['redact_json_key_patterns'] ?? [] ),
 			'anonymize_ip'             => (bool) ( $input['anonymize_ip'] ?? $defaults['anonymize_ip'] ),
 			'auth_endpoint_allowlist'  => self::clean_string_list(
 				$input['auth_endpoint_allowlist'] ?? $defaults['auth_endpoint_allowlist']
@@ -460,6 +460,47 @@ final class Registry {
 			}
 		);
 		return \array_values( $cleaned );
+	}
+
+	/**
+	 * Sanitize the JSON key-redaction patterns and drop any that won't compile.
+	 *
+	 * Each entry is spliced into a `/.../i` alternation in the redactor after
+	 * being preg_quote()'d against the `/` delimiter. Validating the same shape
+	 * here means a value that would have produced an invalid regex — and thus
+	 * either a blanked body or a skipped redaction — is rejected at save time
+	 * instead of poisoning the capture pipeline silently.
+	 *
+	 * @param  mixed $value Raw input — array or newline-delimited string.
+	 * @return array<int,string>
+	 */
+	private static function clean_redact_patterns( $value ): array {
+		$patterns = self::clean_string_list( $value );
+
+		// Each entry is treated as a literal key fragment: the Flusher quotes it
+		// against the `/` delimiter before splicing it into the /.../i
+		// alternation. Validate that exact quoted shape here and drop anything
+		// that still won't compile, so a stored pattern can never break the
+		// delimiter, blank a body, or silently disable redaction downstream.
+		// Quoting keeps innocent values like "api/v2" working while guaranteeing
+		// the assembled regex is always valid. A failed compile makes
+		// preg_match() warn and return false; silence that probe with a scoped
+		// handler rather than the `@` operator the project bans.
+		$swallow = static function (): bool {
+			return true;
+		};
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- scoped probe to detect an uncompilable assembled regex; restored immediately below.
+		\set_error_handler( $swallow );
+		$valid = \array_filter(
+			$patterns,
+			static function ( string $pattern ): bool {
+				$quoted = \preg_quote( $pattern, '/' );
+				return false !== \preg_match( '/(password|' . $quoted . ')/i', '' );
+			}
+		);
+		\restore_error_handler();
+
+		return \array_values( $valid );
 	}
 
 	/**

@@ -422,9 +422,20 @@ final class Flusher {
 		$body     = (string) \apply_filters( 'brl_pre_redact_body', $body, $context );
 		$original = $body;
 
-		// Apply credential-pattern redaction based on content-type.
+		// Apply credential-pattern redaction based on content-type. The patterns
+		// are spliced into a /.../i regex downstream, so each one must be quoted
+		// against that exact delimiter — a bare preg_quote() leaves `/` intact
+		// and a stored value like "api/v2" would break the delimiter.
 		$pattern = '' !== \implode( '', $extra_patterns )
-			? \implode( '|', \array_map( 'preg_quote', $extra_patterns ) )
+			? \implode(
+				'|',
+				\array_map(
+					static function ( $p ): string {
+						return \preg_quote( (string) $p, '/' );
+					},
+					$extra_patterns
+				)
+			)
 			: '';
 
 		if ( false !== \stripos( $content_type, 'json' ) ) {

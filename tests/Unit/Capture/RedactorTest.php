@@ -161,6 +161,34 @@ final class RedactorTest extends TestCase {
 		$this->assertStringContainsString( '[redacted]', $result );
 	}
 
+	/**
+	 * A pattern that fails to compile must never blank the body. The regex
+	 * fallback used to return (string) preg_replace(...) — null cast to ''
+	 * destroyed the whole payload. The backstop returns the original instead.
+	 */
+	public function test_uncompilable_extra_pattern_keeps_body_on_regex_fallback(): void {
+		$redactor = new Redactor();
+		// Malformed JSON forces the regex fallback; an unbalanced group as the
+		// extra pattern makes the assembled regex fail to compile.
+		$input  = '{not valid json "password":"abc"}';
+		$result = $redactor->redact_json_body( $input, '(' );
+
+		$this->assertSame( $input, $result, 'A broken pattern must leave the body untouched, not blank it.' );
+	}
+
+	/** A forward slash in the extra pattern must not break the /.../ delimiter. */
+	public function test_extra_pattern_with_slash_does_not_blank_body(): void {
+		$redactor = new Redactor();
+		// Malformed JSON forces the regex fallback. A slash in the pattern used
+		// to break the /.../ delimiter and blank the whole body.
+		$input = '{not valid json "username":"keep me"}';
+		// The slash is pre-quoted by the caller (Flusher); simulate that here.
+		$result = $redactor->redact_json_body( $input, \preg_quote( 'api/v2', '/' ) );
+
+		$this->assertNotSame( '', $result, 'A slash-bearing pattern must not blank the body.' );
+		$this->assertStringContainsString( 'keep me', $result, 'A non-matching value survives intact.' );
+	}
+
 	public function test_redact_form_body_parses_and_redacts(): void {
 		$redactor = new Redactor();
 		$input    = 'password=abc&name=joe';

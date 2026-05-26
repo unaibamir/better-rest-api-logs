@@ -72,6 +72,35 @@ final class RegistrySanitizerTest extends TestCase {
 		$this->assertTrue( $result['anonymize_ip'] );
 	}
 
+	/**
+	 * Whatever the boundary stores must yield a downstream regex that compiles,
+	 * so the capture pipeline can never blank a body or silently skip redaction.
+	 * Innocent values such as "api/v2" (the slash that used to break the
+	 * delimiter) must survive; the stored set must always be safe to assemble.
+	 */
+	public function test_sanitize_privacy_keeps_safe_redact_patterns_compilable(): void {
+		$registry = $this->make_registry();
+		$result   = $this->invoke_sanitizer(
+			$registry,
+			'sanitize_privacy',
+			array( 'redact_json_key_patterns' => array( 'session_id', 'api/v2', 'api/key' ) )
+		);
+
+		$this->assertIsArray( $result );
+		$stored = $result['redact_json_key_patterns'];
+		$this->assertContains( 'session_id', $stored );
+		$this->assertContains( 'api/v2', $stored, 'A slash-bearing key fragment is kept once quoted.' );
+
+		// Every stored pattern, assembled the way the redactor does, must compile.
+		foreach ( $stored as $pattern ) {
+			$quoted = \preg_quote( $pattern, '/' );
+			$this->assertNotFalse(
+				\preg_match( '/(password|' . $quoted . ')/i', '' ),
+				"Stored pattern '$pattern' must produce a compilable regex."
+			);
+		}
+	}
+
 	public function test_sanitize_retention_absints_days(): void {
 		$registry = $this->make_registry();
 		$result   = $this->invoke_sanitizer(
