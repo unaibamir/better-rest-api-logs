@@ -1,7 +1,7 @@
 name: better-rest-api-logs-gsd
 type: wordpress
 docroot: wp
-php_version: "7.4"
+php_version: "8.3"
 webserver_type: nginx-fpm
 xdebug_enabled: false
 additional_hostnames: []
