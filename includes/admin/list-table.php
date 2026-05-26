@@ -134,20 +134,26 @@ final class ListTable extends \WP_List_Table {
 			return;
 		}
 		$this->filters_view->render_inline( $this->current_args, $this->oldest_newest );
-		$this->render_export_current_view();
+		// The export control is rendered by ListScreen *outside* the list's GET
+		// form — it posts to admin-post.php and a <form> nested inside another
+		// form is invalid HTML that browsers silently drop.
 	}
 
 	/**
-	 * Render the "Export current view" control appended to the top tablenav row.
+	 * Render the "Export current view" control.
 	 *
 	 * Posts to admin-post.php (action=brl_export) with the active QueryArgs
 	 * serialised as hidden inputs so the export honours the active filter exactly.
 	 * The button is disabled — with accessible title + screen-reader text — when
 	 * zero rows match the active filters (UI-SPEC §4, A11Y-03).
 	 *
+	 * Called by ListScreen *after* the list's GET form closes so this POST form
+	 * is a sibling, not a (browser-dropped) nested form. Relies on prepare_items()
+	 * having already populated current_args + the pagination total.
+	 *
 	 * @return void
 	 */
-	private function render_export_current_view(): void {
+	public function render_export_current_view(): void {
 		$total    = $this->get_pagination_arg( 'total_items' );
 		$disabled = ( (int) $total <= 0 ) ? ' disabled' : '';
 		$nonce    = \wp_create_nonce( 'brl_export' );

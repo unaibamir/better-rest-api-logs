@@ -110,6 +110,12 @@ final class ListScreen {
 		$table->display();
 
 		echo '</form>';
+
+		// The "Export current view" control posts to admin-post.php, so its form
+		// must live outside the list's GET form — a nested form is invalid HTML
+		// the browser drops. Rendered here, after </form>, it is a valid sibling.
+		$table->render_export_current_view();
+
 		echo '</div>';
 	}
 
@@ -128,6 +134,14 @@ final class ListScreen {
 		$action = '' !== $top && '-1' !== $top ? $top : $bottom;
 
 		if ( '' === $action || '-1' === $action ) {
+			return;
+		}
+
+		// Export actions are owned by handle_early_export on load-{hook}, which
+		// runs before admin-header.php emits any HTML. By the time this render
+		// callback runs, output has already started — streaming a download here
+		// would prepend admin chrome to the file. Only delete runs from here.
+		if ( \in_array( $action, [ 'brl_export_csv', 'brl_export_ndjson' ], true ) ) {
 			return;
 		}
 

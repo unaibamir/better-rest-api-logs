@@ -23,8 +23,13 @@ use BetterRestApiLogs\Support\Bytes;
  * here; see PATTERNS.md §"Deviation Notes" #1.
  *
  * Wired at:
- *   add_action( 'admin_post_brl_bulk_action', [ BulkActionHandler::class, 'handle' ] )
- *   add_action( 'admin_post_brl_delete_log',  [ BulkActionHandler::class, 'handle_single_delete' ] )
+ *   add_action( 'admin_post_brl_delete_log', [ BulkActionHandler::class, 'handle_single_delete' ] )
+ *   add_action( 'admin_post_brl_export',     [ BulkActionHandler::class, 'handle_export' ] )
+ *   add_action( 'load-{list_hook}',          [ BulkActionHandler::class, 'handle_early_export' ] )
+ *
+ * handle() runs from the list-screen render callback for the bulk-delete GET
+ * form; it never streams a download (exports are owned by handle_early_export,
+ * which fires before any output).
  */
 final class BulkActionHandler {
 
@@ -87,12 +92,12 @@ final class BulkActionHandler {
 
 		$base = $this->referer_url();
 
-		// Route export bulk actions to the streaming export path before the delete path.
-		// Format is encoded in the action slug (brl_export_csv / brl_export_ndjson).
+		// Export bulk actions are handled earlier on load-{hook} by
+		// handle_early_export, which streams before any output. This render-path
+		// handler only deletes — never streams a download — so a file can't be
+		// emitted after admin-header.php has already started the page.
 		if ( \in_array( $action, [ 'brl_export_csv', 'brl_export_ndjson' ], true ) ) {
-			$format = ( 'brl_export_csv' === $action ) ? 'csv' : 'ndjson';
-			self::stream_export_for_ids( $ids, $format );
-			return; // stream_export_for_ids exits; return is the test-seam path.
+			return;
 		}
 
 		// Treat 'brl_delete', 'delete', and empty action (when log_ids are given) as delete.
@@ -333,6 +338,18 @@ final class BulkActionHandler {
 	 * @return void
 	 */
 	private static function stream_export_for_ids( array $ids, string $format ): void {
+		// Defense in depth: never stream a download once output has begun. The
+		// real entry point (handle_early_export on load-{hook}) runs before any
+		// HTML, so this only trips if a future caller reaches here from a render
+		// path — better a clean error than a corrupt download with page chrome.
+		if ( \headers_sent() ) {
+			\wp_die(
+				\esc_html__( 'Cannot start a download after the page has begun rendering.', 'better-rest-api-logs' ),
+				'',
+				[ 'response' => 500 ]
+			);
+		}
+
 		$timestamp = \gmdate( 'Y-m-d' );
 		$filename  = "rest-api-logs-selected-{$timestamp}.{$format}";
 

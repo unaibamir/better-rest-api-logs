@@ -209,4 +209,64 @@ final class ListScreenTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '/wp/v2/before', $html, 'Row before the window must be filtered out.' );
 		$this->assertStringNotContainsString( '/wp/v2/after', $html, 'Row after the window must be filtered out.' );
 	}
+
+	/**
+	 * The "Export current view" form must sit outside the list's GET form — a
+	 * nested <form> is invalid HTML the browser silently drops.
+	 */
+	public function test_export_current_view_form_is_not_nested(): void {
+		$this->boot_plugin();
+		$this->insert_entry();
+
+		\ob_start();
+		ListScreen::render();
+		$html = \ob_get_clean();
+
+		$this->assertStringContainsString( 'brl-export-current', $html, 'The export control must render.' );
+
+		// The list GET form must close before the export POST form opens.
+		$list_form_close = \strpos( $html, '</form>' );
+		$export_marker   = \strpos( $html, 'brl-export-current' );
+		$this->assertNotFalse( $list_form_close );
+		$this->assertNotFalse( $export_marker );
+		$this->assertLessThan(
+			$export_marker,
+			$list_form_close,
+			'The export form must appear after the list GET form closes, not nested inside it.'
+		);
+
+		// No <form> may open between the list form opening and its first close —
+		// i.e. the export form is not inside the GET form.
+		$list_form_open = \strpos( $html, 'id="brl-logs-form"' );
+		$this->assertNotFalse( $list_form_open );
+		$between = \substr( $html, $list_form_open, $list_form_close - $list_form_open );
+		$this->assertStringNotContainsString(
+			'<form',
+			$between,
+			'No nested <form> may appear inside the list GET form.'
+		);
+	}
+
+	/**
+	 * An export action arriving on the list-page render must NOT emit a download
+	 * from the render callback — exports are owned by handle_early_export, which
+	 * runs before any output. The render path stays HTML.
+	 */
+	public function test_export_action_in_render_path_does_not_stream(): void {
+		$this->boot_plugin();
+		$this->insert_entry();
+
+		$_GET['action']   = 'brl_export_ndjson';
+		$_GET['log_ids']  = [ 1 ];
+		$_GET['_wpnonce'] = \wp_create_nonce( 'brl_bulk' );
+
+		\ob_start();
+		ListScreen::render();
+		$html = \ob_get_clean();
+
+		unset( $_GET['action'], $_GET['log_ids'], $_GET['_wpnonce'] );
+
+		// The page rendered as HTML — no NDJSON payload leaked from the render path.
+		$this->assertStringContainsString( 'wrap brl-admin', $html, 'The render path must produce the list page, not a download.' );
+	}
 }
