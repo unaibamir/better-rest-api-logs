@@ -1,0 +1,13 @@
+{
+  "name": "better-rest-api-logs",
+  "private": true,
+  "description": "Browser smoke tests for the Better REST API Logs WordPress plugin",
+  "scripts": {
+    "e2e": "npx playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.11.3",
+    "@playwright/test": "1.60.0",
+    "axe-core": "4.11.4"
+  }
+}

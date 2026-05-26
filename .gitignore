@@ -39,6 +39,13 @@ Thumbs.db
 .env
 .env.local
 
+# Node / E2E tooling
+/node_modules/
+
+# Playwright generated artifacts
+/tests/e2e/test-results/
+/tests/e2e/.auth/
+
 # Logs
 *.log
 

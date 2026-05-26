@@ -40,6 +40,11 @@
 /node_modules/
 /wp/
 
+# Node / E2E tooling — dev-only, not shipped to WP.org
+/package.json
+/package-lock.json
+/tests/e2e/
+
 # Markdown — only readme.txt ships; everything else stays in repo
 *.md
 !readme.txt
