@@ -75,20 +75,39 @@ final class LogRepositoryTest extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0, $ids[0] );
 	}
 
-	/** Multi-row INSERT must return contiguous IDs (MySQL auto-increment contract). */
-	public function test_insert_batch_multi_row_returns_contiguous_ids(): void {
-		$repo = new LogRepository();
-		$ids  = $repo->insert_batch(
+	/**
+	 * Each returned ID must point at the row actually inserted for that entry,
+	 * in input order. This is the property a spill association depends on — the
+	 * old test asserted contiguous IDs (first+1, first+2), which stays true even
+	 * under a synthesis bug on a single-threaded insert and so could not fail.
+	 * Verifying the ID↔route mapping catches a mis-association instead.
+	 */
+	public function test_insert_batch_returned_ids_map_to_their_rows(): void {
+		global $wpdb;
+
+		$repo   = new LogRepository();
+		$routes = [ '/wp/v2/posts', '/wp/v2/users', '/wp/v2/comments' ];
+		$ids    = $repo->insert_batch(
 			[
-				$this->make_entry( '/wp/v2/posts' ),
-				$this->make_entry( '/wp/v2/users' ),
-				$this->make_entry( '/wp/v2/comments' ),
+				$this->make_entry( $routes[0] ),
+				$this->make_entry( $routes[1] ),
+				$this->make_entry( $routes[2] ),
 			]
 		);
 
 		$this->assertCount( 3, $ids );
-		$this->assertSame( $ids[0] + 1, $ids[1] );
-		$this->assertSame( $ids[0] + 2, $ids[2] );
+		$this->assertSame( $ids, \array_values( \array_unique( $ids ) ), 'IDs must be distinct.' );
+
+		foreach ( $ids as $i => $id ) {
+			$route = $wpdb->get_var(
+				$wpdb->prepare( 'SELECT route FROM ' . Database::logs_table() . ' WHERE id = %d', $id )
+			);
+			$this->assertSame(
+				$routes[ $i ],
+				$route,
+				"Returned ID at position $i must point at the row inserted for entry $i."
+			);
+		}
 	}
 
 	public function test_insert_batch_empty_array_returns_empty_array(): void {

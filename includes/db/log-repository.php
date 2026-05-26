@@ -116,12 +116,21 @@ final class LogRepository {
 	}
 
 	/**
-	 * Insert a batch of entries in a single multi-row prepared INSERT.
+	 * Insert a batch of entries and return their real auto-increment IDs.
 	 *
-	 * Returns the auto-increment IDs in input order. On InnoDB with the default
-	 * autoinc-lock-mode=1, a multi-row INSERT hands out contiguous IDs — the
-	 * first is $wpdb->insert_id; the rest are first+1, first+2, … (Pitfall 3).
-	 * An empty input or a DB error both return [].
+	 * Each row is inserted with its own statement so the returned ID is the
+	 * actual $wpdb->insert_id for that row. Earlier code ran one multi-row
+	 * INSERT and synthesised the IDs as first+0, first+1, …, which is unsafe on
+	 * MySQL 8 (innodb_autoinc_lock_mode defaults to 2/interleaved) where a
+	 * multi-row INSERT is not guaranteed a contiguous block. A wrong ID there
+	 * links a spilled body to the wrong — or a non-existent — parent row. The
+	 * live capture path holds a single entry per request (the recursion guard)
+	 * and the migration tier inserts one at a time, so per-row inserts cost
+	 * nothing in practice while making the spill association reliable.
+	 *
+	 * The returned IDs keep input order so callers can link the i-th entry's
+	 * spill row by position. An empty input returns []; a failed row aborts the
+	 * batch and returns [] so the caller's breaker/latch sees the failure.
 	 *
 	 * Null handling: $wpdb->prepare converts null %s args to '' (empty string),
 	 * which breaks UNIQUE KEY constraints on nullable columns. We substitute the
@@ -138,39 +147,32 @@ final class LogRepository {
 
 		global $wpdb;
 
-		$row_sqls = [];
-		$args     = [];
-
-		foreach ( $entries as $entry ) {
-			$row        = $entry->to_array();
-			$row_sqls[] = $this->build_row_sql( $row, $args );
-		}
-
 		$logs_table = Database::logs_table();
 		$col_list   = \implode( ',', self::COLUMNS );
-		$values_sql = \implode( ',', $row_sqls );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- column list and NULL literals come from our static constants; only non-null user values flow through $wpdb->prepare via $args.
-		$sql = "INSERT INTO {$logs_table} ({$col_list}) VALUES {$values_sql}";
+		$ids = [];
+		foreach ( $entries as $entry ) {
+			$args    = [];
+			$row_sql = $this->build_row_sql( $entry->to_array(), $args );
 
-		if ( [] === $args ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- all values are NULL literals, no user data in $sql.
-			$result = $wpdb->query( $sql );
-		} else {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contains only NULL literals + prepare placeholders; no user input in the non-placeholder portions.
-			$prepared = $wpdb->prepare( $sql, $args );
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is wpdb::prepare output; canonical multi-row batch INSERT.
-			$result = $wpdb->query( $prepared );
-		}
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- column list and NULL literals come from our static constants; only non-null user values flow through $wpdb->prepare via $args.
+			$sql = "INSERT INTO {$logs_table} ({$col_list}) VALUES {$row_sql}";
 
-		if ( false === $result || '' !== $wpdb->last_error ) {
-			return [];
-		}
+			if ( [] === $args ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- all values are NULL literals, no user data in $sql.
+				$result = $wpdb->query( $sql );
+			} else {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contains only NULL literals + prepare placeholders; no user input in the non-placeholder portions.
+				$prepared = $wpdb->prepare( $sql, $args );
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared is wpdb::prepare output; single-row INSERT.
+				$result = $wpdb->query( $prepared );
+			}
 
-		$first_id = (int) $wpdb->insert_id;
-		$ids      = [];
-		for ( $i = 0, $n = \count( $entries ); $i < $n; $i++ ) {
-			$ids[] = $first_id + $i;
+			if ( false === $result || '' !== $wpdb->last_error ) {
+				return [];
+			}
+
+			$ids[] = (int) $wpdb->insert_id;
 		}
 
 		return $ids;

@@ -161,6 +161,11 @@ final class Flusher {
 
 		// Step 4: build Entry DTOs for each complete queue item.
 		$assembled = [];
+		// Parallel map (same keys as $assembled) holding the spilled body payload
+		// for each spilling entry. The inline columns on those entries are NULLed
+		// before the INSERT so an oversize body is stored once — in the secondary
+		// table — not duplicated inline and in brl_logs_bodies.
+		$spill_bodies = [];
 		foreach ( $entries as $pair ) {
 			$req = $pair['request'];
 			$res = $pair['response'];
@@ -179,6 +184,18 @@ final class Flusher {
 			$entry = $this->build_entry( $req, $res, $settings );
 			if ( null === $entry ) {
 				continue;
+			}
+
+			$index = \count( $assembled );
+			if ( $entry->bodies_spilled ) {
+				$spill_bodies[ $index ] = [
+					'request_body'  => $entry->request_body,
+					'response_body' => $entry->response_body,
+				];
+				// Keep the inline columns empty on spill — the body lives in the
+				// secondary table only.
+				$entry->request_body  = null;
+				$entry->response_body = null;
 			}
 
 			$assembled[] = $entry;
@@ -219,18 +236,17 @@ final class Flusher {
 			return;
 		}
 
-		// Step 6: body-spill secondary inserts for oversize entries (D-08).
+		// Step 6: body-spill secondary inserts for oversize entries (D-08). The
+		// payload comes from the parallel map captured before the inline columns
+		// were NULLed, keyed by the same index as $assembled.
 		foreach ( $assembled as $i => $entry ) {
-			if ( ! $entry->bodies_spilled ) {
-				continue;
-			}
-			if ( ! isset( $log_ids[ $i ] ) ) {
+			if ( ! $entry->bodies_spilled || ! isset( $spill_bodies[ $i ], $log_ids[ $i ] ) ) {
 				continue;
 			}
 			$ok = $this->body_repo->insert_spilled(
 				$log_ids[ $i ],
-				$entry->request_body,
-				$entry->response_body
+				$spill_bodies[ $i ]['request_body'],
+				$spill_bodies[ $i ]['response_body']
 			);
 			if ( ! $ok ) {
 				\do_action( 'brl_body_spill_failed', $log_ids[ $i ] );
@@ -329,15 +345,11 @@ final class Flusher {
 		$entry->response_body_bytes     = $res_bytes;
 		$entry->response_body_truncated = $res_trunc;
 
-		// When spilling, keep bodies on the entry so run_pipeline step 6 can
-		// read them for the secondary insert; otherwise set inline columns.
-		if ( $spill ) {
-			$entry->request_body  = $req_body_out;
-			$entry->response_body = $res_body_out;
-		} else {
-			$entry->request_body  = $req_body_out;
-			$entry->response_body = $res_body_out;
-		}
+		// Set the bodies on the entry. run_pipeline moves the payload of a
+		// spilling entry into the secondary table and NULLs these inline columns,
+		// so the body is never stored twice.
+		$entry->request_body  = $req_body_out;
+		$entry->response_body = $res_body_out;
 
 		// brl_pre_insert_entry: third-party code may mutate or drop the entry.
 		// An empty array return signals "drop this entry".

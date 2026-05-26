@@ -222,6 +222,70 @@ final class FlusherTest extends WP_UnitTestCase {
 		$this->assertSame( '/mutated/by/filter', $route, 'The filtered route must be the value written to the row.' );
 	}
 
+	/**
+	 * A spilled body must be stored only in the secondary table — the inline
+	 * brl_logs columns must be NULL so the payload is not written twice.
+	 */
+	public function test_spilled_body_is_not_duplicated_inline(): void {
+		global $wpdb;
+		$this->boot_plugin();
+
+		// Enable spill with a tiny threshold so a normal body spills.
+		\update_option(
+			'brl_settings_capture',
+			[
+				'enabled'                    => true,
+				'body_spill_enabled'         => true,
+				'body_spill_threshold_bytes' => 16,
+				'body_size_cap_bytes'        => 1048576,
+			]
+		);
+
+		\add_action(
+			'rest_api_init',
+			static function () {
+				\register_rest_route(
+					'brl-test/v1',
+					'/spill',
+					[
+						'methods'             => 'POST',
+						'callback'            => static function () {
+							return new \WP_REST_Response( [ 'ok' => true ], 200 );
+						},
+						'permission_callback' => '__return_true',
+					]
+				);
+			}
+		);
+		// Re-fire the init action so the route registers on the already-booted server.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		\do_action( 'rest_api_init', \rest_get_server() );
+
+		$request = new \WP_REST_Request( 'POST', '/brl-test/v1/spill' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( '{"payload":"' . \str_repeat( 'x', 500 ) . '"}' );
+
+		\rest_do_request( $request );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		\do_action( 'shutdown' );
+
+		\delete_option( 'brl_settings_capture' );
+
+		$row = $wpdb->get_row(
+			'SELECT id, bodies_spilled, request_body FROM ' . Database::logs_table()
+			. " WHERE route = '/brl-test/v1/spill'",
+			ARRAY_A
+		);
+		$this->assertNotNull( $row, 'The spilled request must still be captured.' );
+		$this->assertSame( '1', (string) $row['bodies_spilled'], 'The row must be flagged as spilled.' );
+		$this->assertNull( $row['request_body'], 'The inline request_body must be NULL on spill — no double write.' );
+
+		$bodies_count = (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COUNT(*) FROM ' . Database::bodies_table() . ' WHERE log_id = %d', (int) $row['id'] )
+		);
+		$this->assertSame( 1, $bodies_count, 'The body must be stored in the secondary table.' );
+	}
+
 	/** Returning an empty array from brl_pre_insert_entry still drops the entry. */
 	public function test_pre_insert_entry_empty_array_drops_entry(): void {
 		global $wpdb;
