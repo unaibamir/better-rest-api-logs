@@ -62,14 +62,20 @@
     </coverage>
 
     <!--
-        Perf tests (@group perf) are excluded from the default test run.
-        They require a real database and are expensive. Run on the PHP 8.3
-        CI cell via the explicit perf group flag. Default composer test,
-        test:unit, and test:integration suites skip them.
+        Perf tests are excluded from the default test run. They require a real
+        database and are expensive. Run on the PHP 8.3 CI cell via the explicit
+        group flag. Default composer test, test:unit, and test:integration
+        suites skip them.
+
+        Two groups: `perf` holds the hard gates (component microbench +
+        100ms search benchmark); `perf-e2e` holds the informational E2E
+        latency probe, whose absolute 5ms budget is too noisy to hard-gate on
+        a shared runner.
     -->
     <groups>
         <exclude>
             <group>perf</group>
+            <group>perf-e2e</group>
         </exclude>
     </groups>
 

@@ -7,16 +7,17 @@
  * per REQUIREMENTS.md.
  *
  * This test is informational: it measures the real overhead added by the
- * capture pipeline compared to a baseline run with capture disabled. CI
- * does NOT block on this assertion in isolation — the component microbench
- * in PerfTest.php is the primary gate. This test catches gross regressions
- * only (>5ms p95 delta).
+ * capture pipeline compared to a baseline run with capture disabled. The
+ * 5ms delta is an absolute wall-clock budget, which is too noisy to hard-gate
+ * on shared CI runners, so it lives in its own perf-e2e group and runs only
+ * in the informational CI step. The component microbench in PerfTest.php and
+ * the search benchmark in LogRepositorySearchPerfTest are the hard gates.
  *
- * Tagged @group perf — excluded from the default test run by phpunit.xml.dist.
- * Run explicitly on the PHP 8.3 CI cell via:
- *   vendor/bin/phpunit --group perf tests/Integration/Capture/E2eLatencyTest.php
+ * Tagged @group perf-e2e — excluded from the default test run by
+ * phpunit.xml.dist (which excludes both perf and perf-e2e). Run explicitly:
+ *   vendor/bin/phpunit --group perf-e2e --testsuite=integration
  *
- * @group perf
+ * @group perf-e2e
  *
  * @package BetterRestApiLogs
  */
@@ -27,11 +28,10 @@ namespace BetterRestApiLogs\Tests\Integration\Capture;
 
 use BetterRestApiLogs\DB\Database;
 use BetterRestApiLogs\Plugin;
-use BetterRestApiLogs\Settings\Registry;
 use WP_UnitTestCase;
 
 /**
- * @group perf
+ * @group perf-e2e
  */
 final class E2eLatencyTest extends WP_UnitTestCase {
 
@@ -47,6 +47,7 @@ final class E2eLatencyTest extends WP_UnitTestCase {
 	public function tear_down(): void {
 		global $wpdb;
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
+		\delete_option( 'brl_settings_capture' );
 		parent::tear_down();
 	}
 
@@ -69,7 +70,7 @@ final class E2eLatencyTest extends WP_UnitTestCase {
 		global $wpdb;
 
 		// ---- Phase 1: baseline (capture disabled) ----
-		Registry::set_setting( 'capture.enabled', false );
+		\update_option( 'brl_settings_capture', [ 'enabled' => false ] );
 
 		$baseline_samples = [];
 		for ( $i = 0; $i < self::ITERATIONS; $i++ ) {
@@ -81,7 +82,7 @@ final class E2eLatencyTest extends WP_UnitTestCase {
 		$baseline_p95 = $this->p95( $baseline_samples );
 
 		// ---- Phase 2: with capture enabled ----
-		Registry::set_setting( 'capture.enabled', true );
+		\update_option( 'brl_settings_capture', [ 'enabled' => true ] );
 		$wpdb->query( 'TRUNCATE TABLE ' . Database::logs_table() );
 
 		$measured_samples = [];

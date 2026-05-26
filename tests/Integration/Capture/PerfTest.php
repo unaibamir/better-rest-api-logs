@@ -10,8 +10,6 @@
  * Run explicitly on the PHP 8.3 CI cell via:
  *   vendor/bin/phpunit --group perf tests/Integration/Capture/PerfTest.php
  *
- * @group perf
- *
  * @package BetterRestApiLogs
  */
 
@@ -32,6 +30,9 @@ use BetterRestApiLogs\Domain\ResponseSnapshot;
 use BetterRestApiLogs\Plugin;
 use WP_UnitTestCase;
 
+/**
+ * @group perf
+ */
 final class PerfTest extends WP_UnitTestCase {
 
 	private const ITERATIONS = 1000;

@@ -177,13 +177,16 @@ jobs:
       - run: composer test
 
       - name: Run perf microbench (canonical cell only)
+        # The perf group holds the hard gates: the component microbench and the
+        # 100ms search benchmark. The absolute 5ms E2E latency probe is in its
+        # own perf-e2e group so it cannot flake this step on a shared runner.
         if: matrix.php-version == '8.3' && matrix.wp-version == 'latest'
         run: vendor/bin/phpunit --group perf --testsuite=integration
         continue-on-error: false
 
       - name: Run e2e latency probe (informational, canonical cell only)
         if: matrix.php-version == '8.3' && matrix.wp-version == 'latest'
-        run: vendor/bin/phpunit --group perf --filter E2eLatencyTest --testsuite=integration || true
+        run: vendor/bin/phpunit --group perf-e2e --testsuite=integration || true
         continue-on-error: true
 
       - name: Enforce unit coverage gate

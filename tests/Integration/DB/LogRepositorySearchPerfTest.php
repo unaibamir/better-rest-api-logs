@@ -9,8 +9,6 @@
  * Tagged @group perf — excluded from the default composer test run via phpunit.xml.dist.
  * Run explicitly: composer test -- --group perf
  *
- * @group perf
- *
  * @package BetterRestApiLogs
  */
 
@@ -28,6 +26,9 @@ use BetterRestApiLogs\Domain\RequestSnapshot;
 use BetterRestApiLogs\Domain\ResponseSnapshot;
 use WP_UnitTestCase;
 
+/**
+ * @group perf
+ */
 final class LogRepositorySearchPerfTest extends WP_UnitTestCase {
 
 	private const SEED_ROWS     = 100_000;
