@@ -87,7 +87,6 @@ final class ReaderTest extends WP_UnitTestCase {
 		);
 	}
 
-	// -------------------------------------------------------------------------
 
 	private function assert_reader_implemented(): void {
 		if ( ! \class_exists( 'BetterRestApiLogs\\Migration\\Reader' ) ) {

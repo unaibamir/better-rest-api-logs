@@ -85,13 +85,13 @@ final class ImporterTest extends WP_UnitTestCase {
 		$this->seed_upstream_posts( 2 );
 
 		$importer = $this->make_importer();
-		$importer->tick(); // first run
+		$importer->tick(); // first run.
 
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared
 		$after_first = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::logs_table() );
 
-		$importer->tick(); // second run — must be a no-op
+		$importer->tick(); // second run — must be a no-op.
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared
 		$after_second = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::logs_table() );

@@ -54,7 +54,7 @@ final class ImportCommandTest extends WP_UnitTestCase {
 
 		// Mirror $_POST into $_REQUEST (LESSON #4) — ImportCommand admin path
 		// may call check_admin_referer which reads $_REQUEST.
-		$_POST    = [];
+		$_POST = [];
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- test fixture only.
 		$_REQUEST = [];
 
@@ -66,7 +66,7 @@ final class ImportCommandTest extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		\remove_filter( 'wp_redirect', '__return_false', 99 );
-		$_POST    = [];
+		$_POST = [];
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- test fixture teardown.
 		$_REQUEST = [];
 
@@ -132,7 +132,6 @@ final class ImportCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 'idle', $state['status'] ?? '', '--reset must set status back to idle' );
 	}
 
-	// -------------------------------------------------------------------------
 
 	private function assert_command_implemented(): void {
 		if ( ! \class_exists( 'BetterRestApiLogs\\Cli\\Commands\\ImportCommand' ) ) {

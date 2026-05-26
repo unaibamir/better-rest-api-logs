@@ -135,7 +135,6 @@ final class ImporterStateTest extends WP_UnitTestCase {
 		$this->assertSame( 0, $migration['cursor'], 'Default cursor must be 0' );
 	}
 
-	// -------------------------------------------------------------------------
 
 	private function assert_importer_state_implemented(): void {
 		if ( ! \class_exists( 'BetterRestApiLogs\\Migration\\Importer' ) ) {

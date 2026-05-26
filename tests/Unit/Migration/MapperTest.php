@@ -33,15 +33,15 @@ final class MapperTest extends TestCase {
 
 		// Hand-built source fixture (no WP boot needed).
 		/** @var \BetterRestApiLogs\Migration\SourceEntry $src */
-		$src               = new \BetterRestApiLogs\Migration\SourceEntry();
-		$src->source_id    = 42;
-		$src->route        = '/wp/v2/posts';
-		$src->method       = 'GET';
-		$src->status       = 200;
-		$src->duration_ms  = 150;
-		$src->created_at   = '2026-05-01 10:00:00';
-		$src->ip_address   = '1.2.3.4';
-		$src->user         = '7';
+		$src                = new \BetterRestApiLogs\Migration\SourceEntry();
+		$src->source_id     = 42;
+		$src->route         = '/wp/v2/posts';
+		$src->method        = 'GET';
+		$src->status        = 200;
+		$src->duration_ms   = 150;
+		$src->created_at    = '2026-05-01 10:00:00';
+		$src->ip_address    = '1.2.3.4';
+		$src->user          = '7';
 		$src->response_body = '{"id":1,"title":"Hello"}';
 		$src->request_body  = '{"q":"test"}';
 
@@ -60,7 +60,7 @@ final class MapperTest extends TestCase {
 	}
 
 	/**
-	 * status_class must be derived as floor(status / 100), matching Entry's
+	 * Derive status_class as floor(status / 100), matching Entry's
 	 * own derivation rule (Pitfall 5 — status_class = 0 breaks filtering).
 	 */
 	public function test_map_derives_status_class_from_status(): void {
@@ -76,7 +76,7 @@ final class MapperTest extends TestCase {
 	}
 
 	/**
-	 * created_at_micros must be 0 for imported rows — upstream had only
+	 * Imported rows carry created_at_micros = 0; upstream had only — upstream had only
 	 * second-resolution timestamps (Pitfall 5).
 	 */
 	public function test_map_sets_created_at_micros_to_zero(): void {
@@ -92,7 +92,7 @@ final class MapperTest extends TestCase {
 	}
 
 	/**
-	 * route comes from post_title, response_body from post_content,
+	 * Route comes from post_title, response_body from post_content,
 	 * request_body from the _request_body meta (already unslashed by Reader).
 	 */
 	public function test_map_copies_body_fields(): void {
@@ -110,7 +110,7 @@ final class MapperTest extends TestCase {
 	}
 
 	/**
-	 * migration_source_id must be the upstream post ID so the UNIQUE constraint
+	 * The migration_source_id is the upstream post ID so the UNIQUE constraint
 	 * prevents duplicate rows on re-run (MIG-04).
 	 */
 	public function test_map_sets_migration_source_id(): void {
