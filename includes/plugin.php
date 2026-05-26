@@ -427,6 +427,8 @@ final class Plugin {
 		\add_action( 'admin_init', [ SettingsScreen::class, 'register_fields' ], 10 );
 		\add_action( 'admin_post_brl_truncate_confirm', [ SettingsScreen::class, 'handle_truncate_confirm' ] );
 		\add_action( 'admin_post_brl_truncate_all', [ SettingsScreen::class, 'handle_truncate_all' ] );
+		\add_action( 'admin_post_brl_migration_start', [ SettingsScreen::class, 'handle_migration_start' ] );
+		\add_action( 'admin_post_brl_migration_reset', [ SettingsScreen::class, 'handle_migration_reset' ] );
 
 		// Bulk delete is dispatched inline from ListScreen::render() now that the
 		// list page lives inside a single <form method="get">. The single-row

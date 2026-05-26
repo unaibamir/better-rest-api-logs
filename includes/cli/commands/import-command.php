@@ -47,7 +47,6 @@ final class ImportCommand extends \WP_CLI_Command {
 		$required_cap = (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'cli' );
 		if ( ! \current_user_can( $required_cap ) ) {
 			\WP_CLI::error( \sprintf( 'Insufficient capabilities (%s required).', $required_cap ) );
-			return;
 		}
 
 		if ( isset( $assoc_args['reset'] ) ) {

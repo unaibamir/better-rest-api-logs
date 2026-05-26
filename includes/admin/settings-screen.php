@@ -6,6 +6,9 @@ namespace BetterRestApiLogs\Admin;
 defined( 'ABSPATH' ) || exit;
 
 use BetterRestApiLogs\DB\Database;
+use BetterRestApiLogs\Migration\Importer as MigrationImporter;
+use BetterRestApiLogs\Migration\Reset as MigrationReset;
+use BetterRestApiLogs\Plugin;
 use BetterRestApiLogs\Settings\Defaults;
 use BetterRestApiLogs\Settings\Registry;
 
@@ -26,7 +29,7 @@ final class SettingsScreen {
 	 *
 	 * @var string[]
 	 */
-	private const TAB_SLUGS = [ 'capture', 'privacy', 'retention', 'network', 'advanced' ];
+	private const TAB_SLUGS = [ 'capture', 'privacy', 'retention', 'network', 'advanced', 'import' ];
 
 	/**
 	 * Register the Settings → REST API Logs options page.
@@ -57,6 +60,11 @@ final class SettingsScreen {
 	 */
 	public static function register_fields(): void {
 		foreach ( self::TAB_SLUGS as $slug ) {
+			// The import tab uses admin-post.php handlers, not the Settings API.
+			if ( 'import' === $slug ) {
+				continue;
+			}
+
 			$group   = "brl_settings_{$slug}";
 			$section = "brl_{$slug}_section";
 
@@ -107,15 +115,21 @@ final class SettingsScreen {
 		echo '<div class="wrap brl-admin">';
 		printf( '<h1>%s</h1>', \esc_html__( 'REST API Logs Settings', 'better-rest-api-logs' ) );
 		self::render_truncate_notice();
+		self::render_migration_notice();
 		self::render_tab_nav( $active );
-		echo '<form action="options.php" method="post">';
-		\settings_fields( "brl_settings_{$active}" );
-		\do_settings_sections( "brl_settings_{$active}" );
-		\submit_button();
-		echo '</form>';
 
-		if ( 'advanced' === $active ) {
-			self::render_truncate_section();
+		if ( 'import' === $active ) {
+			self::render_import_tab();
+		} else {
+			echo '<form action="options.php" method="post">';
+			\settings_fields( "brl_settings_{$active}" );
+			\do_settings_sections( "brl_settings_{$active}" );
+			\submit_button();
+			echo '</form>';
+
+			if ( 'advanced' === $active ) {
+				self::render_truncate_section();
+			}
 		}
 
 		echo '</div>';
@@ -210,11 +224,31 @@ final class SettingsScreen {
 
 		// Inline style scoped to this page only — the wp_die() interstitial renders
 		// outside .brl-admin, so our enqueued stylesheets are unavailable here.
+		// The un-scoped :focus-visible rule and focus-trap JS are appended here
+		// because the whole page is ours (A11Y-03, D-20).
 		$style = '<style>
 .brl-button-danger{color:#b32d2e;border-color:#b32d2e;background:#f6f7f7;}
 .brl-button-danger:hover,.brl-button-danger:focus{color:#fff;background:#b32d2e;border-color:#b32d2e;}
 p.submit{display:flex;gap:8px;align-items:center;margin-top:16px;}
-</style>';
+:is(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--wp-admin-theme-color,#2271b1);outline-offset:2px;box-shadow:none;}
+</style>
+<script>
+(function(){
+var form=document.querySelector("form");
+if(!form)return;
+function focusables(){return Array.from(form.querySelectorAll("a,button,input,select,textarea,[tabindex]")).filter(function(el){return !el.disabled&&el.tabIndex>=0;});}
+document.addEventListener("keydown",function(e){
+var els=focusables();
+if(!els.length)return;
+var first=els[0],last=els[els.length-1];
+if(e.key==="Tab"){
+if(e.shiftKey){if(document.activeElement===first){e.preventDefault();last.focus();}}
+else{if(document.activeElement===last){e.preventDefault();first.focus();}}
+}
+if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.click();}
+});
+})();
+</script>';
 
 		$form  = '<form method="post" action="' . \esc_url( $action_url ) . '">';
 		$form .= '<input type="hidden" name="action" value="brl_truncate_all" />';
@@ -426,6 +460,218 @@ p.submit{display:flex;gap:8px;align-items:center;margin-top:16px;}
 	}
 
 	// -------------------------------------------------------------------------
+	// Import tab
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Handler for admin-post.php?action=brl_migration_start.
+	 *
+	 * Kicks the cron tick chain after capability + nonce checks. Does not import
+	 * inline — all work runs in the background via brl_migration_tick (D-08).
+	 * No exit after wp_safe_redirect — integration tests assert state (LESSON #5).
+	 */
+	public static function handle_migration_start(): void {
+		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
+			\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
+		}
+
+		\check_admin_referer( 'brl_migration_start' );
+
+		$importer = Plugin::instance()->container()->get( MigrationImporter::class );
+		$importer->tick();
+
+		$redirect = \add_query_arg(
+			[
+				'page'          => 'better-rest-api-logs-settings',
+				'tab'           => 'import',
+				'brl_migration' => 'started',
+			],
+			\admin_url( 'options-general.php' )
+		);
+		\wp_safe_redirect( $redirect );
+	}
+
+	/**
+	 * Handler for admin-post.php?action=brl_migration_reset.
+	 *
+	 * Rewinds migration state markers (cursor, counts, status) to idle defaults.
+	 * Does NOT delete any already-imported log rows (D-09).
+	 * No exit after wp_safe_redirect — integration tests assert state (LESSON #5).
+	 */
+	public static function handle_migration_reset(): void {
+		if ( ! \current_user_can( (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'admin' ) ) ) {
+			\wp_die( \esc_html__( 'Insufficient permissions.', 'better-rest-api-logs' ), '', [ 'response' => 403 ] );
+		}
+
+		\check_admin_referer( 'brl_migration_reset' );
+
+		$reset = Plugin::instance()->container()->get( MigrationReset::class );
+		$reset->reset();
+
+		$redirect = \add_query_arg(
+			[
+				'page'          => 'better-rest-api-logs-settings',
+				'tab'           => 'import',
+				'brl_migration' => 'reset',
+			],
+			\admin_url( 'options-general.php' )
+		);
+		\wp_safe_redirect( $redirect );
+	}
+
+	/**
+	 * Flash notice above the Import tab — reads the brl_migration query arg set
+	 * by the start/reset handlers, mirrors the 3-branch truncate notice pattern.
+	 */
+	private static function render_migration_notice(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash arg.
+		$status = isset( $_GET['brl_migration'] ) ? \sanitize_key( \wp_unslash( (string) $_GET['brl_migration'] ) ) : '';
+		if ( '' === $status ) {
+			return;
+		}
+
+		// Only show on the import tab.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$tab = isset( $_GET['tab'] ) ? \sanitize_key( \wp_unslash( (string) $_GET['tab'] ) ) : '';
+		if ( 'import' !== $tab ) {
+			return;
+		}
+
+		switch ( $status ) {
+			case 'started':
+				\printf(
+					'<div class="notice notice-info is-dismissible"><p>%s</p></div>',
+					\esc_html__( 'Import is running in the background. Reload this page to see progress.', 'better-rest-api-logs' )
+				);
+				break;
+			case 'reset':
+				\printf(
+					'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+					\esc_html__( 'Import progress reset. The next import will re-scan from the beginning (no duplicates are created).', 'better-rest-api-logs' )
+				);
+				break;
+		}
+	}
+
+	/**
+	 * Render the Settings → Import tab body.
+	 *
+	 * Shows the current migration state (idle/running/done/error/no-source),
+	 * a Start form, an aria-live progress readout, and a Reset form.
+	 * No JS polling — operator reloads to see progress advance (D-08).
+	 */
+	private static function render_import_tab(): void {
+		$state            = Registry::get_internal( 'migration' );
+		$state            = \is_array( $state ) ? $state : [];
+		$migration_status = (string) ( $state['status'] ?? 'idle' );
+		$processed        = (int) ( $state['processed'] ?? 0 );
+		$imported         = (int) ( $state['imported'] ?? 0 );
+		$skipped          = (int) ( $state['skipped'] ?? 0 );
+		$source_total     = (int) ( $state['source_total'] ?? 0 );
+
+		$action_url = \admin_url( 'admin-post.php' );
+		$is_running = 'running' === $migration_status;
+		$no_source  = ( 0 === $source_total ) && ( 'idle' === $migration_status );
+
+		echo '<div class="brl-import-tab">';
+		\printf( '<h2>%s</h2>', \esc_html__( 'Import logs from wp-rest-api-log', 'better-rest-api-logs' ) );
+		\printf(
+			'<p class="brl-import-tab__desc">%s</p>',
+			\esc_html__( 'Copies entries captured by the old wp-rest-api-log plugin into this plugin\'s tables, re-applying your current redaction rules. The old plugin does not need to be active. Running it again is safe — it never creates duplicates.', 'better-rest-api-logs' )
+		);
+
+		// State notices.
+		if ( 'done' === $migration_status ) {
+			\printf(
+				'<div class="notice notice-success inline"><p>%s</p></div>',
+				\esc_html(
+					\sprintf(
+						/* translators: 1: number of imported entries, 2: number of skipped entries. */
+						\__( 'Import complete. %1$s imported, %2$s skipped.', 'better-rest-api-logs' ),
+						\number_format_i18n( $imported ),
+						\number_format_i18n( $skipped )
+					)
+				)
+			);
+		} elseif ( 'error' === $migration_status ) {
+			\printf(
+				'<div class="notice notice-error inline"><p>%s</p></div>',
+				\esc_html(
+					\sprintf(
+						/* translators: %s: number of entries processed before the error. */
+						\__( 'Import stopped after an error at entry %s. Imported entries were kept; click "Start import" to resume from where it stopped.', 'better-rest-api-logs' ),
+						\number_format_i18n( $processed )
+					)
+				)
+			);
+		} elseif ( $is_running ) {
+			\printf(
+				'<div class="notice notice-info inline"><p>%s</p></div>',
+				\esc_html__( 'Import is running in the background. Reload this page to see progress.', 'better-rest-api-logs' )
+			);
+		} elseif ( $no_source ) {
+			\printf(
+				'<div class="notice notice-info inline"><p>%s</p></div>',
+				\esc_html__( 'No wp-rest-api-log entries were found to import.', 'better-rest-api-logs' )
+			);
+		} elseif ( $source_total > 0 && 'idle' === $migration_status ) {
+			// Preview count for idle state when source is known.
+			\printf(
+				'<div class="notice notice-info inline"><p>%s</p></div>',
+				\esc_html(
+					\sprintf(
+						/* translators: %s: number of entries available to import. */
+						\_n( '%s entry is available to import.', '%s entries are available to import.', $source_total, 'better-rest-api-logs' ),
+						\number_format_i18n( $source_total )
+					)
+				)
+			);
+		}
+
+		// Start form.
+		\printf( '<form method="post" action="%s" class="brl-import-tab__start">', \esc_url( $action_url ) );
+		echo '<input type="hidden" name="action" value="brl_migration_start" />';
+		\wp_nonce_field( 'brl_migration_start' );
+		\printf(
+			'<button type="submit" class="button button-primary"%s>%s</button>',
+			$is_running || $no_source ? ' disabled' : '',
+			\esc_html__( 'Start import', 'better-rest-api-logs' )
+		);
+		if ( $is_running ) {
+			echo '<span class="spinner is-active"></span>';
+			\printf( '<span class="brl-import-tab__status">%s</span>', \esc_html__( 'Import in progress\xe2\x80\xa6', 'better-rest-api-logs' ) );
+		}
+		echo '</form>';
+
+		// Progress readout.
+		$total_display = $source_total > 0 ? \number_format_i18n( $source_total ) : '—';
+		echo '<dl class="brl-import-progress" aria-live="polite">';
+		\printf( '<dt>%s</dt><dd>%s</dd>', \esc_html__( 'Processed', 'better-rest-api-logs' ), \esc_html( \number_format_i18n( $processed ) . ' / ' . $total_display ) );
+		\printf( '<dt>%s</dt><dd>%s</dd>', \esc_html__( 'Imported', 'better-rest-api-logs' ), \esc_html( \number_format_i18n( $imported ) ) );
+		\printf( '<dt>%s</dt><dd>%s</dd>', \esc_html__( 'Skipped', 'better-rest-api-logs' ), \esc_html( \number_format_i18n( $skipped ) ) );
+		echo '</dl>';
+
+		echo '<hr />';
+
+		// Reset form.
+		\printf( '<form method="post" action="%s" class="brl-import-tab__reset">', \esc_url( $action_url ) );
+		echo '<input type="hidden" name="action" value="brl_migration_reset" />';
+		\wp_nonce_field( 'brl_migration_reset' );
+		\printf(
+			'<button type="submit" class="button"%s>%s</button>',
+			$is_running ? ' disabled' : '',
+			\esc_html__( 'Reset import progress', 'better-rest-api-logs' )
+		);
+		\printf(
+			'<span class="description">%s</span>',
+			\esc_html__( 'Rewinds the progress counter only — already-imported logs are kept.', 'better-rest-api-logs' )
+		);
+		echo '</form>';
+
+		echo '</div>';
+	}
+
+	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
 
@@ -449,6 +695,8 @@ p.submit{display:flex;gap:8px;align-items:center;margin-top:16px;}
 				return \__( 'Network', 'better-rest-api-logs' );
 			case 'advanced':
 				return \__( 'Advanced', 'better-rest-api-logs' );
+			case 'import':
+				return \__( 'Import', 'better-rest-api-logs' );
 			default:
 				return \__( 'Unknown', 'better-rest-api-logs' );
 		}
