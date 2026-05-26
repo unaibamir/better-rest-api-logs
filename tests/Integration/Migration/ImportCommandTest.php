@@ -90,7 +90,7 @@ final class ImportCommandTest extends WP_UnitTestCase {
 
 		$command = $this->make_command();
 		\ob_start();
-		$command->import( [], [ 'dry-run' => true ] );
+		$command( [], [ 'dry-run' => true ] );
 		\ob_end_clean();
 
 		global $wpdb;
@@ -122,7 +122,7 @@ final class ImportCommandTest extends WP_UnitTestCase {
 
 		$command = $this->make_command();
 		\ob_start();
-		$command->import( [], [ 'reset' => true ] );
+		$command( [], [ 'reset' => true ] );
 		\ob_end_clean();
 
 		$state = Registry::get_internal( 'migration' );
@@ -132,6 +132,24 @@ final class ImportCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 'idle', $state['status'] ?? '', '--reset must set status back to idle' );
 	}
 
+
+	/**
+	 * WP-CLI dispatches `wp better-logs import` to __invoke(). A method named
+	 * import() would force the doubled verb `wp better-logs import import`, so
+	 * the documented invocation must map to __invoke and not to a stray import().
+	 */
+	public function test_command_dispatches_via_invoke(): void {
+		$this->assert_command_implemented();
+
+		$this->assertTrue(
+			\method_exists( $this->make_command(), '__invoke' ),
+			'ImportCommand must expose __invoke so the documented verb dispatches.'
+		);
+		$this->assertFalse(
+			\method_exists( $this->make_command(), 'import' ),
+			'A leftover import() method would require the doubled "import import" verb.'
+		);
+	}
 
 	private function assert_command_implemented(): void {
 		if ( ! \class_exists( 'BetterRestApiLogs\\Cli\\Commands\\ImportCommand' ) ) {

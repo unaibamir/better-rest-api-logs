@@ -43,7 +43,7 @@ final class ImportCommand extends \WP_CLI_Command {
 	 * @param array<int, mixed>    $args       Positional command arguments from WP-CLI.
 	 * @param array<string, mixed> $assoc_args Associative arguments from WP-CLI flags.
 	 */
-	public function import( array $args, array $assoc_args ): void {
+	public function __invoke( array $args, array $assoc_args ): void {
 		$required_cap = (string) \apply_filters( 'brl_admin_required_capability', 'manage_options', 'cli' );
 		if ( ! \current_user_can( $required_cap ) ) {
 			\WP_CLI::error( \sprintf( 'Insufficient capabilities (%s required).', $required_cap ) );

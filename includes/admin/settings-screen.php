@@ -567,7 +567,14 @@ if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.
 		$processed        = (int) ( $state['processed'] ?? 0 );
 		$imported         = (int) ( $state['imported'] ?? 0 );
 		$skipped          = (int) ( $state['skipped'] ?? 0 );
-		$source_total     = (int) ( $state['source_total'] ?? 0 );
+
+		// Nothing populates source_total in the marker, so count the upstream
+		// entries remaining past the current cursor live on render. Otherwise
+		// the Start button stays disabled and the tab claims there is nothing
+		// to import even when hundreds of wp-rest-api-log rows exist.
+		$cursor       = (int) ( $state['cursor'] ?? 0 );
+		$importer     = Plugin::instance()->container()->get( MigrationImporter::class );
+		$source_total = $importer->count_source( $cursor );
 
 		$action_url = \admin_url( 'admin-post.php' );
 		$is_running = 'running' === $migration_status;
