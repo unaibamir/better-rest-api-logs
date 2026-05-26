@@ -346,7 +346,10 @@ final class Flusher {
 			return null;
 		}
 
-		return $entry;
+		// Rehydrate from the (possibly mutated) array so documented mutations are
+		// honoured rather than silently discarded. The row written — and what the
+		// spill insert in run_pipeline reads — reflects the filtered values.
+		return Entry::from_array( $entry_data );
 	}
 
 	/**

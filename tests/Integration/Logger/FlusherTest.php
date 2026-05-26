@@ -199,4 +199,47 @@ final class FlusherTest extends WP_UnitTestCase {
 
 		$this->assertFalse( $warning_triggered, 'fastcgi_finish_request guard must not trigger E_WARNING on CLI.' );
 	}
+
+	/** A brl_pre_insert_entry mutation must be written, not silently discarded. */
+	public function test_pre_insert_entry_mutation_is_persisted(): void {
+		global $wpdb;
+		$this->boot_plugin();
+
+		$filter = static function ( array $entry ) {
+			$entry['route'] = '/mutated/by/filter';
+			return $entry;
+		};
+		\add_filter( 'brl_pre_insert_entry', $filter, 10, 3 );
+
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/posts' );
+		\rest_do_request( $request );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		\do_action( 'shutdown' );
+
+		\remove_filter( 'brl_pre_insert_entry', $filter, 10 );
+
+		$route = $wpdb->get_var( 'SELECT route FROM ' . Database::logs_table() . ' LIMIT 1' );
+		$this->assertSame( '/mutated/by/filter', $route, 'The filtered route must be the value written to the row.' );
+	}
+
+	/** Returning an empty array from brl_pre_insert_entry still drops the entry. */
+	public function test_pre_insert_entry_empty_array_drops_entry(): void {
+		global $wpdb;
+		$this->boot_plugin();
+
+		$filter = static function () {
+			return [];
+		};
+		\add_filter( 'brl_pre_insert_entry', $filter, 10, 3 );
+
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/posts' );
+		\rest_do_request( $request );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		\do_action( 'shutdown' );
+
+		\remove_filter( 'brl_pre_insert_entry', $filter, 10 );
+
+		$count = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Database::logs_table() );
+		$this->assertSame( 0, $count, 'An empty-array return must drop the entry.' );
+	}
 }
