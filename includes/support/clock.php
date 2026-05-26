@@ -26,9 +26,16 @@ final class Clock {
 
 	/**
 	 * Microseconds since the Unix epoch.
+	 *
+	 * Built from gettimeofday()'s integer second/microsecond components rather
+	 * than `(int) ( microtime( true ) * 1e6 )`. That float intermediate is ~1.75e15
+	 * today, far beyond PHP_INT_MAX (~2.1e9) on a 32-bit build, where casting an
+	 * out-of-range float to int is undefined and silently poisons the cursor key
+	 * and duration_ms. Integer arithmetic on the components is exact on 64-bit PHP.
 	 */
 	public function now_micros(): int {
-		return (int) ( \microtime( true ) * 1000000 );
+		$tod = \gettimeofday();
+		return ( (int) $tod['sec'] ) * 1000000 + (int) $tod['usec'];
 	}
 
 	/**
