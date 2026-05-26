@@ -130,6 +130,15 @@ final class Assets {
 				\BRL_VERSION,
 				true
 			);
+
+			// Pass translated strings to the detail page JS (I18N-03: string literal, no variable).
+			\wp_localize_script(
+				'brl-admin-detail',
+				'brlI18n',
+				[
+					'copied' => \esc_html__( 'Copied!', 'better-rest-api-logs' ),
+				]
+			);
 		}
 	}
 

@@ -112,7 +112,7 @@
 		 */
 		#flashCopied( button ) {
 			const original = button.textContent;
-			button.textContent = 'Copied!';
+			button.textContent = window.brlI18n?.copied ?? 'Copied!';
 			this.#pendingResets.push( button );
 			setTimeout( () => {
 				button.textContent = original;
