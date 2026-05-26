@@ -49,7 +49,14 @@ final class Entry {
 	public int $response_body_bytes      = 0;
 	public bool $response_body_truncated = false;
 	public bool $bodies_spilled          = false;
-	public ?string $migration_source_id  = null;
+	/**
+	 * Upstream post ID for migrated rows, or a string tag for any other source.
+	 * Typed loosely so the Mapper can store the raw integer post ID without casting;
+	 * the DB layer serialises via %s regardless.
+	 *
+	 * @var int|string|null
+	 */
+	public $migration_source_id = null;
 
 	/**
 	 * Merge a request + response snapshot pair into a new Entry.
