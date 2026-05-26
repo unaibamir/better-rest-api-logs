@@ -318,8 +318,10 @@ final class Capture {
 				'route_denylist'      => (array) $this->registry->get_setting( 'capture.route_denylist', [ '/better-rest-api-logs/v1/*' ] ),
 				'methods'             => (array) $this->registry->get_setting( 'capture.method_filter', [] ),
 				'status_class_filter' => (array) $this->registry->get_setting( 'capture.status_class_filter', [] ),
-				'cidr_allowlist'      => (array) $this->registry->get_setting( 'capture.cidr_allowlist', [] ),
-				'cidr_denylist'       => (array) $this->registry->get_setting( 'capture.cidr_denylist', [] ),
+				// The CIDR allow/deny lists are saved under the Network tab; read
+				// them from there so a deny CIDR the admin enters actually blocks.
+				'cidr_allowlist'      => (array) $this->registry->get_setting( 'network.cidr_allowlist', [] ),
+				'cidr_denylist'       => (array) $this->registry->get_setting( 'network.cidr_denylist', [] ),
 			],
 		];
 	}
