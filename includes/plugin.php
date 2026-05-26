@@ -23,6 +23,11 @@ use BetterRestApiLogs\Capture\Redactor;
 use BetterRestApiLogs\Capture\Truncator;
 use BetterRestApiLogs\Cron\Purge as CronPurge;
 use BetterRestApiLogs\Cron\Scheduler as CronScheduler;
+use BetterRestApiLogs\Migration\DedupIndex;
+use BetterRestApiLogs\Migration\Importer as MigrationImporter;
+use BetterRestApiLogs\Migration\Mapper as MigrationMapper;
+use BetterRestApiLogs\Migration\Reader as MigrationReader;
+use BetterRestApiLogs\Migration\Reset as MigrationReset;
 use BetterRestApiLogs\DB\BodyRepository;
 use BetterRestApiLogs\DB\LogRepository;
 use BetterRestApiLogs\DB\Schema;
@@ -276,6 +281,43 @@ final class Plugin {
 		\add_action( 'brl_purge_tick', [ $cron_purge, 'tick' ] );
 		\add_action( 'admin_notices', [ $cron_purge, 'maybe_render_schedule_notice' ] );
 		\add_filter( 'site_status_tests', [ $cron_purge, 'register_site_health_test' ] );
+
+		// -----------------------------------------------------------------------
+		// Phase 6 — Migration engine (MIG-01..07).
+		//
+		// Reader, Mapper, DedupIndex, and Reset are bound individually so the CLI
+		// and admin import surfaces can also resolve them. Importer is the cron
+		// drain tick and the primary entry point for the trigger surfaces (D-08).
+		// -----------------------------------------------------------------------
+		$this->container->bind(
+			MigrationReader::class,
+			static fn () => new MigrationReader()
+		);
+		$this->container->bind(
+			MigrationMapper::class,
+			static fn () => new MigrationMapper()
+		);
+		$this->container->bind(
+			DedupIndex::class,
+			static fn () => new DedupIndex()
+		);
+		$this->container->bind(
+			MigrationReset::class,
+			static fn () => new MigrationReset()
+		);
+		$this->container->bind(
+			MigrationImporter::class,
+			static fn ( Container $c ) => new MigrationImporter(
+				$c->get( MigrationReader::class ),
+				$c->get( MigrationMapper::class ),
+				$c->get( DedupIndex::class ),
+				$c->get( Redactor::class ),
+				$c->get( SettingsRegistry::class ),
+				$c->get( Clock::class )
+			)
+		);
+		$migration_importer = $this->container->get( MigrationImporter::class );
+		\add_action( 'brl_migration_tick', [ $migration_importer, 'tick' ] );
 
 		// -----------------------------------------------------------------------
 		// Phase 4 — Admin UI (D-55).
