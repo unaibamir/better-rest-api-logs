@@ -274,7 +274,12 @@ final class ListTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_cb( $item ): string {
-		return sprintf( '<input type="checkbox" name="log_ids[]" value="%d" />', (int) $item->id );
+		return sprintf(
+			'<input type="checkbox" name="log_ids[]" value="%d" aria-label="%s" />',
+			(int) $item->id,
+			/* translators: %d: log entry ID */
+			\esc_attr( sprintf( \__( 'Select log entry #%d', 'better-rest-api-logs' ), (int) $item->id ) )
+		);
 	}
 
 	/**

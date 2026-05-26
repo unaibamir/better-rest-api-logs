@@ -231,7 +231,7 @@ final class DetailScreen {
 
 		echo '<div class="brl-tabs__panel" role="tabpanel" data-brl-tab-panel="json">';
 		\printf(
-			'<pre class="brl-code" id="%s"><code class="language-json">%s</code></pre>',
+			'<pre class="brl-code" id="%s" tabindex="0"><code class="language-json">%s</code></pre>',
 			\esc_attr( $copy_id ),
 			\esc_html( $json )
 		);
@@ -276,7 +276,7 @@ final class DetailScreen {
 
 		echo '<div class="brl-tabs__panel" role="tabpanel" data-brl-tab-panel="json">';
 		\printf(
-			'<pre class="brl-code" id="%s"><code class="language-json">%s</code></pre>',
+			'<pre class="brl-code" id="%s" tabindex="0"><code class="language-json">%s</code></pre>',
 			\esc_attr( $copy_id ),
 			\esc_html( $json )
 		);
@@ -318,7 +318,7 @@ final class DetailScreen {
 				\esc_html__( 'Body was stored as empty.', 'better-rest-api-logs' )
 			);
 			\printf(
-				'<pre class="brl-code" id="%s" hidden><code class="language-%s"></code></pre>',
+				'<pre class="brl-code" id="%s" hidden tabindex="0"><code class="language-%s"></code></pre>',
 				\esc_attr( $id_attr ),
 				\esc_attr( $lang )
 			);
@@ -328,7 +328,7 @@ final class DetailScreen {
 		$display_body = self::maybe_pretty_print_body( $body, $lang );
 
 		\printf(
-			'<pre class="brl-code" id="%s"><code class="language-%s">%s</code></pre>',
+			'<pre class="brl-code" id="%s" tabindex="0"><code class="language-%s">%s</code></pre>',
 			\esc_attr( $id_attr ),
 			\esc_attr( $lang ),
 			\esc_html( $display_body )

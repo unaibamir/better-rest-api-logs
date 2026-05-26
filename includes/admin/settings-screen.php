@@ -719,16 +719,18 @@ if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.
 		foreach ( $defaults as $key => $default_value ) {
 			$label       = self::field_label( $slug, $key );
 			$description = self::field_description( $slug, $key );
+			$field_id    = "brl-field-{$slug}-{$key}";
 
 			\add_settings_field(
 				$key,
 				\esc_html( $label ),
-				static function () use ( $slug, $key, $values, $default_value, $description ): void {
+				static function () use ( $slug, $key, $values, $default_value, $description, $field_id ): void {
 					$current = $values[ $key ] ?? $default_value;
-					self::render_field( $slug, $key, $current, gettype( $default_value ), $description );
+					self::render_field( $slug, $key, $current, gettype( $default_value ), $description, $field_id );
 				},
 				$group,
-				$section
+				$section,
+				[ 'label_for' => $field_id ]
 			);
 		}
 	}
@@ -736,13 +738,18 @@ if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.
 	/**
 	 * Render a single settings field control based on the PHP type of its default value.
 	 *
+	 * The $field_id must match the label_for arg passed to add_settings_field() so
+	 * WP core renders the <th> label as <label for="{id}"> — satisfying WCAG 1.3.1
+	 * (form elements must have a programmatic label, A11Y-01/axe "label" rule).
+	 *
 	 * @param string $slug        Tab slug.
 	 * @param string $key         Setting key within the tab.
 	 * @param mixed  $value       Current stored value.
 	 * @param string $type        PHP type string from gettype() of the default value.
 	 * @param string $description Optional description shown below the control.
+	 * @param string $field_id    HTML id attribute for the control (must match label_for).
 	 */
-	private static function render_field( string $slug, string $key, $value, string $type, string $description ): void {
+	private static function render_field( string $slug, string $key, $value, string $type, string $description, string $field_id = '' ): void {
 		$name = "brl_settings_{$slug}[{$key}]";
 
 		switch ( $type ) {
@@ -752,16 +759,18 @@ if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.
 				// it, the sanitizer cannot tell "unchecked" from "field absent"
 				// and a default-true field can never be disabled from the UI.
 				\printf(
-					'<input type="hidden" name="%1$s" value="0" /><label><input type="checkbox" name="%1$s" value="1" %2$s /> %3$s</label>',
+					'<input type="hidden" name="%1$s" value="0" /><label><input type="checkbox" id="%4$s" name="%1$s" value="1" %2$s /> %3$s</label>',
 					\esc_attr( $name ),
 					\checked( (bool) $value, true, false ),
-					\esc_html( $description )
+					\esc_html( $description ),
+					\esc_attr( $field_id )
 				);
 				break;
 
 			case 'integer':
 				\printf(
-					'<input type="number" name="%s" value="%d" class="small-text" />',
+					'<input type="number" id="%s" name="%s" value="%d" class="small-text" />',
+					\esc_attr( $field_id ),
 					\esc_attr( $name ),
 					(int) $value
 				);
@@ -772,7 +781,8 @@ if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.
 
 			case 'array':
 				\printf(
-					'<textarea name="%s" rows="5" class="large-text code">%s</textarea>',
+					'<textarea id="%s" name="%s" rows="5" class="large-text code">%s</textarea>',
+					\esc_attr( $field_id ),
 					\esc_attr( $name ),
 					\esc_textarea( \implode( "\n", (array) $value ) )
 				);
@@ -783,7 +793,8 @@ if(e.key==="Escape"){var cancel=form.querySelector("a.button");if(cancel)cancel.
 
 			default: // String.
 				\printf(
-					'<input type="text" name="%s" value="%s" class="regular-text" />',
+					'<input type="text" id="%s" name="%s" value="%s" class="regular-text" />',
+					\esc_attr( $field_id ),
 					\esc_attr( $name ),
 					\esc_attr( (string) $value )
 				);

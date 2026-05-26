@@ -221,11 +221,25 @@
   }
 }
 
-/* highlight.js muted palette overrides (must follow default.min.css). */
-.brl-admin .brl-code .hljs-string  { color: #137333; }
-.brl-admin .brl-code .hljs-number  { color: #0b5394; }
-.brl-admin .brl-code .hljs-keyword { color: #b06000; }
-.brl-admin .brl-code .hljs-attr    { color: #50575e; }
+/* Move horizontal scroll to the <pre tabindex="0"> so that element is the
+ * keyboard-focusable scrollable region (axe scrollable-region-focusable rule).
+ * highlight.js default.min.css puts overflow-x:auto on the inner <code>; we
+ * invert that here so the element with tabindex owns the overflow. */
+.brl-admin .brl-code {
+  overflow-x: auto;
+}
+
+.brl-admin .brl-code code.hljs {
+  overflow-x: visible;
+}
+
+/* highlight.js muted palette overrides (must follow default.min.css).
+ * Colors chosen to meet WCAG-AA 4.5:1 against the WP admin code-block
+ * background (#f3f3f3 / computed ~#f6f7f7). Verified by axe-core gate. */
+.brl-admin .brl-code .hljs-string  { color: #137333; } /* 5.18:1 */
+.brl-admin .brl-code .hljs-number  { color: #0b5394; } /* 6.84:1 */
+.brl-admin .brl-code .hljs-keyword { color: #8a4500; } /* 7.16:1 — replaces #b06000 (4.32:1, FAIL) */
+.brl-admin .brl-code .hljs-attr    { color: #50575e; } /* 5.53:1 */
 
 /* ── Focus-visible ring (A11Y-01, D-18) ── */
 .brl-admin :is(a, button, input, select, textarea, [tabindex]):focus-visible {
