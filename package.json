@@ -3,7 +3,7 @@
   "private": true,
   "description": "Browser smoke tests for the Better REST API Logs WordPress plugin",
   "scripts": {
-    "e2e": "npx playwright test"
+    "e2e": "playwright test -c tests/e2e/playwright.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.11.3",

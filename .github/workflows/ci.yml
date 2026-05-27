@@ -302,7 +302,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:8080
           WP_ADMIN_USER: admin
           WP_ADMIN_PASS: admin
-        run: npx playwright test
+        run: npm run e2e
 
       - name: Upload Playwright report on failure
         if: failure()
