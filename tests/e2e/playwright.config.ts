@@ -64,6 +64,9 @@ export default defineConfig({
     },
   ],
 
-  /* Output for screenshots/traces */
-  outputDir: 'tests/e2e/test-results',
+  /* Output for screenshots/traces. Playwright resolves a relative outputDir
+   * against this config file's directory, so an absolute path keeps the
+   * artifacts at tests/e2e/test-results (where the CI job uploads from)
+   * regardless of the working directory the runner is invoked from. */
+  outputDir: path.join(__dirname, 'test-results'),
 });
